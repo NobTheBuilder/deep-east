@@ -221,6 +221,25 @@
   }
   @keyframes rise { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: translateY(0); } }
   @keyframes fade { to { opacity: 1; } }
+  /* ---------- WATERMARK ---------- */
+  /* The mark appears at scale exactly twice: behind About, and mirrored
+     behind the closing epigraph. Opening the page and closing it on the
+     same shape — 0, and then 1. Everything between is left alone. */
+  .has-wm { overflow: hidden; }
+  .watermark {
+    position: absolute; z-index: 1;
+    left: 50%; transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+  .watermark svg { width: 100%; height: auto; display: block; }
+  .watermark .stroke { fill: none; stroke: var(--brass); stroke-linecap: round; }
+  .wm-about { top: 52%; width: 112%; opacity: 0.065; }
+  .wm-close { top: 50%; width: 120%; opacity: 0.07;
+              transform: translate(-50%, -50%) scaleX(-1); }
+  /* the closing block carries the epigraph and the footer together, so the
+     mark is centred across both rather than crammed into the epigraph */
+  .closing { position: relative; overflow: hidden; }
+  @media (prefers-reduced-motion: reduce) { .watermark { opacity: 0.05; } }
   /* ---------- SECTIONS ---------- */
   section.block {
     padding: clamp(4rem, 10vw, 9rem) clamp(1.2rem, 5vw, 4rem);
@@ -282,6 +301,7 @@
     position: relative;
     z-index: 2;
   }
+  .epigraph span { position: relative; z-index: 3; }
   /* YANTRA (instrument) */
   .wrap { max-width: 1000px; margin: 0 auto; }
   .mono { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.28em;
@@ -419,7 +439,7 @@
     color: var(--muted); padding: 0.4rem 0.7rem; border: 1px solid rgba(201,162,75,0.16); border-radius: 3px;
   }
   /* ABOUT */
-  .about-wrap { max-width: 720px; }
+  .about-wrap { max-width: 720px; position: relative; z-index: 2; }
   .about-wrap p {
     font-family: var(--display);
     font-size: clamp(1.3rem, 2.6vw, 1.9rem);
@@ -625,7 +645,15 @@
   </div>
 </section>
 <!-- ABOUT -->
-<section class="block" id="about">
+<section class="block has-wm" id="about">
+  <div class="watermark wm-about">
+    <svg viewBox="0 0 320 100" aria-hidden="true">
+      <circle class="stroke" cx="26" cy="50" r="19" stroke-width="1.1"/>
+      <path class="stroke" stroke-width="1.1" d="M 52 50 C 64.02 25.21 72.98 25.21 85 50 C 97.02 68.72 105.98 68.72 118 50 C 130.02 36.83 138.98 36.83 151 50 C 163.02 58.22 171.98 58.22 184 50 C 196.02 45.98 204.98 45.98 217 50 C 229.02 50.86 237.98 50.86 250 50"/>
+      <path class="stroke" stroke-width="1.1" d="M 250 50 L 288 50"/>
+      <path class="stroke" stroke-width="1.1" d="M 292 19 L 292 81"/>
+    </svg>
+  </div>
   <div class="sec-head">
     <span class="mono-label">04</span>
     <h2>About</h2>
@@ -685,11 +713,21 @@
     </div>
   </div>
 </section>
-<div class="epigraph">The Universe is changing… The Gods are pleased by the nature of its flux.</div>
-<footer>
-  <span>Deep East © 2026</span>
-  <span>New Age Indian Electronica</span>
-</footer>
+<div class="closing">
+  <div class="watermark wm-close">
+    <svg viewBox="0 0 320 100" aria-hidden="true">
+      <circle class="stroke" cx="26" cy="50" r="19" stroke-width="1.1"/>
+      <path class="stroke" stroke-width="1.1" d="M 52 50 C 64.02 25.21 72.98 25.21 85 50 C 97.02 68.72 105.98 68.72 118 50 C 130.02 36.83 138.98 36.83 151 50 C 163.02 58.22 171.98 58.22 184 50 C 196.02 45.98 204.98 45.98 217 50 C 229.02 50.86 237.98 50.86 250 50"/>
+      <path class="stroke" stroke-width="1.1" d="M 250 50 L 288 50"/>
+      <path class="stroke" stroke-width="1.1" d="M 292 19 L 292 81"/>
+    </svg>
+  </div>
+  <div class="epigraph"><span>The Universe is changing… The Gods are pleased by the nature of its flux.</span></div>
+  <footer>
+    <span>Deep East © 2026</span>
+    <span>New Age Indian Electronica</span>
+  </footer>
+</div>
 <script>
 /* Deliberately conservative: var, function expressions, no template literals,
    no arrow functions, no optional chaining. Runs on any browser from ~2016 on. */
