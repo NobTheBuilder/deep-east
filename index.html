@@ -400,12 +400,18 @@
     background: var(--brass); border: none; }
   /* ============ shared "hidden reveal" language — one convention,
      used by hero, Yantra, About and Rig alike ============ */
-  .hidden-verse {
+  /* The About panel used to win this on specificity alone — its verses came
+     out larger and bone-coloured while every other panel stayed small and
+     brass. That reading is the better one, so it is now the rule. Scoping to
+     .reveal-panel outranks .about-wrap p, so About no longer overrides it. */
+  .reveal-panel .hidden-verse {
     font-family: var(--display); font-style: italic;
-    color: var(--brass); font-size: clamp(1rem, 1.5vw, 1.25rem);
-    line-height: 1.62; opacity: 0.92;
+    font-weight: 400;
+    color: var(--bone);
+    font-size: clamp(1.3rem, 2.6vw, 1.9rem);
+    line-height: 1.5; opacity: 0.92;
   }
-  .hidden-verse + .hidden-verse { margin-top: 1em; }
+  .reveal-panel .hidden-verse + .hidden-verse { margin-top: 0.7em; }
   .hidden-mark {
     display: block; width: 22px; height: 1px;
     background: rgba(201,162,75,0.45);
@@ -422,9 +428,12 @@
   .reveal-panel {
     max-height: 0; overflow: hidden; opacity: 0;
     transition: max-height 0.7s ease, opacity 0.7s ease, margin-top 0.7s ease;
-    margin-top: 0; max-width: 44ch;
+    margin-top: 0; max-width: 52ch;
   }
-  .reveal-panel.open { max-height: 18em; opacity: 1; margin-top: 1.6rem; }
+  /* the verses are set large now, so two of them can run to several lines.
+     This ceiling is generous on purpose — max-height only needs to exceed the
+     real height, and anything short of that silently clips the last line. */
+  .reveal-panel.open { max-height: 32em; opacity: 1; margin-top: 1.6rem; }
   /* the rig mark sits on the section heading, so its panel tucks up
      under the 3rem header gap rather than floating below it */
   #rigPanel { margin-top: -1.6rem; }
