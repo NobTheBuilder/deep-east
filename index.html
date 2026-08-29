@@ -782,6 +782,24 @@
   var bpmInput = document.getElementById("bpm");
   var bpmVal = document.getElementById("bpmVal");
   var geo = { cx: 0, cy: 0, R: 0 };
+  /* ---------- silence Sound's embeds ---------- */
+  /* A cross-origin iframe cannot be paused from outside — there is no
+     shared API with SoundCloud or Spotify's players — but it can be
+     unloaded. Swapping the src to blank stops playback immediately;
+     restoring it a moment later leaves the embed loaded and paused,
+     ready for next time, rather than permanently blanked. */
+  var soundFrames = document.querySelectorAll("#sound iframe");
+  function hushSoundEmbeds() {
+    for (var i = 0; i < soundFrames.length; i++) {
+      (function (frame) {
+        var original = frame.getAttribute("data-src") || frame.src;
+        if (!frame.getAttribute("data-src")) { frame.setAttribute("data-src", original); }
+        if (frame.src === "about:blank") { return; }
+        frame.src = "about:blank";
+        setTimeout(function () { frame.src = original; }, 80);
+      })(soundFrames[i]);
+    }
+  }
   /* ---------- audio ---------- */
   function audio() {
     if (!ac) {
@@ -1590,6 +1608,7 @@
       } catch (err) {}
       var begin = function () {
         playing = true;
+        hushSoundEmbeds();
         t0 = ac.currentTime + 0.06;
         if (!shapes.length && !drone) { toggleShape(SHAPES[0]); }
         for (var i = 0; i < shapes.length; i++) { align(shapes[i]); }
@@ -1702,6 +1721,21 @@
   syncBtn();
   renderPanel();
   requestAnimationFrame(draw);
+  /* ---------- auto-pause on scroll-away ---------- */
+  /* The reverse of the Sound clash: someone leaves Yantra running, scrolls
+     up, and presses play inside the SoundCloud or Spotify embed. That embed
+     is cross-origin and cannot be reached to stop Yantra from there, so
+     instead Yantra stops itself once its own section is no longer visible —
+     scrolling away is itself the signal, regardless of what starts next. */
+  if (window.IntersectionObserver) {
+    var yantraSection = document.getElementById("yantra");
+    if (yantraSection) {
+      var io = new IntersectionObserver(function (entries) {
+        if (!entries[0].isIntersecting && playing) { togglePlay(); }
+      }, { threshold: 0 });
+      io.observe(yantraSection);
+    }
+  }
 })();
 </script>
 <script>
