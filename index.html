@@ -398,6 +398,36 @@
     width: 15px; height: 15px; border-radius: 50%; background: var(--brass); border: none; }
   input[type=range]::-moz-range-thumb { width: 15px; height: 15px; border-radius: 50%;
     background: var(--brass); border: none; }
+  /* ---------- Share Scene ---------- */
+  .share { display: flex; flex-direction: column; gap: 0.7rem; }
+  .share-btn {
+    font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.18em;
+    text-transform: uppercase; background: none; color: var(--brass);
+    border: 1px solid rgba(201,162,75,0.35); border-radius: 3px;
+    padding: 0.7rem 0.9rem; cursor: pointer; width: 100%;
+    -webkit-appearance: none; appearance: none; touch-action: manipulation;
+    transition: border-color 0.2s ease, background 0.2s ease;
+  }
+  .share-btn:hover { border-color: var(--brass); background: rgba(201,162,75,0.06); }
+  .share-out { display: flex; gap: 0.4rem; }
+  .share-link {
+    flex: 1; min-width: 0;
+    font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.02em;
+    background: var(--stone-2); color: var(--bone);
+    border: 1px solid rgba(201,162,75,0.25); border-radius: 3px;
+    padding: 0.55rem 0.6rem; -webkit-appearance: none; appearance: none;
+    text-overflow: ellipsis;
+  }
+  .share-copy {
+    font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.1em;
+    text-transform: uppercase; background: none; color: var(--muted);
+    border: 1px solid rgba(201,162,75,0.25); border-radius: 3px;
+    padding: 0.55rem 0.7rem; cursor: pointer; flex: none;
+    -webkit-appearance: none; appearance: none; touch-action: manipulation;
+  }
+  .share-copy:hover { border-color: var(--brass); color: var(--brass); }
+  .share-copy.done { color: var(--brass); border-color: rgba(201,162,75,0.5); }
+  .share-note { line-height: 1.5; margin: 0; }
   /* ============ shared "hidden reveal" language — one convention,
      used by hero, Yantra, About and Rig alike ============ */
   /* The About panel used to win this on specificity alone — its verses came
@@ -649,6 +679,14 @@
       <div>
         <div class="tempo-line"><span class="hint">Tempo</span><span class="bpm" id="bpmVal">96 BPM</span></div>
         <input type="range" id="bpm" min="50" max="180" value="96" />
+      </div>
+      <div class="share">
+        <button class="share-btn" id="shareBtn" type="button">Share Scene</button>
+        <div class="share-out" id="shareOut" hidden>
+          <input type="text" id="shareLink" class="share-link" readonly aria-label="Shareable link" />
+          <button class="share-copy" id="shareCopy" type="button">Copy</button>
+        </div>
+        <p class="hint share-note" id="shareNote" hidden>Send this link &mdash; it opens the Yantra with your rhythm loaded. Tap play to hear it.</p>
       </div>
     </div>
   </div>
@@ -1707,8 +1745,185 @@
       for (var i = 0; i < shapes.length; i++) { align(shapes[i]); }
     } else { T = 240 / bpm; }
   }, false);
-  /* ---------- opening pattern: 4 against 3, with an offbeat hat ---------- */
+  /* ============================================================
+     Share Scene: encode the live pattern into the URL hash so it
+     travels in a plain link — no server, works on the static site.
+     Format:  v1~<bpm>~<drone>~<droneKey>~shape_shape_shape
+     shape:   n.instIdx.rotMilli[.m<muted-csv>][.a<angles-milli-csv>][.s1]
+     ============================================================ */
+  function captureState() {
+    var st = { bpm: bpm, drone: drone ? 1 : 0, droneKey: droneKey, shapes: [] };
+    for (var i = 0; i < shapes.length; i++) {
+      var s = shapes[i];
+      var instIdx = INSTS.indexOf(s.inst); if (instIdx < 0) { instIdx = 0; }
+      var seg = { n: s.n, instIdx: instIdx, rot: Math.round(s.rot * 1000),
+                  mutes: s.mutes.slice(), ang: null, silent: s.silent ? 1 : 0 };
+      if (!isEven(s)) {
+        var am = [], k;
+        for (k = 0; k < s.ang.length; k++) { am.push(Math.round(s.ang[k] * 1000)); }
+        seg.ang = am;
+      }
+      st.shapes.push(seg);
+    }
+    return st;
+  }
+  function encodeState(st) {
+    var parts = ["v1", String(st.bpm), String(st.drone), String(st.droneKey)];
+    var shp = [], i;
+    for (i = 0; i < st.shapes.length; i++) {
+      var s = st.shapes[i];
+      var seg = s.n + "." + s.instIdx + "." + s.rot;
+      if (s.mutes && s.mutes.length) { seg += ".m" + s.mutes.join("-"); }
+      if (s.ang) { seg += ".a" + s.ang.join("-"); }
+      if (s.silent) { seg += ".s1"; }
+      shp.push(seg);
+    }
+    parts.push(shp.join("_"));
+    return parts.join("~");
+  }
+  function decodeState(str) {
+    if (!str) { return null; }
+    var parts = str.split("~");
+    if (parts[0] !== "v1") { return null; }
+    var out = { bpm: parseInt(parts[1], 10) || 96,
+                drone: parts[2] === "1",
+                droneKey: parseInt(parts[3], 10) || 0, shapes: [] };
+    var shp = parts[4] ? parts[4].split("_") : [], i, j;
+    for (i = 0; i < shp.length; i++) {
+      if (!shp[i]) { continue; }
+      var f = shp[i].split(".");
+      var sh = { n: parseInt(f[0], 10), instIdx: parseInt(f[1], 10),
+                 rot: (parseInt(f[2], 10) || 0) / 1000, mutes: [], ang: null, silent: false };
+      for (j = 3; j < f.length; j++) {
+        var tag = f[j].charAt(0), rest = f[j].substring(1);
+        if (tag === "m") {
+          sh.mutes = [];
+          if (rest.length) {
+            var mv = rest.split("-");
+            for (var a = 0; a < mv.length; a++) { sh.mutes.push(parseInt(mv[a], 10)); }
+          }
+        } else if (tag === "a") {
+          sh.ang = [];
+          var av = rest.split("-");
+          for (var b = 0; b < av.length; b++) { sh.ang.push((parseInt(av[b], 10) || 0) / 1000); }
+        } else if (tag === "s") {
+          sh.silent = rest === "1";
+        }
+      }
+      if (sh.n > 0 && !isNaN(sh.n)) { out.shapes.push(sh); }
+    }
+    return out;
+  }
+  /* Rebuild the live instrument from a decoded state. Defensive: ignores
+     shapes whose N isn't a real Yantra shape, clamps instrument index. */
+  function applyState(st) {
+    if (!st) { return false; }
+    bpm = st.bpm; if (bpm < 50) { bpm = 50; } if (bpm > 180) { bpm = 180; }
+    bpmInput.value = bpm; bpmVal.innerHTML = bpm + " BPM"; T = 240 / bpm;
+    droneKey = ((st.droneKey % 12) + 12) % 12;
+    shapes = [];
+    for (var i = 0; i < st.shapes.length; i++) {
+      var sh = st.shapes[i], def = defByN(sh.n);
+      if (!def) { continue; }
+      var inst = INSTS[(sh.instIdx >= 0 && sh.instIdx < INSTS.length) ? sh.instIdx : 0];
+      var s = makeShape(def, inst, sh.mutes);
+      s.rot = ((sh.rot % 1) + 1) % 1;
+      s.silent = !!sh.silent;
+      if (sh.ang && sh.ang.length === sh.n) { s.ang = sh.ang.slice(); }
+      rebuildOrder(s);
+      shapes.push(s);
+    }
+    recomputeRings();
+    for (var j = 0; j < shapes.length; j++) { shapes[j].ring = shapes[j].ringT; }
+    drone = false;            /* start from silence; only turn on if requested */
+    if (st.drone) { drone = true; }   /* startDrone() fires when playback begins */
+    return true;
+  }
+  /* read a scene from the page hash, e.g. #y=v1~... */
+  function stateFromHash() {
+    var h = window.location.hash || "";
+    var m = h.indexOf("y=");
+    if (m === -1) { return null; }
+    var raw = h.substring(m + 2);
+    var amp = raw.indexOf("&"); if (amp !== -1) { raw = raw.substring(0, amp); }
+    try { raw = decodeURIComponent(raw); } catch (e) {}
+    return decodeState(raw);
+  }
+  function buildShareLink() {
+    var s = encodeState(captureState());
+    var base = window.location.origin + window.location.pathname;
+    return base + "#y=" + s;
+  }
+
+  /* ---------- Share Scene wiring ---------- */
+  (function () {
+    var shareBtn = document.getElementById("shareBtn");
+    var shareOut = document.getElementById("shareOut");
+    var shareNote = document.getElementById("shareNote");
+    var shareLink = document.getElementById("shareLink");
+    var shareCopy = document.getElementById("shareCopy");
+    if (!shareBtn) { return; }
+
+    function copyText(txt) {
+      /* modern path */
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(txt)["catch"](function () { legacyCopy(txt); });
+        return;
+      }
+      legacyCopy(txt);
+    }
+    function legacyCopy(txt) {
+      try {
+        shareLink.removeAttribute("readonly");
+        shareLink.focus(); shareLink.select();
+        shareLink.setSelectionRange(0, txt.length);
+        document.execCommand("copy");
+        shareLink.setAttribute("readonly", "readonly");
+      } catch (e) {}
+    }
+    function flashCopied() {
+      shareCopy.className = "share-copy done";
+      shareCopy.innerHTML = "Copied";
+      setTimeout(function () {
+        shareCopy.className = "share-copy"; shareCopy.innerHTML = "Copy";
+      }, 1600);
+    }
+
+    shareBtn.addEventListener("click", function (e) {
+      e.preventDefault();
+      var link = buildShareLink();
+      shareLink.value = link;
+      shareOut.hidden = false;
+      shareNote.hidden = false;
+      /* also drop it into the address bar so a plain page-refresh keeps the scene,
+         and so mobile "share current page" grabs the right URL */
+      try { window.history.replaceState(null, "", link); } catch (er) {}
+      shareLink.focus(); shareLink.select();
+      copyText(link);
+      flashCopied();
+    }, false);
+
+    shareCopy.addEventListener("click", function (e) {
+      e.preventDefault();
+      copyText(shareLink.value);
+      flashCopied();
+    }, false);
+  })();
+
+  /* ---------- opening pattern: shared scene if present, else 4-against-3 ---------- */
   (function seed() {
+    var shared = stateFromHash();
+    if (shared && applyState(shared)) {
+      /* This instrument now lives partway down a long page, with a hero
+         above it — unlike the isolated test build, landing on a shared
+         link here would otherwise drop the visitor at the top of the
+         site, not on the pattern they were sent to hear. */
+      var sec = document.getElementById("yantra");
+      if (sec) {
+        requestAnimationFrame(function () { sec.scrollIntoView({ block: "start" }); });
+      }
+      return;
+    }
     shapes = [
       makeShape(defByN(4), "kick", []),
       makeShape(defByN(3), "clap", [2]),
