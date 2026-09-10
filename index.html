@@ -359,8 +359,9 @@
                     margin-right: 0.5em; vertical-align: middle; opacity: 0.5; }
   .row button.on .sw { opacity: 1; }
   .layers { display: flex; flex-direction: column; gap: 0.45rem; min-height: 2.5rem; }
-  .layer { display: flex; align-items: center; gap: 0.6rem; background: var(--stone-2);
+  .layer { display: flex; flex-direction: column; gap: 0.4rem; background: var(--stone-2);
            border: 1px solid rgba(201,162,75,0.14); border-radius: 3px; padding: 0.45rem 0.6rem; }
+  .layer-main { display: flex; align-items: center; gap: 0.6rem; }
   .layer .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
   .layer.off { opacity: 0.4; }
   .layer.off .dot { background: none !important; box-shadow: inset 0 0 0 1px currentColor; }
@@ -371,25 +372,34 @@
                  cursor: pointer; flex: none; width: 5.4em; text-align: left; padding: 0.2rem 0;
                  -webkit-appearance: none; appearance: none; touch-action: manipulation; }
   .layer .gap { flex: 1; min-width: 0.4rem; align-self: stretch; }
-  .layer .off-wrap { flex: 1.6; display: flex; align-items: center; gap: 0.55rem; min-width: 5.5rem; }
-  .layer .otrack {
+  .layer .rm { background: none; border: none; color: var(--muted); font-family: var(--mono);
+               font-size: 0.9rem; cursor: pointer; padding: 0.1rem 0.35rem;
+               -webkit-appearance: none; appearance: none; touch-action: manipulation; }
+  /* One slider per shape, living where rotation used to sit — offset to
+     the right in the identity row. Rotation itself isn't gone, it just
+     moved entirely to dragging the shape on the sphere; this slot is now
+     volume alone, not a second control competing for the same row. */
+  .layer .vol-inline { flex: 1.6; display: flex; align-items: center; gap: 0.55rem; min-width: 5.5rem; }
+  .vtrack {
     position: relative; flex: 1; height: 2px; min-width: 3rem;
     background: rgba(201,162,75,0.22); border-radius: 1px;
     cursor: pointer; touch-action: none;
   }
-  .layer .otrack::after {                 /* fatter invisible grab area */
+  .vtrack::after {               /* fatter invisible grab area */
     content: ""; position: absolute; left: 0; right: 0; top: -11px; bottom: -11px;
   }
-  .layer .otick { position: absolute; top: -3px; width: 1px; height: 8px;
-                  background: rgba(201,162,75,0.26); }
-  .layer .oknob { position: absolute; top: -6px; width: 14px; height: 14px;
-                  border-radius: 50%; margin-left: -7px; pointer-events: none; }
-  .layer .odeg { font-family: var(--mono); font-size: 0.58rem; color: var(--muted);
-                 width: 2.6em; text-align: right; flex: none; }
-  .layer.off .otrack { opacity: 0.4; }
-  .layer .rm { background: none; border: none; color: var(--muted); font-family: var(--mono);
-               font-size: 0.9rem; cursor: pointer; padding: 0.1rem 0.35rem;
-               -webkit-appearance: none; appearance: none; touch-action: manipulation; }
+  .vknob { position: absolute; top: -6px; width: 14px; height: 14px;
+           border-radius: 50%; margin-left: -7px; pointer-events: none; }
+  .vpct { font-family: var(--mono); font-size: 0.58rem; color: var(--muted);
+          width: 2.6em; text-align: right; flex: none; }
+  .layer.off .vtrack { opacity: 0.4; }
+  /* the drone's volume row is unaffected — it never had a rotation slider
+     to consolidate away, so it keeps its own full-width line */
+  .vol-wrap { display: flex; align-items: center; gap: 0.55rem; padding-left: calc(10px + 0.6rem); }
+  .vol-wrap .ctrl-label, .layer .vol-inline .ctrl-label {
+    font-family: var(--mono); font-size: 0.56rem; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--muted); flex: none; width: 2em;
+  }
   .tempo-line { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.4rem; }
   .bpm { font-family: var(--mono); font-size: 0.7rem; color: var(--bone); }
   input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 2px;
@@ -412,7 +422,11 @@
   .share-out { display: flex; gap: 0.4rem; }
   .share-link {
     flex: 1; min-width: 0;
-    font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.02em;
+    /* 16px, not smaller: iOS auto-zooms the whole page on focusing any
+       input under that size. legacyCopy() genuinely needs to focus this
+       field for its execCommand fallback, so the field itself has to be
+       large enough that doing so doesn't trigger the zoom. */
+    font-family: var(--mono); font-size: 16px; letter-spacing: 0.01em;
     background: var(--stone-2); color: var(--bone);
     border: 1px solid rgba(201,162,75,0.25); border-radius: 3px;
     padding: 0.55rem 0.6rem; -webkit-appearance: none; appearance: none;
@@ -803,6 +817,12 @@
   var DRONE_COL = "#c9a24b";
   var shapes = [];
   var drone = false, droneNodes = null;
+  var droneVol = 1;
+  function setDroneVolume(v) {
+    if (v < 0) { v = 0; } if (v > 1) { v = 1; }
+    droneVol = v;
+    if (droneNodes && ac) { droneNodes.userGain.gain.setTargetAtTime(v, ac.currentTime, 0.012); }
+  }
   var droneKey = 0;   /* semitones above A2 (110 Hz) */
   var NOTE_NAMES = ["A","A\u266F","B","C","C\u266F","D","D\u266F","E","F","F\u266F","G","G\u266F"];
   function droneRoot() { return 110 * Math.pow(2, droneKey / 12); }
@@ -892,40 +912,40 @@
     return ac;
   }
   /* short noise burst helper */
-  function noiseHit(t, dur, type, freq, q, peak, curve) {
+  function noiseHit(t, dur, type, freq, q, peak, curve, dest) {
     var s = ac.createBufferSource(); s.buffer = noiseBuf; s.loop = true;
     var f = ac.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;
     var g = ac.createGain();
     g.gain.setValueAtTime(peak, t);
     if (curve === "linear") { g.gain.linearRampToValueAtTime(0.0001, t + dur); }
     else { g.gain.exponentialRampToValueAtTime(0.0001, t + dur); }
-    s.connect(f); f.connect(g); g.connect(master);
+    s.connect(f); f.connect(g); g.connect(dest || master);
     s.start(t); s.stop(t + dur + 0.02);
   }
   /* a struck, pitched body: sine with a falling pitch envelope */
-  function body(t, f0, f1, dropT, dur, peak, type) {
+  function body(t, f0, f1, dropT, dur, peak, type, dest) {
     var o = ac.createOscillator(), g = ac.createGain();
     o.type = type || "sine";
     o.frequency.setValueAtTime(f0, t);
     o.frequency.exponentialRampToValueAtTime(Math.max(f1, 0.001), t + dropT);
     g.gain.setValueAtTime(peak, t);
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.connect(g); g.connect(master);
+    o.connect(g); g.connect(dest || master);
     o.start(t); o.stop(t + dur + 0.02);
     return o;
   }
   var SYNTH = {
     /* 808 lineage: long sine, deep pitch drop, plus a click transient */
-    kick: function (t) {
+    kick: function (t, dest) {
       /* The three parts are offset by a few milliseconds so their peaks do
          not coincide. That buys headroom without cutting anything, so the
          sub keeps its weight on monitors while the knock carries phones. */
-      noiseHit(t, 0.009, "highpass", 2600, 0.7, 0.13, "linear");   /* click, first */
-      body(t + 0.0025, 340, 200, 0.035, 0.11, 0.24, "triangle");   /* knock */
-      body(t + 0.006, 175, 52, 0.085, 0.52, 0.72);                 /* sub, last + deeper */
+      noiseHit(t, 0.009, "highpass", 2600, 0.7, 0.13, "linear", dest);   /* click, first */
+      body(t + 0.0025, 340, 200, 0.035, 0.11, 0.24, "triangle", dest);   /* knock */
+      body(t + 0.006, 175, 52, 0.085, 0.52, 0.72, undefined, dest);      /* sub, last + deeper */
     },
     /* 909 lineage: six squares at odd ratios through a steep highpass */
-    hat: function (t) {
+    hat: function (t, dest) {
       var ratios = [1, 1.4471, 1.6170, 1.9265, 2.5028, 2.6637];
       var base = 320;
       var hp = ac.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 8200; hp.Q.value = 0.7;
@@ -938,34 +958,34 @@
         o.type = "square"; o.frequency.value = base * ratios[i];
         o.connect(hp); o.start(t); o.stop(t + 0.07);
       }
-      hp.connect(bp); bp.connect(g); g.connect(master);
+      hp.connect(bp); bp.connect(g); g.connect(dest || master);
     },
     /* tuned shell + rattle */
-    snare: function (t) {
-      body(t, 238, 178, 0.06, 0.13, 0.42, "triangle");
-      body(t, 331, 246, 0.06, 0.11, 0.28, "triangle");
-      noiseHit(t, 0.19, "highpass", 1500, 0.5, 0.46);
-      noiseHit(t, 0.06, "bandpass", 4200, 0.8, 0.34);
+    snare: function (t, dest) {
+      body(t, 238, 178, 0.06, 0.13, 0.42, "triangle", dest);
+      body(t, 331, 246, 0.06, 0.11, 0.28, "triangle", dest);
+      noiseHit(t, 0.19, "highpass", 1500, 0.5, 0.46, undefined, dest);
+      noiseHit(t, 0.06, "bandpass", 4200, 0.8, 0.34, undefined, dest);
     },
     /* three fast taps then a short diffuse tail */
-    clap: function (t) {
+    clap: function (t, dest) {
       var offs = [0, 0.011, 0.021];
       for (var i = 0; i < offs.length; i++) {
-        noiseHit(t + offs[i], 0.032, "bandpass", 1150, 1.1, 0.5, "linear");
+        noiseHit(t + offs[i], 0.032, "bandpass", 1150, 1.1, 0.5, "linear", dest);
       }
-      noiseHit(t + 0.03, 0.26, "bandpass", 1350, 0.9, 0.34);
-      noiseHit(t, 0.01, "highpass", 3000, 0.6, 0.22, "linear");
+      noiseHit(t + 0.03, 0.26, "bandpass", 1350, 0.9, 0.34, undefined, dest);
+      noiseHit(t, 0.01, "highpass", 3000, 0.6, 0.22, "linear", dest);
     },
-    "tom hi": function (t) {
-      body(t, 300, 170, 0.11, 0.36, 0.46);
-      noiseHit(t, 0.02, "bandpass", 900, 0.9, 0.16, "linear");
+    "tom hi": function (t, dest) {
+      body(t, 300, 170, 0.11, 0.36, 0.46, undefined, dest);
+      noiseHit(t, 0.02, "bandpass", 900, 0.9, 0.16, "linear", dest);
     },
-    "tom lo": function (t) {
-      body(t, 168, 88, 0.14, 0.48, 0.5);
-      noiseHit(t, 0.02, "bandpass", 620, 0.9, 0.16, "linear");
+    "tom lo": function (t, dest) {
+      body(t, 168, 88, 0.14, 0.48, 0.5, undefined, dest);
+      noiseHit(t, 0.02, "bandpass", 620, 0.9, 0.16, "linear", dest);
     },
     /* bright rimmed stroke — sharp attack, fast metallic ring */
-    "na": function (t) {
+    "na": function (t, dest) {
       var o = ac.createOscillator(), g = ac.createGain();
       o.type = "triangle";
       o.frequency.setValueAtTime(880, t);
@@ -974,13 +994,13 @@
       g.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
       var bp = ac.createBiquadFilter(); bp.type = "bandpass";
       bp.frequency.value = 1750; bp.Q.value = 5.5;
-      o.connect(bp); bp.connect(g); g.connect(master);
+      o.connect(bp); bp.connect(g); g.connect(dest || master);
       o.start(t); o.stop(t + 0.18);
-      noiseHit(t, 0.014, "highpass", 5200, 0.8, 0.3, "linear");
-      body(t, 1500, 1180, 0.02, 0.05, 0.14, "sine");
+      noiseHit(t, 0.014, "highpass", 5200, 0.8, 0.3, "linear", dest);
+      body(t, 1500, 1180, 0.02, 0.05, 0.14, "sine", dest);
     },
     /* low bending stroke — the pitch slide that gives it its voice */
-    "ge": function (t) {
+    "ge": function (t, dest) {
       var o = ac.createOscillator(), g = ac.createGain();
       o.type = "sine";
       o.frequency.setValueAtTime(105, t);
@@ -990,20 +1010,42 @@
       g.gain.exponentialRampToValueAtTime(0.0001, t + 0.46);
       var lp = ac.createBiquadFilter(); lp.type = "lowpass";
       lp.frequency.value = 900; lp.Q.value = 1.4;
-      o.connect(lp); lp.connect(g); g.connect(master);
+      o.connect(lp); lp.connect(g); g.connect(dest || master);
       o.start(t); o.stop(t + 0.48);
-      body(t, 210, 150, 0.05, 0.10, 0.16, "triangle");
-      noiseHit(t, 0.016, "lowpass", 1400, 0.7, 0.2, "linear");
+      body(t, 210, 150, 0.05, 0.10, 0.16, "triangle", dest);
+      noiseHit(t, 0.016, "lowpass", 1400, 0.7, 0.2, "linear", dest);
     }
   };
+  /* one persistent gain node per shape, sitting between its voice and the
+     master bus — created lazily on first use, since shapes can exist
+     before the AudioContext does (nobody's pressed Play yet) */
+  function getShapeGain(s) {
+    if (!s.gain) {
+      s.gain = ac.createGain();
+      s.gain.gain.value = (typeof s.vol === "number") ? s.vol : 1;
+      s.gain.connect(master);
+    }
+    return s.gain;
+  }
+  /* setTargetAtTime glides rather than jumps, so dragging the fader while
+     the pattern is playing doesn't click */
+  function setShapeVolume(s, v) {
+    if (v < 0) { v = 0; } if (v > 1) { v = 1; }
+    s.vol = v;
+    if (s.gain && ac) { s.gain.gain.setTargetAtTime(v, ac.currentTime, 0.012); }
+  }
   function startDrone() {
     if (droneNodes || !ac) { return; }
     var now = ac.currentTime;
     var out = ac.createGain();
     out.gain.setValueAtTime(0.0001, now);
     out.gain.exponentialRampToValueAtTime(0.16, now + 2.2);
+    /* separate from the envelope above — this is the user-facing volume
+       fader, so raising/lowering it never fights the fade-in ramp */
+    var userGain = ac.createGain();
+    userGain.gain.value = droneVol;
     var lp = ac.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 1400; lp.Q.value = 0.6;
-    out.connect(lp); lp.connect(master);
+    out.connect(userGain); userGain.connect(lp); lp.connect(master);
     var base = droneRoot();
     /* tanpura logic: tonic, a detuned twin, the fifth, the octave */
     var ratios = [1, 1, 1.5, 2];
@@ -1022,7 +1064,7 @@
     var lfo = ac.createOscillator(), lg = ac.createGain();
     lfo.frequency.value = 0.07; lg.gain.value = 380;
     lfo.connect(lg); lg.connect(lp.frequency); lfo.start(now);
-    droneNodes = { out: out, oscs: oscs, lfo: lfo };
+    droneNodes = { out: out, userGain: userGain, oscs: oscs, lfo: lfo };
   }
   function retuneDrone() {
     if (!droneNodes || !ac) { return; }
@@ -1095,7 +1137,7 @@
       var s = shapes[i], guard = 0;
       while (s.nt < until && guard++ < 96) {
         if (!s.silent && s.mutes.indexOf(s.nk) === -1) {
-          SYNTH[s.inst](s.nt);
+          SYNTH[s.inst](s.nt, getShapeGain(s));
           queueFlash(s, s.nk, s.nt);
         }
         advance(s);
@@ -1412,7 +1454,7 @@
     var s = { n: def.n, name: def.name, inst: inst,
               color: COLORS[idx % COLORS.length],
               ring: 1, ringT: 1, rot: 0, ang: ang, order: [], oi: 0,
-              silent: false,
+              silent: false, vol: 1, gain: null,
               mutes: mutes ? mutes.slice() : [], nk: 0, nt: 0 };
     rebuildOrder(s);
     return s;
@@ -1445,7 +1487,10 @@
     }
     var found = -1, i;
     for (i = 0; i < shapes.length; i++) { if (shapes[i].n === def.n) { found = i; break; } }
-    if (found >= 0) { shapes.splice(found, 1); }
+    if (found >= 0) {
+      if (shapes[found].gain) { shapes[found].gain.disconnect(); }
+      shapes.splice(found, 1);
+    }
     else {
       var used = [], j;
       for (j = 0; j < shapes.length; j++) { used.push(shapes[j].inst); }
@@ -1482,35 +1527,25 @@
       })(SHAPES[i]);
     }
   })();
-  var rowRefs = [];
-  /* Update values without rebuilding the DOM. Rebuilding mid-drag would
-     destroy the very knob the finger is holding. */
-  function refreshPanel() {
-    for (var i = 0; i < rowRefs.length; i++) {
-      var r = rowRefs[i], s = r.s;
-      var label = s.name + " " + s.n;
-      if (s.mutes.length) { label += " \u00B7 " + (s.n - s.mutes.length) + "/" + s.n; }
-      if (!isEven(s)) { label += " \u00B7 free"; }
-      if (r.nm.firstChild) { r.nm.firstChild.nodeValue = label; }
-      var rot = ((s.rot % 1) + 1) % 1;
-      r.knob.style.left = (rot * 100) + "%";
-      if (r.deg.firstChild) { r.deg.firstChild.nodeValue = Math.round(rot * 360) + "\u00B0"; }
-    }
-  }
-  /* drag anywhere on the track to offset the shape */
-  function bindTrack(tr, s) {
+  /* Volume track: continuous (no snapping), self-painting. Works for a
+     shape or the drone identically via the getVol/setVol closures.
+     Rotation itself has no panel control anymore — it's driven entirely
+     by dragging the shape on the sphere, which already calls the full
+     renderPanel() on every frame of that drag, so the compact label's
+     "\u00B7 120\u00B0" suffix stays live without any dedicated refresh loop. */
+  function bindVolTrack(tr, knobEl, pctEl, getVol, setVol) {
     var dragging = false;
+    function paint(v) {
+      knobEl.style.left = (v * 100) + "%";
+      if (pctEl.firstChild) { pctEl.firstChild.nodeValue = Math.round(v * 100) + "%"; }
+    }
     function setFrom(clientX) {
       var r = tr.getBoundingClientRect();
       if (!r.width) { return; }
       var f = (clientX - r.left) / r.width;
       if (f < 0) { f = 0; } if (f > 1) { f = 1; }
-      var step = 1 / s.n;
-      var near = Math.round(f / step) * step;
-      if (Math.abs(f - near) < 0.012) { f = near; }
-      s.rot = ((f % 1) + 1) % 1;
-      if (playing && ac) { align(s); }
-      refreshPanel();
+      setVol(f);
+      paint(f);
     }
     tr.addEventListener("mousedown", function (e) {
       e.preventDefault(); e.stopPropagation();
@@ -1535,9 +1570,9 @@
     tr.addEventListener("touchend", function (e) {
       e.stopPropagation(); dragging = false;
     }, { passive: true });
+    paint(getVol());   /* initial paint — default volume may not be 0 */
   }
   function renderPanel() {
-    rowRefs = [];
     while (layersEl.firstChild) { layersEl.removeChild(layersEl.firstChild); }
     if (!shapes.length && !drone) {
       var e0 = document.createElement("div");
@@ -1547,6 +1582,7 @@
     }
     if (drone) {
       var dr = document.createElement("div"); dr.className = "layer";
+      var drMain = document.createElement("div"); drMain.className = "layer-main";
       var dd = document.createElement("span"); dd.className = "dot"; dd.style.background = DRONE_COL;
       var dn = document.createElement("span"); dn.className = "nm";
       dn.appendChild(document.createTextNode("Infinity \u221E \u00B7 " + NOTE_NAMES[droneKey]));
@@ -1557,12 +1593,26 @@
       var dx = document.createElement("button"); dx.className = "rm";
       dx.appendChild(document.createTextNode("\u00D7"));
       dx.addEventListener("click", function () { drone = false; stopDrone(); renderPanel(); }, false);
-      dr.appendChild(dd); dr.appendChild(dn); dr.appendChild(di); dr.appendChild(dx);
+      drMain.appendChild(dd); drMain.appendChild(dn); drMain.appendChild(di); drMain.appendChild(dx);
+      var dVolWrap = document.createElement("div"); dVolWrap.className = "vol-wrap";
+      var dVolLabel = document.createElement("span"); dVolLabel.className = "ctrl-label";
+      dVolLabel.appendChild(document.createTextNode("VOL"));
+      var dVolTrack = document.createElement("span"); dVolTrack.className = "vtrack";
+      var dVolKnob = document.createElement("span"); dVolKnob.className = "vknob";
+      dVolKnob.style.background = DRONE_COL;
+      dVolTrack.appendChild(dVolKnob);
+      var dVolPct = document.createElement("span"); dVolPct.className = "vpct";
+      dVolPct.appendChild(document.createTextNode(Math.round(droneVol * 100) + "%"));
+      dVolWrap.appendChild(dVolLabel); dVolWrap.appendChild(dVolTrack); dVolWrap.appendChild(dVolPct);
+      bindVolTrack(dVolTrack, dVolKnob, dVolPct,
+        function () { return droneVol; }, function (v) { setDroneVolume(v); });
+      dr.appendChild(drMain); dr.appendChild(dVolWrap);
       layersEl.appendChild(dr);
     }
     for (var i = 0; i < shapes.length; i++) {
       (function (s) {
         var row = document.createElement("div"); row.className = "layer";
+        var main = document.createElement("div"); main.className = "layer-main";
         var dot = document.createElement("span"); dot.className = "dot"; dot.style.background = s.color;
         var nm = document.createElement("span"); nm.className = "nm";
         var label = s.name + " " + s.n;
@@ -1583,36 +1633,39 @@
         rm.addEventListener("click", function (e) {
           e.preventDefault();
           var ix = shapes.indexOf(s);
-          if (ix >= 0) { shapes.splice(ix, 1); }
+          if (ix >= 0) {
+            if (s.gain) { s.gain.disconnect(); }   /* free the audio graph node */
+            shapes.splice(ix, 1);
+          }
           recomputeRings(); renderPanel();
         }, false);
-        /* offset track: shows the shape's turn, and turns it */
-        var ow = document.createElement("span"); ow.className = "off-wrap";
-        var tr = document.createElement("span"); tr.className = "otrack";
-        for (var ti = 0; ti < s.n; ti++) {
-          var tk = document.createElement("span"); tk.className = "otick";
-          tk.style.left = (ti / s.n * 100) + "%";
-          tr.appendChild(tk);
-        }
-        var kb = document.createElement("span"); kb.className = "oknob";
-        kb.style.background = s.color;
-        kb.style.left = ((s.rot % 1) * 100) + "%";
-        tr.appendChild(kb);
-        var dg = document.createElement("span"); dg.className = "odeg";
-        dg.appendChild(document.createTextNode(Math.round((s.rot % 1) * 360) + "\u00B0"));
-        ow.appendChild(tr); ow.appendChild(dg);
-        bindTrack(tr, s);
+        /* the one slider per shape — where rotation used to live, now
+           volume. Rotation is still real, still shown in the label above,
+           just controlled by dragging the shape on the sphere instead. */
+        var volInline = document.createElement("span"); volInline.className = "vol-inline";
+        var volLabel = document.createElement("span"); volLabel.className = "ctrl-label";
+        volLabel.appendChild(document.createTextNode("VOL"));
+        var volTrack = document.createElement("span"); volTrack.className = "vtrack";
+        var volKnob = document.createElement("span"); volKnob.className = "vknob";
+        volKnob.style.background = s.color;
+        volTrack.appendChild(volKnob);
+        var volPct = document.createElement("span"); volPct.className = "vpct";
+        volPct.appendChild(document.createTextNode(Math.round(s.vol * 100) + "%"));
+        volInline.appendChild(volLabel); volInline.appendChild(volTrack); volInline.appendChild(volPct);
+        bindVolTrack(volTrack, volKnob, volPct,
+          function () { return s.vol; }, function (v) { setShapeVolume(s, v); });
         var gap = document.createElement("span"); gap.className = "gap";
-        row.appendChild(dot); row.appendChild(nm); row.appendChild(ib);
-        row.appendChild(gap); row.appendChild(ow); row.appendChild(rm);
-        rowRefs.push({ s: s, nm: nm, knob: kb, deg: dg });
+        main.appendChild(dot); main.appendChild(nm); main.appendChild(ib);
+        main.appendChild(gap); main.appendChild(volInline); main.appendChild(rm);
+        row.appendChild(main);
         if (s.silent) { row.className = "layer off"; }
         row.style.cursor = "pointer";
         row.addEventListener("click", function (e) {
-          /* the sound button and the remove button keep their own jobs */
+          /* the sound button, remove button, and the volume slider each
+             keep their own jobs */
           if (e.target === ib || ib.contains(e.target)) { return; }
           if (e.target === rm || rm.contains(e.target)) { return; }
-          if (e.target === ow || ow.contains(e.target)) { return; }
+          if (e.target === volInline || volInline.contains(e.target)) { return; }
           s.silent = !s.silent;
           renderPanel();
         }, false);
@@ -1752,12 +1805,14 @@
      shape:   n.instIdx.rotMilli[.m<muted-csv>][.a<angles-milli-csv>][.s1]
      ============================================================ */
   function captureState() {
-    var st = { bpm: bpm, drone: drone ? 1 : 0, droneKey: droneKey, shapes: [] };
+    var st = { bpm: bpm, drone: drone ? 1 : 0, droneKey: droneKey,
+               droneVol: Math.round((typeof droneVol === "number" ? droneVol : 1) * 1000), shapes: [] };
     for (var i = 0; i < shapes.length; i++) {
       var s = shapes[i];
       var instIdx = INSTS.indexOf(s.inst); if (instIdx < 0) { instIdx = 0; }
       var seg = { n: s.n, instIdx: instIdx, rot: Math.round(s.rot * 1000),
-                  mutes: s.mutes.slice(), ang: null, silent: s.silent ? 1 : 0 };
+                  mutes: s.mutes.slice(), ang: null, silent: s.silent ? 1 : 0,
+                  vol: Math.round((typeof s.vol === "number" ? s.vol : 1) * 1000) };
       if (!isEven(s)) {
         var am = [], k;
         for (k = 0; k < s.ang.length; k++) { am.push(Math.round(s.ang[k] * 1000)); }
@@ -1776,24 +1831,40 @@
       if (s.mutes && s.mutes.length) { seg += ".m" + s.mutes.join("-"); }
       if (s.ang) { seg += ".a" + s.ang.join("-"); }
       if (s.silent) { seg += ".s1"; }
+      if (typeof s.vol === "number" && s.vol !== 1000) { seg += ".v" + s.vol; }
       shp.push(seg);
     }
     parts.push(shp.join("_"));
+    /* appended at the end, not inserted earlier — parts[4] (the shapes
+       field) never moves, so links made before per-instrument volume
+       existed still parse correctly; they simply lack this field and
+       default to full volume on decode. */
+    parts.push(String(typeof st.droneVol === "number" ? st.droneVol : 1000));
     return parts.join("~");
   }
   function decodeState(str) {
     if (!str) { return null; }
     var parts = str.split("~");
     if (parts[0] !== "v1") { return null; }
+    /* explicit isNaN check, not "|| default" — a fader dragged all the way
+       to 0 encodes as the literal string "0", and 0 is falsy in JS, so a
+       naive "parseInt(...) || 1000" would wrongly snap a real mute back
+       up to full volume on decode */
+    var dv = 1;
+    if (parts[5] !== undefined) {
+      var dvParsed = parseInt(parts[5], 10);
+      if (!isNaN(dvParsed)) { dv = dvParsed / 1000; }
+    }
     var out = { bpm: parseInt(parts[1], 10) || 96,
                 drone: parts[2] === "1",
-                droneKey: parseInt(parts[3], 10) || 0, shapes: [] };
+                droneKey: parseInt(parts[3], 10) || 0,
+                droneVol: dv, shapes: [] };
     var shp = parts[4] ? parts[4].split("_") : [], i, j;
     for (i = 0; i < shp.length; i++) {
       if (!shp[i]) { continue; }
       var f = shp[i].split(".");
       var sh = { n: parseInt(f[0], 10), instIdx: parseInt(f[1], 10),
-                 rot: (parseInt(f[2], 10) || 0) / 1000, mutes: [], ang: null, silent: false };
+                 rot: (parseInt(f[2], 10) || 0) / 1000, mutes: [], ang: null, silent: false, vol: 1 };
       for (j = 3; j < f.length; j++) {
         var tag = f[j].charAt(0), rest = f[j].substring(1);
         if (tag === "m") {
@@ -1808,6 +1879,9 @@
           for (var b = 0; b < av.length; b++) { sh.ang.push((parseInt(av[b], 10) || 0) / 1000); }
         } else if (tag === "s") {
           sh.silent = rest === "1";
+        } else if (tag === "v") {
+          var vParsed = parseInt(rest, 10);
+          if (!isNaN(vParsed)) { sh.vol = vParsed / 1000; }
         }
       }
       if (sh.n > 0 && !isNaN(sh.n)) { out.shapes.push(sh); }
@@ -1821,6 +1895,7 @@
     bpm = st.bpm; if (bpm < 50) { bpm = 50; } if (bpm > 180) { bpm = 180; }
     bpmInput.value = bpm; bpmVal.innerHTML = bpm + " BPM"; T = 240 / bpm;
     droneKey = ((st.droneKey % 12) + 12) % 12;
+    droneVol = (typeof st.droneVol === "number") ? Math.max(0, Math.min(1, st.droneVol)) : 1;
     shapes = [];
     for (var i = 0; i < st.shapes.length; i++) {
       var sh = st.shapes[i], def = defByN(sh.n);
@@ -1829,6 +1904,7 @@
       var s = makeShape(def, inst, sh.mutes);
       s.rot = ((sh.rot % 1) + 1) % 1;
       s.silent = !!sh.silent;
+      s.vol = (typeof sh.vol === "number") ? Math.max(0, Math.min(1, sh.vol)) : 1;
       if (sh.ang && sh.ang.length === sh.n) { s.ang = sh.ang.slice(); }
       rebuildOrder(s);
       shapes.push(s);
@@ -1898,7 +1974,11 @@
       /* also drop it into the address bar so a plain page-refresh keeps the scene,
          and so mobile "share current page" grabs the right URL */
       try { window.history.replaceState(null, "", link); } catch (er) {}
-      shareLink.focus(); shareLink.select();
+      /* No focus()/select() here on purpose. iOS zooms the whole page in on
+         any input under 16px that receives focus — this ran unconditionally
+         on every tap and was the cause. The modern clipboard path below
+         doesn't need focus at all; legacyCopy() below still has its own,
+         for the rare browser that actually needs it. */
       copyText(link);
       flashCopied();
     }, false);
