@@ -839,7 +839,24 @@
   }
   var droneKey = 0;   /* semitones above A2 (110 Hz) */
   var NOTE_NAMES = ["A","A\u266F","B","C","C\u266F","D","D\u266F","E","F","F\u266F","G","G\u266F"];
-  function droneRoot() { return 110 * Math.pow(2, droneKey / 12); }
+  /* saptak: 0 mandra, 1 madhya, 2 tara. Shifts the drone by whole octaves;
+     the free voice rides on the drone's root, so it moves with it. */
+  var droneOct = 1;
+  var SAPTAK = ["mandra", "madhya", "t\u0101ra"];
+  function droneRoot() { return 110 * Math.pow(2, droneKey / 12) * Math.pow(2, droneOct - 1); }
+  /* Free voice: a second oscillator with no fixed notes. Its pitch is held
+     as cents above the drone's Sa (0 = Sa, 1200 = upper Sa), one octave up
+     from the drone, so changing the drone key carries the phrase with it. */
+  var freeOn = false, freeCents = 700;
+  /* Pulse mode: the one hum divided into 16 packets per turn of the Yantra,
+     a trance gate on the drone (never on the free voice). Each packet can
+     be switched off from the dotted ring. Hum is the default. */
+  var PULSE_N = 16, PULSE_GATE = 0.6;
+  var pulseOn = false, pulseMutes = [];
+  var pulseNext = -1, pulseT = 0, pulseFlash = [];
+  var FREE_LEVEL = 0.34;
+  function freeRatio() { return 2 * Math.pow(2, freeCents / 1200); }
+  var SWARAS = ["Sa", "re", "Re", "ga", "Ga", "ma", "Ma", "Pa", "dha", "Dha", "ni", "Ni", "\u1E60a"];
   var playing = false;
   var bpm = 96, T = 240 / bpm, t0 = 0;
   var ac = null, master = null, noiseBuf = null, timer = null;
@@ -925,6 +942,56 @@
     }
     return ac;
   }
+  /* ---------- iPhone ring/silent switch ---------- */
+  /* With the side switch on silent, iOS treats Web Audio like a ringtone
+     and plays nothing. Newer Safari lets a page declare itself as media
+     playback, which ignores the switch the way music apps do. Older iOS
+     has no such switch, but starting any <audio> element inside the tap
+     moves the whole page onto the media channel, so a tiny silent loop
+     does the same job there. */
+  var SILENT_WAV = "data:audio/wav;base64,UklGRkQDAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YSADAACAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgA==";
+  var silentEl = null;
+  function claimMediaChannel() {
+    try {
+      if (navigator.audioSession) { navigator.audioSession.type = "playback"; return; }
+    } catch (e) {}
+    try {
+      if (!silentEl) {
+        silentEl = document.createElement("audio");
+        silentEl.setAttribute("x-webkit-airplay", "deny");
+        silentEl.setAttribute("playsinline", "");
+        silentEl.preload = "auto";
+        silentEl.loop = true;
+        silentEl.src = SILENT_WAV;
+      }
+      var sp = silentEl.play();
+      if (sp && sp["catch"]) { sp["catch"](function () {}); }
+    } catch (e2) {}
+  }
+  function releaseMediaChannel() {
+    if (silentEl) { try { silentEl.pause(); } catch (e) {} }
+  }
+  /* ---------- keep the screen awake while playing ---------- */
+  /* A phone that locks mid-groove kills the audio with it. The lock is
+     dropped by the browser whenever the tab is hidden, so it is asked for
+     again when the page comes back while still playing. */
+  var wakeLock = null;
+  function holdWake() {
+    if (wakeLock || !navigator.wakeLock || !navigator.wakeLock.request) { return; }
+    try {
+      navigator.wakeLock.request("screen").then(function (l) {
+        wakeLock = l;
+        l.addEventListener("release", function () { wakeLock = null; });
+        if (!playing) { dropWake(); }
+      })["catch"](function () {});
+    } catch (e) {}
+  }
+  function dropWake() {
+    if (wakeLock) { try { wakeLock.release(); } catch (e) {} wakeLock = null; }
+  }
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible" && playing) { holdWake(); }
+  }, false);
   /* short noise burst helper */
   function noiseHit(t, dur, type, freq, q, peak, curve, dest) {
     var s = ac.createBufferSource(); s.buffer = noiseBuf; s.loop = true;
@@ -1065,20 +1132,43 @@
     var ratios = [1, 1, 1.5, 2];
     var parts = [["sawtooth",0.22,0],["sine",0.30,6],["sine",0.16,-4],["sine",0.10,3]];
     var oscs = [];
+    var gate = ac.createGain();
+    gate.gain.value = pulseOn ? 0 : 1;
+    gate.connect(out);
     for (var i = 0; i < parts.length; i++) {
       var o = ac.createOscillator(), g = ac.createGain();
       o.type = parts[i][0];
       o.frequency.value = base * ratios[i];
       o.detune.value = parts[i][2];
       g.gain.value = parts[i][1];
-      o.connect(g); g.connect(out); o.start(now);
+      o.connect(g); g.connect(gate); o.start(now);
       o.__ratio = ratios[i];
       oscs.push(o);
     }
     var lfo = ac.createOscillator(), lg = ac.createGain();
     lfo.frequency.value = 0.07; lg.gain.value = 380;
     lfo.connect(lg); lg.connect(lp.frequency); lfo.start(now);
-    droneNodes = { out: out, userGain: userGain, oscs: oscs, lfo: lfo };
+    /* the free voice: a sine with a soft triangle shadow, a slow breath of
+       vibrato, silent until switched on from its arc */
+    var fg = ac.createGain();
+    fg.gain.value = freeOn ? FREE_LEVEL : 0;
+    fg.connect(out);
+    var fparts = [["sine", 0.62, 0], ["triangle", 0.22, 5]];
+    var vlfo = ac.createOscillator(), vg = ac.createGain();
+    vlfo.frequency.value = 4.6; vg.gain.value = 7;      /* +/- 7 cents */
+    vlfo.connect(vg); vlfo.start(now);
+    for (i = 0; i < fparts.length; i++) {
+      var fo = ac.createOscillator(), fpg = ac.createGain();
+      fo.type = fparts[i][0];
+      fo.frequency.value = base * freeRatio();
+      fo.detune.value = fparts[i][2];
+      fpg.gain.value = fparts[i][1];
+      try { vg.connect(fo.detune); } catch (eV) {}
+      fo.connect(fpg); fpg.connect(fg); fo.start(now);
+      fo.__ratio = freeRatio(); fo.__free = true;
+      oscs.push(fo);
+    }
+    droneNodes = { out: out, userGain: userGain, oscs: oscs, lfo: lfo, vlfo: vlfo, freeGain: fg, gate: gate };
   }
   function retuneDrone() {
     if (!droneNodes || !ac) { return; }
@@ -1090,6 +1180,25 @@
       o.frequency.setValueAtTime(Math.max(o.frequency.value, 0.0001), now);
       o.frequency.exponentialRampToValueAtTime(target, now + 0.18);
     }
+  }
+  /* glide the free voice to its new pitch: short enough to follow a finger,
+     long enough to sound like a meend rather than steps */
+  function applyFreePitch() {
+    if (!droneNodes || !ac) { return; }
+    var now = ac.currentTime, r = freeRatio(), f = droneRoot() * r, i, o;
+    for (i = 0; i < droneNodes.oscs.length; i++) {
+      o = droneNodes.oscs[i];
+      if (!o.__free) { continue; }
+      o.__ratio = r;
+      o.frequency.cancelScheduledValues(now);
+      o.frequency.setTargetAtTime(f, now, 0.03);
+    }
+  }
+  function applyFreeLevel() {
+    if (!droneNodes || !ac) { return; }
+    var g = droneNodes.freeGain.gain, now = ac.currentTime;
+    g.cancelScheduledValues(now);
+    g.setTargetAtTime(freeOn ? FREE_LEVEL : 0, now, 0.09);
   }
   function cycleDroneKey() {
     droneKey = (droneKey + 1) % 12;
@@ -1104,6 +1213,7 @@
     o.gain.exponentialRampToValueAtTime(0.0001, now + 1.6);
     for (var i = 0; i < droneNodes.oscs.length; i++) { droneNodes.oscs[i].stop(now + 1.7); }
     droneNodes.lfo.stop(now + 1.7);
+    if (droneNodes.vlfo) { droneNodes.vlfo.stop(now + 1.7); }
     droneNodes = null;
   }
   /* ---------- rings ---------- */
@@ -1145,8 +1255,44 @@
     s.nk = s.order[s.oi];
     s.nt += d * T;
   }
+  /* schedule the gate a few steps ahead, on the same audio clock and the
+     same t0 as the shapes, so the packets sit exactly on the grid */
+  function schedulePulse(until) {
+    if (!pulseOn) { pulseNext = -1; return; }
+    var step = T / PULSE_N, now = ac.currentTime;
+    if (pulseNext < 0 || pulseT !== T) {
+      pulseNext = Math.ceil((now - t0) / step - 1e-6); pulseT = T;
+    }
+    var guard = 0;
+    while (t0 + pulseNext * step < until && guard++ < 64) {
+      var t = t0 + pulseNext * step, idx = ((pulseNext % PULSE_N) + PULSE_N) % PULSE_N;
+      if (t >= now - 0.002 && droneNodes && droneNodes.gate && pulseMutes.indexOf(idx) === -1) {
+        var gg = droneNodes.gate.gain, open = step * PULSE_GATE;
+        var fin = Math.min(0.004, step * 0.08), fout = Math.min(0.006, step * 0.1);
+        gg.setValueAtTime(0, t);
+        gg.linearRampToValueAtTime(1, t + fin);
+        gg.setValueAtTime(1, t + open);
+        gg.linearRampToValueAtTime(0, t + open + fout);
+        (function (k, at) {
+          setTimeout(function () { if (playing && drone && pulseOn) { pulseFlash[k] = now_(); } },
+                     Math.max(0, (at - ac.currentTime) * 1000));
+        })(idx, t);
+      }
+      pulseNext++;
+    }
+  }
+  function setPulseMode(on) {
+    pulseOn = !!on; pulseNext = -1;
+    if (droneNodes && droneNodes.gate && ac) {
+      var gg = droneNodes.gate.gain, now = ac.currentTime;
+      gg.cancelScheduledValues(now);
+      gg.setTargetAtTime(pulseOn ? 0 : 1, now, 0.01);
+    }
+    renderPanel();
+  }
   function schedule() {
     var until = ac.currentTime + 0.07;
+    schedulePulse(until);
     for (var i = 0; i < shapes.length; i++) {
       var s = shapes[i], guard = 0;
       while (s.nt < until && guard++ < 96) {
@@ -1184,6 +1330,273 @@
   window.addEventListener("resize", fit);
   /* fonts can land after first paint and reflow the grid; re-measure then */
   window.addEventListener("load", fit);
+  /* ---------- drone pitch arc ---------- */
+  /* Twelve semitone stops on an arc just below the outer ring, lowest on
+     the left. A brass marker sits on the current note: drag it along the
+     arc or tap a stop. It snaps to real notes, so the drone always lands
+     on a playable Sa, and droneKey is what Share Scene already stores. */
+  var PITCH_SPAN = Math.PI * 2 / 3;          /* 120 degrees of arc */
+  var PITCH_REST = 0.3;          /* how present the arcs are while the drone sleeps */
+  var pitchShow = PITCH_REST;
+  function pitchR() { return geo.R + Math.max(18, geo.R * 0.1); }
+  function pitchAngle(k) { return Math.PI / 2 + PITCH_SPAN / 2 - k * (PITCH_SPAN / 11); }
+  function pitchKeyAt(x, y) {
+    var a = Math.atan2(y - geo.cy, x - geo.cx);
+    if (a < -Math.PI / 2) { a += Math.PI * 2; }  /* keep the bottom arc continuous */
+    var k = Math.round((Math.PI / 2 + PITCH_SPAN / 2 - a) / (PITCH_SPAN / 11));
+    if (k < 0) { k = 0; } if (k > 11) { k = 11; }
+    return k;
+  }
+  function onPitchArc(x, y) {
+    var dx = x - geo.cx, dy = y - geo.cy;
+    var d = Math.sqrt(dx * dx + dy * dy), pr = pitchR();
+    if (d < geo.R + 8 || d > pr + 30) { return false; }
+    var a = Math.atan2(dy, dx);
+    if (a < -Math.PI / 2) { a += Math.PI * 2; }
+    return Math.abs(a - Math.PI / 2) <= PITCH_SPAN / 2 + 0.12;
+  }
+  /* the arcs are always on the instrument; touching them can wake the drone */
+  function droneOn() {
+    if (drone) { return; }
+    drone = true;
+    if (playing) { audio(); startDrone(); }
+    renderPanel();
+  }
+  function droneOff() {
+    if (!drone) { return; }
+    drone = false; stopDrone(); renderPanel();
+  }
+  function nearPitchMarker(x, y) {
+    var a = pitchAngle(droneKey), pr = pitchR();
+    var dx = x - (geo.cx + pr * Math.cos(a)), dy = y - (geo.cy + pr * Math.sin(a));
+    return Math.sqrt(dx * dx + dy * dy) < 18;
+  }
+  function setDroneKey(k) {
+    if (k === droneKey) { return; }
+    droneKey = k;
+    retuneDrone();
+    renderPanel();
+  }
+  function drawPitchArc() {
+    pitchShow += ((drone ? 1 : PITCH_REST) - pitchShow) * 0.12;
+    var cx = geo.cx, cy = geo.cy, pr = pitchR(), k, a, live = drag && drag.mode === "pitch";
+    ctx.globalAlpha = pitchShow;
+    ctx.beginPath();
+    ctx.arc(cx, cy, pr, pitchAngle(11), pitchAngle(0));
+    ctx.strokeStyle = "rgba(201,162,75,0.22)"; ctx.lineWidth = 1; ctx.stroke();
+    for (k = 0; k < 12; k++) {
+      a = pitchAngle(k);
+      var on = k === droneKey, len = on ? 0 : (k % 12 === 0 ? 5 : 3);
+      if (!on) {
+        ctx.beginPath();
+        ctx.moveTo(cx + (pr - len) * Math.cos(a), cy + (pr - len) * Math.sin(a));
+        ctx.lineTo(cx + (pr + len) * Math.cos(a), cy + (pr + len) * Math.sin(a));
+        ctx.strokeStyle = "rgba(201,162,75,0.45)"; ctx.lineWidth = 1; ctx.stroke();
+      }
+    }
+    /* marker: an open triangle on the arc, pointing in at the rings */
+    a = pitchAngle(droneKey);
+    var mx = cx + pr * Math.cos(a), my = cy + pr * Math.sin(a);
+    var sz = live ? 9 : 7.5;
+    ctx.save();
+    ctx.translate(mx, my);
+    ctx.rotate(a - Math.PI / 2);               /* apex toward the centre */
+    ctx.beginPath();
+    ctx.moveTo(0, -sz * 1.15); ctx.lineTo(sz * 0.62, sz * 0.75); ctx.lineTo(-sz * 0.62, sz * 0.75);
+    ctx.closePath();
+    ctx.fillStyle = "rgba(13,11,10,0.95)"; ctx.fill();
+    ctx.strokeStyle = DRONE_COL; ctx.lineWidth = 1.6; ctx.stroke();
+    ctx.restore();
+    /* note name just outside the marker */
+    var lr = pr + 18;
+    ctx.font = (live ? "12px" : "11px") + " 'Space Mono', monospace";
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillStyle = live ? "#e8e0d2" : DRONE_COL;
+    ctx.fillText(NOTE_NAMES[droneKey], cx + lr * Math.cos(a), cy + lr * Math.sin(a));
+    ctx.globalAlpha = 1;
+  }
+  /* ---------- free voice arc ---------- */
+  /* The mirror of the note arc, above the rings: one smooth curve, no
+     ticks, lowest on the left. Faint marks at Sa, Pa and upper Sa help find
+     the consonant places, but nothing snaps. Tap the arc to bring the voice
+     in, drag to bend it, tap its dot to let it go quiet. */
+  function freeAngle(c) { return -Math.PI / 2 - PITCH_SPAN / 2 + (c / 1200) * PITCH_SPAN; }
+  function freeCentsAt(x, y) {
+    var a = Math.atan2(y - geo.cy, x - geo.cx);
+    var c = Math.round(((a + Math.PI / 2 + PITCH_SPAN / 2) / PITCH_SPAN) * 1200);
+    if (c < 0) { c = 0; } if (c > 1200) { c = 1200; }
+    return c;
+  }
+  function onFreeArc(x, y) {
+    var dx = x - geo.cx, dy = y - geo.cy;
+    var d = Math.sqrt(dx * dx + dy * dy), pr = pitchR();
+    if (d < geo.R + 8 || d > pr + 30) { return false; }
+    var a = Math.atan2(dy, dx);
+    return Math.abs(a + Math.PI / 2) <= PITCH_SPAN / 2 + 0.12;
+  }
+  function nearFreeDot(x, y) {
+    var a = freeAngle(freeCents), pr = pitchR();
+    var dx = x - (geo.cx + pr * Math.cos(a)), dy = y - (geo.cy + pr * Math.sin(a));
+    return Math.sqrt(dx * dx + dy * dy) < 18;
+  }
+  function swaraOf(c) {
+    var k = Math.round(c / 100), off = c - k * 100;
+    return { name: SWARAS[k], off: off };
+  }
+  var freeGlow = 0;
+  function drawFreeArc() {
+    var cx = geo.cx, cy = geo.cy, pr = pitchR(), a, i;
+    var live = drag && drag.mode === "free" && drag.moved;
+    var sounding = freeOn && drone;
+    freeGlow += ((sounding ? 1 : 0) - freeGlow) * 0.12;
+    ctx.globalAlpha = pitchShow;
+    ctx.beginPath(); ctx.arc(cx, cy, pr, freeAngle(0), freeAngle(1200));
+    ctx.strokeStyle = "rgba(232,224,210," + (0.16 + 0.12 * freeGlow).toFixed(3) + ")";
+    ctx.lineWidth = 1.2; ctx.stroke();
+    /* guide marks */
+    var guides = [[0, "Sa"], [702, "Pa"], [1200, "\u1E60a"]];
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.font = "italic 12px 'Cormorant Garamond', serif";
+    for (i = 0; i < guides.length; i++) {
+      a = freeAngle(guides[i][0]);
+      ctx.beginPath(); ctx.arc(cx + pr * Math.cos(a), cy + pr * Math.sin(a), 2, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(232,224,210,0.42)"; ctx.fill();
+      if (Math.abs(guides[i][0] - freeCents) > 90 || !sounding) {
+        ctx.fillStyle = "rgba(232,224,210,0.32)";
+        ctx.fillText(guides[i][1], cx + (pr + 13) * Math.cos(a), cy + (pr + 13) * Math.sin(a));
+      }
+    }
+    /* the dot */
+    a = freeAngle(freeCents);
+    var mx = cx + pr * Math.cos(a), my = cy + pr * Math.sin(a);
+    if (freeGlow > 0.02) {
+      var breathe = 0.85 + 0.15 * Math.sin(now_() / 520);
+      var gr = (live ? 22 : 18) * breathe;
+      var g = ctx.createRadialGradient(mx, my, 0, mx, my, gr);
+      g.addColorStop(0, "rgba(232,224,210," + (0.38 * freeGlow).toFixed(3) + ")");
+      g.addColorStop(1, "rgba(232,224,210,0)");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(mx, my, gr, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.beginPath(); ctx.arc(mx, my, live ? 7.5 : 6.5, 0, Math.PI * 2);
+    ctx.fillStyle = sounding ? "#e8e0d2" : "rgba(13,11,10,0.95)"; ctx.fill();
+    ctx.strokeStyle = sounding ? DRONE_COL : "rgba(232,224,210,0.55)";
+    ctx.lineWidth = 1.4; ctx.stroke();
+    /* readout: the nearest swara in italic serif, the offset in small mono */
+    if (sounding) {
+      var sw = swaraOf(freeCents);
+      var offTxt = sw.off === 0 ? "\u00B7" : (sw.off > 0 ? "+" : "\u2212") + Math.abs(sw.off) + "\u00A2";
+      var lx = cx + (pr + 17) * Math.cos(a), ly = cy + (pr + 17) * Math.sin(a);
+      ctx.font = "italic " + (live ? 17 : 15) + "px 'Cormorant Garamond', serif";
+      var nw = ctx.measureText(sw.name).width;
+      ctx.font = "9px 'Space Mono', monospace";
+      var ow = ctx.measureText(offTxt).width, gap = 4, tw = nw + gap + ow;
+      ctx.textAlign = "left";
+      ctx.font = "italic " + (live ? 17 : 15) + "px 'Cormorant Garamond', serif";
+      ctx.fillStyle = "#e8e0d2";
+      ctx.fillText(sw.name, lx - tw / 2, ly);
+      ctx.font = "9px 'Space Mono', monospace";
+      ctx.fillStyle = Math.abs(sw.off) <= 5 ? DRONE_COL : "rgba(232,224,210,0.55)";
+      ctx.fillText(offTxt, lx - tw / 2 + nw + gap, ly + 1);
+      ctx.textAlign = "center";
+    }
+    ctx.globalAlpha = 1;
+  }
+  /* each dash is drawn at the gate's open length, so the ring shows the
+     actual shape of the chop; dim dashes are switched-off packets */
+  function drawPulseRing(cx, cy, R) {
+    var w = Math.PI * 2 / PULSE_N, tn = now_(), i;
+    for (i = 0; i < PULSE_N; i++) {
+      var a0 = -Math.PI / 2 + i * w, a1 = a0 + w * PULSE_GATE;
+      var on = pulseMutes.indexOf(i) === -1;
+      var fl = pulseFlash[i] ? Math.max(0, 1 - (tn - pulseFlash[i]) / 180) : 0;
+      ctx.beginPath(); ctx.arc(cx, cy, R, a0, a1);
+      if (on) {
+        ctx.strokeStyle = fl > 0 ? "rgba(232,224,210," + (0.55 + 0.45 * fl).toFixed(3) + ")" : DRONE_COL;
+        ctx.globalAlpha = glowAmt * (0.75 + 0.25 * fl);
+        ctx.lineWidth = 2.6 + 1.6 * fl;
+      } else {
+        ctx.strokeStyle = DRONE_COL; ctx.globalAlpha = glowAmt * 0.16; ctx.lineWidth = 1.4;
+      }
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+  function pulseIndexAt(x, y) {
+    if (!drone || !pulseOn) { return -1; }
+    var dx = x - geo.cx, dy = y - geo.cy, d = Math.sqrt(dx * dx + dy * dy);
+    if (Math.abs(d - geo.R) > 11) { return -1; }
+    var ph = (Math.atan2(dy, dx) + Math.PI / 2) / (Math.PI * 2);
+    ph = ph - Math.floor(ph);
+    return Math.floor(ph * PULSE_N) % PULSE_N;
+  }
+  function setPacket(i, on) {
+    var at = pulseMutes.indexOf(i);
+    if (on && at !== -1) { pulseMutes.splice(at, 1); }
+    if (!on && at === -1) { pulseMutes.push(i); }
+  }
+  /* ---------- corner controls ---------- */
+  /* Bottom-left: the saptak slider, its knob a filled brass triangle like the
+     drone marker. Bottom-right: hum and pulse as a solid and a dashed ring.
+     Both rest translucent with the arcs while the drone sleeps. */
+  function cornerGeo() {
+    var r = cv.getBoundingClientRect(), W = r.width, H = r.height;
+    return { W: W, H: H, sx: W * 0.075, sy0: H * 0.955, sy1: H * 0.80,
+             ry: H * 0.9, rxr: W * 0.925, rxl: W * 0.925 - 30, rr: 9 };
+  }
+  function cText(t, x, y, font, col, align) {
+    ctx.font = font; ctx.fillStyle = col; ctx.textAlign = align || "center";
+    ctx.textBaseline = "middle"; ctx.fillText(t, x, y);
+  }
+  function drawCorners() {
+    var g = cornerGeo(), i, a0;
+    var live = drag && drag.mode === "oct";
+    ctx.globalAlpha = pitchShow;
+    ctx.beginPath(); ctx.moveTo(g.sx, g.sy0); ctx.lineTo(g.sx, g.sy1);
+    ctx.strokeStyle = "rgba(232,224,210,0.22)"; ctx.lineWidth = 1; ctx.stroke();
+    for (i = 0; i < 3; i++) {
+      var y = g.sy0 - i * (g.sy0 - g.sy1) / 2, on = i === droneOct;
+      ctx.beginPath(); ctx.moveTo(g.sx - 4, y); ctx.lineTo(g.sx + 4, y);
+      ctx.strokeStyle = "rgba(232,224,210,0.4)"; ctx.lineWidth = 1; ctx.stroke();
+      cText(SAPTAK[i], g.sx + 14, y, "italic " + (on ? (live ? 15 : 14) : 12) + "px 'Cormorant Garamond', serif",
+            on ? "#e8e0d2" : "rgba(232,224,210,0.35)", "left");
+      if (on) {
+        ctx.save(); ctx.translate(g.sx, y); ctx.rotate(Math.PI / 2);
+        var sz = live ? 7 : 6;
+        ctx.beginPath(); ctx.moveTo(0, -sz * 1.15); ctx.lineTo(sz * 0.62, sz * 0.75); ctx.lineTo(-sz * 0.62, sz * 0.75);
+        ctx.closePath(); ctx.fillStyle = DRONE_COL; ctx.fill(); ctx.restore();
+      }
+    }
+    ctx.beginPath(); ctx.arc(g.rxl, g.ry, g.rr, 0, Math.PI * 2);
+    ctx.strokeStyle = pulseOn ? "rgba(201,162,75,0.3)" : DRONE_COL; ctx.lineWidth = pulseOn ? 1.2 : 2; ctx.stroke();
+    for (i = 0; i < PULSE_N; i++) {
+      a0 = -Math.PI / 2 + i * Math.PI * 2 / PULSE_N;
+      ctx.beginPath(); ctx.arc(g.rxr, g.ry, g.rr, a0, a0 + (Math.PI * 2 / PULSE_N) * PULSE_GATE);
+      ctx.strokeStyle = pulseOn ? DRONE_COL : "rgba(201,162,75,0.3)"; ctx.lineWidth = pulseOn ? 2 : 1.2; ctx.stroke();
+    }
+    cText("hum", g.rxl, g.ry + g.rr + 10, "9px 'Space Mono', monospace", pulseOn ? "rgba(232,224,210,0.3)" : "#e8e0d2");
+    cText("pulse", g.rxr, g.ry + g.rr + 10, "9px 'Space Mono', monospace", pulseOn ? "#e8e0d2" : "rgba(232,224,210,0.3)");
+    ctx.globalAlpha = 1;
+  }
+  function octAt(y) {
+    var g = cornerGeo(), f = (g.sy0 - y) / (g.sy0 - g.sy1);
+    var o = Math.round(f * 2); if (o < 0) { o = 0; } if (o > 2) { o = 2; }
+    return o;
+  }
+  function onOctSlider(x, y) {
+    var g = cornerGeo();
+    return x < g.sx + 80 && x > g.sx - 18 && y > g.sy1 - 14 && y < g.sy0 + 14;
+  }
+  function modeRingAt(x, y) {
+    var g = cornerGeo(), r = 17;
+    if (Math.abs(y - g.ry - 5) > r + 6) { return 0; }
+    if (Math.abs(x - g.rxl) < r) { return 1; }      /* hum */
+    if (Math.abs(x - g.rxr) < r) { return 2; }      /* pulse */
+    return 0;
+  }
+  function setOct(o) {
+    if (o === droneOct) { return; }
+    droneOct = o; retuneDrone(); renderPanel();
+  }
   /* ---------- draw ---------- */
   function draw() {
     var r = cv.getBoundingClientRect();
@@ -1197,7 +1610,8 @@
     }
     /* infinity glow */
     glowAmt += ((drone ? 1 : 0) - glowAmt) * 0.04;
-    if (glowAmt > 0.01) {
+    if (glowAmt > 0.01 && pulseOn) { drawPulseRing(cx, cy, R); }
+    else if (glowAmt > 0.01) {
       var pulse = 0.5 + 0.5 * Math.sin(now_() / 1400);
       ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2);
       ctx.strokeStyle = "rgba(201,162,75," + ((0.25 + 0.35 * pulse) * glowAmt).toFixed(3) + ")";
@@ -1262,6 +1676,9 @@
       ctx.strokeStyle = f.s.color; ctx.globalAlpha = (1 - age) * 0.9; ctx.lineWidth = 1.5;
       ctx.stroke(); ctx.globalAlpha = 1;
     }
+    drawPitchArc();
+    drawFreeArc();
+    drawCorners();
     if (playing && ac) {
       /* prefer the audio clock; fall back to wall clock if it has stalled */
       var aclk = ac.currentTime;
@@ -1320,7 +1737,41 @@
   }
   function angleAt(x, y) { return Math.atan2(y - geo.cy, x - geo.cx); }
   function down(x, y) {
+    var mr = modeRingAt(x, y);
+    if (mr) {
+      drag = { mode: "ring", s: null, k: -1, moved: false, dist: 0 };
+      setPulseMode(mr === 2);
+      return true;
+    }
+    if (onOctSlider(x, y)) {
+      drag = { mode: "oct", s: null, k: -1, moved: false, dist: 0 };
+      setOct(octAt(y));
+      return true;
+    }
+    if (onFreeArc(x, y)) {
+      var onDot = nearFreeDot(x, y);
+      drag = { mode: "free", s: null, k: -1, moved: false, dist: 0, onDot: onDot,
+               wasOn: freeOn && drone };
+      if (!onDot) {
+        freeCents = freeCentsAt(x, y); freeOn = true;
+        droneOn(); applyFreePitch(); applyFreeLevel();
+      }
+      return true;
+    }
+    if (onPitchArc(x, y)) {
+      var onMk = nearPitchMarker(x, y);
+      drag = { mode: "pitch", s: null, k: -1, moved: false, dist: 0, onMarker: onMk, wasOn: drone };
+      if (!onMk) { setDroneKey(pitchKeyAt(x, y)); droneOn(); }
+      return true;
+    }
     var v = nearVertex(x, y);
+    var pi0 = v ? -1 : pulseIndexAt(x, y);
+    if (pi0 !== -1) {
+      var paint = pulseMutes.indexOf(pi0) !== -1;     /* off -> paint on, on -> paint off */
+      setPacket(pi0, paint);
+      drag = { mode: "pulse", s: null, k: -1, moved: false, dist: 0, paint: paint, last: pi0 };
+      return true;
+    }
     if (v) {
       drag = { mode: "vertex", s: v.s, k: v.k, a0: angleAt(x, y),
                v0: v.s.ang[v.k], moved: false, dist: 0,
@@ -1336,6 +1787,27 @@
   }
   function move(x, y) {
     if (!drag) { return; }
+    if (drag.mode === "oct") { setOct(octAt(y)); return; }
+    if (drag.mode === "ring") { return; }
+    if (drag.mode === "pulse") {
+      var pj = pulseIndexAt(x, y);
+      if (pj !== -1 && pj !== drag.last) { setPacket(pj, drag.paint); drag.last = pj; drag.moved = true; }
+      return;
+    }
+    if (drag.mode === "pitch") {
+      var pk = pitchKeyAt(x, y);
+      if (pk !== droneKey) { drag.moved = true; }
+      setDroneKey(pk); if (drag.moved) { droneOn(); }
+      return;
+    }
+    if (drag.mode === "free") {
+      drag.moved = true;
+      freeCents = freeCentsAt(x, y);
+      droneOn();
+      if (!freeOn) { freeOn = true; applyFreeLevel(); }
+      applyFreePitch();
+      return;
+    }
     var da = angleAt(x, y) - drag.a0;
     while (da > Math.PI) { da -= Math.PI * 2; }
     while (da < -Math.PI) { da += Math.PI * 2; }
@@ -1378,6 +1850,14 @@
     return out;
   }
   function up() {
+    if (drag && drag.mode === "free" && !drag.moved && drag.onDot) {
+      freeOn = !drag.wasOn;          /* a tap on the dot turns the voice on or off */
+      if (freeOn) { droneOn(); }
+      applyFreeLevel();
+    }
+    if (drag && drag.mode === "pitch" && !drag.moved && drag.onMarker) {
+      if (drag.wasOn) { droneOff(); } else { droneOn(); }   /* the triangle is the drone's switch */
+    }
     if (drag && !drag.moved && drag.mode === "vertex") {
       var s = drag.s, group = stackedAt(s, drag.k), i, audible = false;
       for (i = 0; i < group.length; i++) {
@@ -1599,15 +2079,19 @@
       var drMain = document.createElement("div"); drMain.className = "layer-main";
       var dd = document.createElement("span"); dd.className = "dot"; dd.style.background = DRONE_COL;
       var dn = document.createElement("span"); dn.className = "nm";
-      dn.appendChild(document.createTextNode("Infinity \u221E \u00B7 " + NOTE_NAMES[droneKey]));
+      dn.appendChild(document.createTextNode("Infinity \u221E \u00B7 " + NOTE_NAMES[droneKey] + " \u00B7 " + SAPTAK[droneOct]));
       var di = document.createElement("button"); di.className = "inst";
       di.appendChild(document.createTextNode("drone \u00B7 " + NOTE_NAMES[droneKey]));
-      di.title = "Change key";
+      di.title = "Change key \u2014 or drag the marker under the rings";
       di.addEventListener("click", function (e) { e.preventDefault(); cycleDroneKey(); }, false);
       var dx = document.createElement("button"); dx.className = "rm";
       dx.appendChild(document.createTextNode("\u00D7"));
       dx.addEventListener("click", function () { drone = false; stopDrone(); renderPanel(); }, false);
-      drMain.appendChild(dd); drMain.appendChild(dn); drMain.appendChild(di); drMain.appendChild(dx);
+      var dp = document.createElement("button"); dp.className = "inst";
+      dp.appendChild(document.createTextNode(pulseOn ? "pulse \u00B7 16" : "hum"));
+      dp.title = "Hum, or a 16-step pulse \u2014 tap the dotted ring to switch packets";
+      dp.addEventListener("click", function (e) { e.preventDefault(); setPulseMode(!pulseOn); }, false);
+      drMain.appendChild(dd); drMain.appendChild(dn); drMain.appendChild(di); drMain.appendChild(dp); drMain.appendChild(dx);
       var dVolWrap = document.createElement("div"); dVolWrap.className = "vol-wrap";
       var dVolLabel = document.createElement("span"); dVolLabel.className = "ctrl-label";
       dVolLabel.appendChild(document.createTextNode("VOL"));
@@ -1704,6 +2188,7 @@
     playBtn.setAttribute("aria-label", playing ? "Pause" : "Play");
   }
   function togglePlay() {
+    if (!playing) { claimMediaChannel(); }   /* must run inside the tap itself */
     audio();
     if (!playing) {
       try {
@@ -1714,11 +2199,12 @@
       var begin = function () {
         playing = true;
         hushSoundEmbeds();
-        t0 = ac.currentTime + 0.06;
+        t0 = ac.currentTime + 0.06; pulseNext = -1;
         if (!shapes.length && !drone) { toggleShape(SHAPES[0]); }
         for (var i = 0; i < shapes.length; i++) { align(shapes[i]); }
         timer = setInterval(schedule, 16);
         if (drone) { startDrone(); }
+        holdWake();
         syncBtn(); renderPanel();
       };
       if (ac.state !== "running" && ac.resume) {
@@ -1730,6 +2216,8 @@
       playing = false;
       clearInterval(timer);
       stopDrone();
+      dropWake();
+      releaseMediaChannel();
       syncBtn(); renderPanel();
     }
   }
@@ -1834,6 +2322,9 @@
       }
       st.shapes.push(seg);
     }
+    st.free = freeOn ? freeCents : -1;
+    st.pulse = pulseOn ? pulseMutes.slice() : null;
+    st.oct = droneOct;
     return st;
   }
   function encodeState(st) {
@@ -1854,6 +2345,22 @@
        existed still parse correctly; they simply lack this field and
        default to full volume on decode. */
     parts.push(String(typeof st.droneVol === "number" ? st.droneVol : 1000));
+    /* free voice, appended last for the same reason as droneVol above;
+       then the pulse pattern: "-" for hum, else one hex digit per 4 packets */
+    parts.push(String(typeof st.free === "number" ? st.free : -1));
+    var pf = "-";
+    if (st.pulse) {
+      pf = "";
+      for (var w = 0; w < PULSE_N / 4; w++) {
+        var nib = 0;
+        for (var bt = 0; bt < 4; bt++) {
+          if (st.pulse.indexOf(w * 4 + bt) === -1) { nib |= (8 >> bt); }
+        }
+        pf += nib.toString(16);
+      }
+    }
+    parts.push(pf);
+    parts.push(String(typeof st.oct === "number" ? st.oct : 1));
     return parts.join("~");
   }
   function decodeState(str) {
@@ -1869,7 +2376,25 @@
       var dvParsed = parseInt(parts[5], 10);
       if (!isNaN(dvParsed)) { dv = dvParsed / 1000; }
     }
-    var out = { bpm: parseInt(parts[1], 10) || 96,
+    var fv = -1;
+    if (parts[6] !== undefined) {
+      var fvParsed = parseInt(parts[6], 10);
+      if (!isNaN(fvParsed)) { fv = fvParsed; }
+    }
+    var pz = null;
+    if (parts[7] && parts[7].length === PULSE_N / 4 && /^[0-9a-f]+$/.test(parts[7])) {
+      pz = [];
+      for (var w2 = 0; w2 < PULSE_N / 4; w2++) {
+        var nb = parseInt(parts[7].charAt(w2), 16);
+        for (var b2 = 0; b2 < 4; b2++) { if (!(nb & (8 >> b2))) { pz.push(w2 * 4 + b2); } }
+      }
+    }
+    var oc = 1;
+    if (parts[8] !== undefined) {
+      var ocP = parseInt(parts[8], 10);
+      if (!isNaN(ocP) && ocP >= 0 && ocP <= 2) { oc = ocP; }
+    }
+    var out = { bpm: parseInt(parts[1], 10) || 96, free: fv, pulse: pz, oct: oc,
                 drone: parts[2] === "1",
                 droneKey: parseInt(parts[3], 10) || 0,
                 droneVol: dv, shapes: [] };
@@ -1925,6 +2450,12 @@
     }
     recomputeRings();
     for (var j = 0; j < shapes.length; j++) { shapes[j].ring = shapes[j].ringT; }
+    if (typeof st.free === "number" && st.free >= 0) {
+      freeOn = true; freeCents = Math.max(0, Math.min(1200, st.free));
+    } else { freeOn = false; }
+    droneOct = (typeof st.oct === "number") ? st.oct : 1;
+    if (st.pulse) { pulseOn = true; pulseMutes = st.pulse.slice(); }
+    else { pulseOn = false; pulseMutes = []; }
     drone = false;            /* start from silence; only turn on if requested */
     if (st.drone) { drone = true; }   /* startDrone() fires when playback begins */
     return true;
@@ -1965,7 +2496,8 @@
     function legacyCopy(txt) {
       try {
         shareLink.removeAttribute("readonly");
-        shareLink.focus(); shareLink.select();
+        try { shareLink.focus({ preventScroll: true }); } catch (eF) { shareLink.focus(); }
+        shareLink.select();
         shareLink.setSelectionRange(0, txt.length);
         document.execCommand("copy");
         shareLink.setAttribute("readonly", "readonly");
