@@ -103,6 +103,10 @@
       -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
     }
   }
+  /* the floating Connect button steps aside while the Yantra is on screen,
+     so it never covers the instrument's corner controls */
+  .mobile-cta { transition: opacity 0.25s ease; }
+  body.cta-hide .mobile-cta { opacity: 0; pointer-events: none; }
   /* ---------- HERO ---------- */
   .hero {
     min-height: 100vh;
@@ -321,7 +325,7 @@
   .head h2 { font-family: var(--display); font-weight: 500; font-size: clamp(2rem, 6vw, 3.2rem); }
   .sub { color: var(--muted); font-size: 0.95rem; margin-bottom: 2rem; max-width: 46ch; }
   .grid { display: grid; grid-template-columns: minmax(0,1.25fr) minmax(240px,1fr); gap: 2rem; align-items: start; }
-  @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+  @media (max-width: 760px) { .grid { grid-template-columns: minmax(0,1fr); } }
   .stage {
     position: relative;
     background: var(--stone-2);
@@ -372,7 +376,7 @@
   .layers { display: flex; flex-direction: column; gap: 0.45rem; min-height: 2.5rem; }
   .layer { display: flex; flex-direction: column; gap: 0.4rem; background: var(--stone-2);
            border: 1px solid rgba(201,162,75,0.14); border-radius: 3px; padding: 0.45rem 0.6rem; }
-  .layer-main { display: flex; align-items: center; gap: 0.6rem; }
+  .layer-main { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; row-gap: 0.5rem; }
   .layer .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
   .layer.off { opacity: 0.4; }
   .layer.off .dot { background: none !important; box-shadow: inset 0 0 0 1px currentColor; }
@@ -382,6 +386,25 @@
                  text-transform: uppercase; background: none; border: none; color: var(--bone);
                  cursor: pointer; flex: none; width: 5.4em; text-align: left; padding: 0.2rem 0;
                  -webkit-appearance: none; appearance: none; touch-action: manipulation; }
+  .layer .inst { white-space: nowrap; width: auto; min-width: 5.4em; }
+  .layer .own-wrap { display: inline-flex; align-items: center; gap: 0.1rem; }
+  /* the drone row grows wide in pulse mode; its remove button stays in the corner */
+  .layer.layer-drone { position: relative; padding-right: 2.2rem; }
+  .layer .rm.rm-corner { position: absolute; top: 0.55rem; right: 0.55rem; }
+  /* drum: press a step label and drag up/down to roll through values */
+  .layer .drumable { position: relative; touch-action: none; -webkit-user-select: none; user-select: none; }
+  .drum { position: absolute; left: -0.6em; right: -0.6em; top: 50%; height: 9em; margin-top: -4.5em;
+          z-index: 40; pointer-events: none; border-radius: 3px;
+          background: linear-gradient(to bottom, rgba(20,16,13,0), rgba(20,16,13,0.97) 22%,
+                                      rgba(20,16,13,0.97) 78%, rgba(20,16,13,0));
+          box-shadow: inset 0 0 0 1px rgba(201,162,75,0.0); }
+  .drum span { position: absolute; left: 0; right: 0; top: 50%; height: 1.8em; margin-top: -0.9em;
+               line-height: 1.8em; text-align: center; white-space: nowrap;
+               font-family: var(--mono); font-size: 0.66rem; letter-spacing: 0.08em; text-transform: uppercase; }
+  .drum .hair { position: absolute; left: 12%; right: 12%; height: 1px; background: rgba(201,162,75,0.35); }
+  .layer .nudge { background: none; border: none; color: var(--brass); font-family: var(--mono);
+                  font-size: 0.72rem; line-height: 1; padding: 0.3rem 0.45rem; cursor: pointer;
+                  -webkit-appearance: none; appearance: none; touch-action: manipulation; }
   .layer .gap { flex: 1; min-width: 0.4rem; align-self: stretch; }
   .layer .rm { background: none; border: none; color: var(--muted); font-family: var(--mono);
                font-size: 0.9rem; cursor: pointer; padding: 0.1rem 0.35rem;
@@ -854,6 +877,103 @@
   var PULSE_N = 16, PULSE_GATE = 0.6;
   var pulseOn = false, pulseMutes = [];
   var pulseNext = -1, pulseT = 0, pulseFlash = [];
+  var pulseSkips = [], pulseL = PULSE_N;
+  /* the pulse can be dialled to 3..16 packets a bar, like an own-time loop */
+  function pulseDivRaw(n) {
+    if (n === PULSE_N || n < 3 || n > 16) { return; }
+    PULSE_N = n;
+    var keep = function (arr) { var o = [], i; for (i = 0; i < arr.length; i++) { if (arr[i] < n) { o.push(arr[i]); } } return o; };
+    pulseMutes = keep(pulseMutes); pulseSkips = keep(pulseSkips);
+    pulseNext = -1; pulseFlash = [];
+  }
+  function setPulseDiv(n) { pulseDivRaw(n); renderPanel(); }
+  /* one list for both drums: 0 is "bar" (or "hum"), then 3..16 steps a bar */
+  var DRUM_VALUES = [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+  var DRUM_ROW = 15;          /* pixels of drag per value */
+  /* Press a label and drag: it rolls like a drum, neighbours fading in above
+     and below, and the instrument follows live. A plain tap is left alone so
+     the label's own click (toggle) still works. */
+  function bindDrum(el, getVal, setVal, labelFor, onDone) {
+    el.className += " drumable";
+    var st = null, drumEl = null;
+    function idxOf(v) { var i = DRUM_VALUES.indexOf(v); return i < 0 ? 0 : i; }
+    function paintDrum(pos) {
+      if (!drumEl) {
+        drumEl = document.createElement("div"); drumEl.className = "drum";
+        var h1 = document.createElement("div"); h1.className = "hair"; h1.style.top = "calc(50% - 0.9em)";
+        var h2 = document.createElement("div"); h2.className = "hair"; h2.style.top = "calc(50% + 0.9em)";
+        drumEl.appendChild(h1); drumEl.appendChild(h2);
+        el.appendChild(drumEl);
+        el.style.color = "transparent";     /* the drum's centre row stands in for the label */
+      }
+      var olds = drumEl.querySelectorAll("span"), k;
+      for (k = 0; k < olds.length; k++) { drumEl.removeChild(olds[k]); }
+      var c = Math.round(pos);
+      for (k = c - 2; k <= c + 2; k++) {
+        if (k < 0 || k >= DRUM_VALUES.length) { continue; }
+        var d = k - pos, sp = document.createElement("span");
+        sp.appendChild(document.createTextNode(labelFor(DRUM_VALUES[k])));
+        sp.style.transform = "translateY(" + (-d * 1.8).toFixed(3) + "em)";
+        var near = Math.abs(d);
+        sp.style.opacity = String(Math.max(0, 1 - near * 0.42).toFixed(3));
+        sp.style.color = k === c ? "#e8e0d2" : "#c9a24b";
+        drumEl.appendChild(sp);
+      }
+    }
+    function begin(y) { st = { y0: y, i0: idxOf(getVal()), i: idxOf(getVal()), active: false }; }
+    function track(y) {
+      if (!st) { return false; }
+      var dy = st.y0 - y;
+      if (!st.active && Math.abs(dy) < 6) { return false; }
+      st.active = true;
+      var pos = st.i0 + dy / DRUM_ROW;
+      if (pos < 0) { pos = 0; } if (pos > DRUM_VALUES.length - 1) { pos = DRUM_VALUES.length - 1; }
+      var i = Math.round(pos);
+      if (i !== st.i) {
+        st.i = i; setVal(DRUM_VALUES[i]);
+        if (el.firstChild) { el.firstChild.nodeValue = labelFor(DRUM_VALUES[i]); }
+      }
+      paintDrum(pos);
+      return true;
+    }
+    function finish() {
+      if (!st) { return; }
+      var was = st.active; st = null;
+      if (drumEl && drumEl.parentNode) { drumEl.parentNode.removeChild(drumEl); }
+      drumEl = null; el.style.color = "";
+      if (was) { el.__dragged = true; setTimeout(function () { el.__dragged = false; }, 400); onDone(); }
+    }
+    el.addEventListener("mousedown", function (e) { e.preventDefault(); begin(e.clientY);
+      var mv = function (ev) { track(ev.clientY); };
+      var upf = function () { window.removeEventListener("mousemove", mv, false); window.removeEventListener("mouseup", upf, false); finish(); };
+      window.addEventListener("mousemove", mv, false); window.addEventListener("mouseup", upf, false);
+    }, false);
+    el.addEventListener("touchstart", function (e) {
+      if (e.touches.length !== 1) { return; }
+      begin(e.touches[0].clientY);
+    }, { passive: true });
+    el.addEventListener("touchmove", function (e) {
+      if (e.touches.length !== 1) { return; }
+      if (track(e.touches[0].clientY) && e.cancelable) { e.preventDefault(); }
+    }, { passive: false });
+    el.addEventListener("touchend", function (e) {
+      var was = st && st.active;
+      finish();
+      if (was && e.cancelable) { e.preventDefault(); }   /* no click after a roll */
+    }, { passive: false });
+    el.addEventListener("touchcancel", function () { finish(); }, false);
+  }
+  function pulseActive() {
+    var out = [], i;
+    for (i = 0; i < PULSE_N; i++) { if (pulseSkips.indexOf(i) === -1) { out.push(i); } }
+    return out;
+  }
+  function togglePulseSkip(i) {
+    var at = pulseSkips.indexOf(i);
+    if (at === -1) { if (pulseActive().length <= 1) { return; } pulseSkips.push(i); }
+    else { pulseSkips.splice(at, 1); }
+    pulseNext = -1;
+  }
   var FREE_LEVEL = 0.34;
   function freeRatio() { return 2 * Math.pow(2, freeCents / 1200); }
   var SWARAS = ["Sa", "re", "Re", "ga", "Ga", "ma", "Ma", "Pa", "dha", "Dha", "ni", "Ni", "\u1E60a"];
@@ -1225,6 +1345,7 @@
   }
   /* ---------- scheduling ---------- */
   function align(s) {
+    if (s.own) { s.ownN = -1; return; }
     var now = ac.currentTime;
     var turns = (now - t0) / T;
     var p = turns - Math.floor(turns);
@@ -1259,13 +1380,13 @@
      same t0 as the shapes, so the packets sit exactly on the grid */
   function schedulePulse(until) {
     if (!pulseOn) { pulseNext = -1; return; }
-    var step = T / PULSE_N, now = ac.currentTime;
-    if (pulseNext < 0 || pulseT !== T) {
-      pulseNext = Math.ceil((now - t0) / step - 1e-6); pulseT = T;
+    var step = T / PULSE_N, now = ac.currentTime, pact = pulseActive(), PL = pact.length;
+    if (pulseNext < 0 || pulseT !== T || pulseL !== PL) {
+      pulseNext = Math.ceil((now - t0) / step - 1e-6); pulseT = T; pulseL = PL;
     }
     var guard = 0;
     while (t0 + pulseNext * step < until && guard++ < 64) {
-      var t = t0 + pulseNext * step, idx = ((pulseNext % PULSE_N) + PULSE_N) % PULSE_N;
+      var t = t0 + pulseNext * step, idx = pact[((pulseNext % PL) + PL) % PL];
       if (t >= now - 0.002 && droneNodes && droneNodes.gate && pulseMutes.indexOf(idx) === -1) {
         var gg = droneNodes.gate.gain, open = step * PULSE_GATE;
         var fin = Math.min(0.004, step * 0.08), fout = Math.min(0.006, step * 0.1);
@@ -1281,20 +1402,49 @@
       pulseNext++;
     }
   }
-  function setPulseMode(on) {
+  /* own-time loops: counted in steps from the same t0 as everything else,
+     so a loop of L steps comes back to the bar's downbeat - sam - whenever
+     the step count is a multiple of both L and the steps in a bar */
+  function scheduleOwn(s, until) {
+    var act = activeOrder(s), L = act.length;
+    if (!L) { return; }
+    var step = T / s.own, now = ac.currentTime;
+    if (s.ownN < 0 || s.ownT !== T || s.ownL !== L) {
+      s.ownN = Math.ceil((now - t0) / step - 1e-6); s.ownT = T; s.ownL = L;
+    }
+    var guard = 0;
+    while (t0 + s.ownN * step < until && guard++ < 64) {
+      var t = t0 + s.ownN * step, j = ((s.ownN % L) + L) % L, k = act[j];
+      if (t >= now - 0.002) {
+        if (!s.silent && s.mutes.indexOf(k) === -1) {
+          SYNTH[s.inst](t, getShapeGain(s));
+          queueFlash(s, k, t);
+        }
+        if (j === 0 && ((s.ownN % s.own) + s.own) % s.own === 0) { queueSam(s, t); }
+      }
+      s.ownN++;
+    }
+  }
+  function queueSam(s, at) {
+    setTimeout(function () { if (playing) { s.samAt = now_(); } },
+               Math.max(0, (at - ac.currentTime) * 1000));
+  }
+  function pulseModeRaw(on) {
+    if (!!on === pulseOn) { return; }
     pulseOn = !!on; pulseNext = -1;
     if (droneNodes && droneNodes.gate && ac) {
       var gg = droneNodes.gate.gain, now = ac.currentTime;
       gg.cancelScheduledValues(now);
       gg.setTargetAtTime(pulseOn ? 0 : 1, now, 0.01);
     }
-    renderPanel();
   }
+  function setPulseMode(on) { pulseModeRaw(on); renderPanel(); }
   function schedule() {
     var until = ac.currentTime + 0.07;
     schedulePulse(until);
     for (var i = 0; i < shapes.length; i++) {
       var s = shapes[i], guard = 0;
+      if (s.own) { scheduleOwn(s, until); continue; }
       while (s.nt < until && guard++ < 96) {
         if (!s.silent && s.mutes.indexOf(s.nk) === -1) {
           SYNTH[s.inst](s.nt, getShapeGain(s));
@@ -1507,6 +1657,14 @@
     var w = Math.PI * 2 / PULSE_N, tn = now_(), i;
     for (i = 0; i < PULSE_N; i++) {
       var a0 = -Math.PI / 2 + i * w, a1 = a0 + w * PULSE_GATE;
+      if (pulseSkips.indexOf(i) !== -1) {
+        var am = (a0 + a1) / 2;
+        ctx.beginPath();
+        ctx.moveTo(cx + (R - 4) * Math.cos(am), cy + (R - 4) * Math.sin(am));
+        ctx.lineTo(cx + (R + 4) * Math.cos(am), cy + (R + 4) * Math.sin(am));
+        ctx.strokeStyle = DRONE_COL; ctx.globalAlpha = glowAmt * 0.5; ctx.lineWidth = 1; ctx.stroke();
+        continue;
+      }
       var on = pulseMutes.indexOf(i) === -1;
       var fl = pulseFlash[i] ? Math.max(0, 1 - (tn - pulseFlash[i]) / 180) : 0;
       ctx.beginPath(); ctx.arc(cx, cy, R, a0, a1);
@@ -1533,6 +1691,80 @@
     var at = pulseMutes.indexOf(i);
     if (on && at !== -1) { pulseMutes.splice(at, 1); }
     if (!on && at === -1) { pulseMutes.push(i); }
+  }
+  /* ---------- own time: beads, skip marks, sam ---------- */
+  function drawSkipMark(p, col, dim) {
+    ctx.globalAlpha = dim ? 0.2 : 0.6;
+    ctx.beginPath(); ctx.arc(p[0], p[1], 1.6, 0, Math.PI * 2); ctx.fillStyle = col; ctx.fill();
+    ctx.beginPath(); ctx.moveTo(p[0] - 4.5, p[1] + 4.5); ctx.lineTo(p[0] + 4.5, p[1] - 4.5);
+    ctx.strokeStyle = col; ctx.lineWidth = 1.2; ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+  /* a bead travels from step to step: it sits on a corner the instant that
+     corner fires, and glides over skipped corners without stopping */
+  function beadPhase(phases, unit) {
+    var L = phases.length;
+    if (!playing || !ac) { return { ph: phases[0], live: false, span: 0 }; }
+    var step = T / unit, nf = (ac.currentTime + wallDrift - t0) / step;
+    if (nf < 0) { nf = 0; }
+    var n = Math.floor(nf), f = nf - n, j = ((n % L) + L) % L;
+    var pa = phases[j], pb = L === 1 ? pa + 1 : phases[(j + 1) % L];
+    if (pb <= pa + 1e-9) { pb += 1; }
+    return { ph: pa + (pb - pa) * f, live: true, span: pb - pa };
+  }
+  function drawBead(rr, b, col) {
+    var cx = geo.cx, cy = geo.cy, a = -Math.PI / 2 + b.ph * Math.PI * 2, k;
+    var bx = cx + rr * Math.cos(a), by = cy + rr * Math.sin(a);
+    if (!b.live) {
+      ctx.beginPath(); ctx.arc(bx, by, 3.2, 0, Math.PI * 2);
+      ctx.strokeStyle = col; ctx.globalAlpha = 0.7; ctx.lineWidth = 1.2; ctx.stroke(); ctx.globalAlpha = 1;
+      return;
+    }
+    var tl = Math.min(1.0, Math.max(0.25, b.span * Math.PI * 2 * 0.9)), seg = tl / 12;
+    for (k = 0; k < 12; k++) {
+      var a1 = a - k * seg, a0 = a1 - seg;
+      ctx.beginPath(); ctx.arc(cx, cy, rr, a0, a1);
+      ctx.strokeStyle = col; ctx.globalAlpha = 0.8 * (1 - k / 12); ctx.lineWidth = 2.6 * (1 - k / 16); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    var g = ctx.createRadialGradient(bx, by, 0, bx, by, 11);
+    g.addColorStop(0, "rgba(232,224,210,0.5)"); g.addColorStop(1, "rgba(232,224,210,0)");
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(bx, by, 11, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(bx, by, 3.6, 0, Math.PI * 2); ctx.fillStyle = "#e8e0d2"; ctx.fill();
+  }
+  function drawOwnTime() {
+    var i, j, s, tn = now_(), owns = 0, newest = 0, oldest = Infinity;
+    for (i = 0; i < shapes.length; i++) {
+      s = shapes[i];
+      if (!s.own) { continue; }
+      var act = activeOrder(s);
+      if (!act.length) { continue; }
+      var ph = [];
+      for (j = 0; j < act.length; j++) { ph.push(phaseOf(s, act[j])); }
+      drawBead(geo.R * s.ring, beadPhase(ph, s.own), s.color);
+      owns++;
+      if (s.samAt > newest) { newest = s.samAt; }
+      if (s.samAt < oldest) { oldest = s.samAt; }
+      var sg = s.samAt ? 1 - (tn - s.samAt) / 700 : 0;
+      if (sg > 0) {
+        ctx.beginPath(); ctx.arc(geo.cx, geo.cy, geo.R * s.ring, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(232,224,210," + (0.7 * sg).toFixed(3) + ")"; ctx.lineWidth = 1 + 3.5 * sg; ctx.stroke();
+      }
+    }
+    if (drone && pulseOn && pulseSkips.length) {
+      var pa = pulseActive(), pp = [];
+      for (j = 0; j < pa.length; j++) { pp.push(pa[j] / PULSE_N); }
+      drawBead(geo.R, beadPhase(pp, PULSE_N), DRONE_COL);
+    }
+    /* the word appears only when every drifting loop arrives together */
+    if (owns && newest - oldest < 150) {
+      var wg = 1 - (tn - newest) / 900;
+      if (wg > 0) {
+        ctx.font = "italic 18px 'Cormorant Garamond', serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillStyle = "rgba(232,224,210," + wg.toFixed(3) + ")";
+        ctx.fillText("sam", geo.cx, geo.cy + Math.max(44, geo.R * 0.3));
+      }
+    }
   }
   /* ---------- corner controls ---------- */
   /* Bottom-left: the saptak slider, its knob a filled brass triangle like the
@@ -1639,6 +1871,7 @@
       ctx.lineWidth = 1.4; ctx.stroke();
       ctx.globalAlpha = 1;
       for (k = 0; k < s.n; k++) {
+        if (s.own && s.skips.indexOf(k) !== -1) { drawSkipMark(vpos(s, k), s.color, s.silent); continue; }
         if (s.mutes.indexOf(k) !== -1) { continue; }
         pos = vpos(s, k);
         ctx.beginPath(); ctx.arc(pos[0], pos[1], 4.5, 0, Math.PI * 2);
@@ -1656,6 +1889,7 @@
     for (i = 0; i < shapes.length; i++) {
       s = shapes[i];
       for (var m = 0; m < s.mutes.length; m++) {
+        if (s.own && s.skips.indexOf(s.mutes[m]) !== -1) { continue; }
         pos = vpos(s, s.mutes[m]);
         ctx.beginPath(); ctx.arc(pos[0], pos[1], 4.6, 0, Math.PI * 2);
         ctx.fillStyle = "rgba(13,11,10,0.95)"; ctx.fill();
@@ -1676,6 +1910,7 @@
       ctx.strokeStyle = f.s.color; ctx.globalAlpha = (1 - age) * 0.9; ctx.lineWidth = 1.5;
       ctx.stroke(); ctx.globalAlpha = 1;
     }
+    drawOwnTime();
     drawPitchArc();
     drawFreeArc();
     drawCorners();
@@ -1767,15 +2002,24 @@
     var v = nearVertex(x, y);
     var pi0 = v ? -1 : pulseIndexAt(x, y);
     if (pi0 !== -1) {
-      var paint = pulseMutes.indexOf(pi0) !== -1;     /* off -> paint on, on -> paint off */
-      setPacket(pi0, paint);
-      drag = { mode: "pulse", s: null, k: -1, moved: false, dist: 0, paint: paint, last: pi0 };
+      drag = { mode: "pulse", s: null, k: -1, moved: false, dist: 0, start: pi0, last: pi0,
+               paint: pulseMutes.indexOf(pi0) !== -1, applied: false, longDone: false };
+      var dp0 = drag;
+      drag.lp = setTimeout(function () {
+        if (drag === dp0 && !dp0.applied) { togglePulseSkip(dp0.start); dp0.longDone = true; }
+      }, LONG_PRESS);
       return true;
     }
     if (v) {
       drag = { mode: "vertex", s: v.s, k: v.k, a0: angleAt(x, y),
                v0: v.s.ang[v.k], moved: false, dist: 0,
                gr: Math.max(30, Math.sqrt(Math.pow(x - geo.cx, 2) + Math.pow(y - geo.cy, 2))) };
+      var dv0 = drag;
+      if (v.s.own) {
+        drag.lp = setTimeout(function () {
+          if (drag === dv0 && !dv0.moved) { toggleSkip(dv0.s, dv0.k); dv0.longDone = true; }
+        }, LONG_PRESS);
+      }
       return true;
     }
     var s = nearShape(x, y);
@@ -1791,7 +2035,10 @@
     if (drag.mode === "ring") { return; }
     if (drag.mode === "pulse") {
       var pj = pulseIndexAt(x, y);
-      if (pj !== -1 && pj !== drag.last) { setPacket(pj, drag.paint); drag.last = pj; drag.moved = true; }
+      if (pj !== -1 && pj !== drag.last) {
+        if (!drag.applied) { setPacket(drag.start, drag.paint); drag.applied = true; }
+        setPacket(pj, drag.paint); drag.last = pj; drag.moved = true;
+      }
       return;
     }
     if (drag.mode === "pitch") {
@@ -1849,7 +2096,13 @@
     }
     return out;
   }
+  var LONG_PRESS = 480;
   function up() {
+    if (drag && drag.lp) { clearTimeout(drag.lp); }
+    if (drag && drag.mode === "pulse" && !drag.applied && !drag.longDone) {
+      if (pulseSkips.indexOf(drag.start) !== -1) { togglePulseSkip(drag.start); }
+      else { setPacket(drag.start, drag.paint); }
+    }
     if (drag && drag.mode === "free" && !drag.moved && drag.onDot) {
       freeOn = !drag.wasOn;          /* a tap on the dot turns the voice on or off */
       if (freeOn) { droneOn(); }
@@ -1858,7 +2111,12 @@
     if (drag && drag.mode === "pitch" && !drag.moved && drag.onMarker) {
       if (drag.wasOn) { droneOff(); } else { droneOn(); }   /* the triangle is the drone's switch */
     }
-    if (drag && !drag.moved && drag.mode === "vertex") {
+    if (drag && !drag.moved && drag.mode === "vertex" && !drag.longDone &&
+        drag.s.own && drag.s.skips.indexOf(drag.k) !== -1) {
+      toggleSkip(drag.s, drag.k);          /* a tap on a skipped corner brings it back */
+      drag.longDone = true;
+    }
+    if (drag && !drag.moved && drag.mode === "vertex" && !drag.longDone) {
       var s = drag.s, group = stackedAt(s, drag.k), i, audible = false;
       for (i = 0; i < group.length; i++) {
         if (s.mutes.indexOf(group[i]) === -1) { audible = true; break; }
@@ -1949,7 +2207,8 @@
               color: COLORS[idx % COLORS.length],
               ring: 1, ringT: 1, rot: 0, ang: ang, order: [], oi: 0,
               silent: false, vol: 1, gain: null,
-              mutes: mutes ? mutes.slice() : [], nk: 0, nt: 0 };
+              mutes: mutes ? mutes.slice() : [], nk: 0, nt: 0,
+              own: 0, skips: [], ownN: -1, samAt: 0 };
     rebuildOrder(s);
     return s;
   }
@@ -1965,6 +2224,31 @@
     for (i = 0; i < s.n; i++) { idx.push(i); }
     idx.sort(function (a, b) { return phaseOf(s, a) - phaseOf(s, b); });
     s.order = idx;
+  }
+  /* "own" time: instead of spreading its corners across the bar, a shape
+     can run its own loop, one 16th (or 8th) per corner, like a Volca
+     sequence. Skipped corners (Active Step) drop out of that loop and
+     shorten it; muted corners still keep their step as a rest. */
+  function activeOrder(s) {
+    var out = [], i;
+    for (i = 0; i < s.order.length; i++) {
+      if (!s.own || s.skips.indexOf(s.order[i]) === -1) { out.push(s.order[i]); }
+    }
+    return out;
+  }
+  function setOwnUnit(s, u) {
+    if (u === s.own) { return; }
+    s.own = u; s.ownN = -1; s.samAt = 0;
+    if (playing && ac) { align(s); }
+    renderPanel();
+  }
+  function toggleSkip(s, k) {
+    var at = s.skips.indexOf(k);
+    if (at === -1) {
+      if (activeOrder(s).length <= 1) { return; }   /* keep at least one step */
+      s.skips.push(k);
+    } else { s.skips.splice(at, 1); }
+    s.ownN = -1; renderPanel();
   }
   /* has this shape been reshaped away from even spacing? */
   function isEven(s) {
@@ -2084,14 +2368,28 @@
       di.appendChild(document.createTextNode("drone \u00B7 " + NOTE_NAMES[droneKey]));
       di.title = "Change key \u2014 or drag the marker under the rings";
       di.addEventListener("click", function (e) { e.preventDefault(); cycleDroneKey(); }, false);
-      var dx = document.createElement("button"); dx.className = "rm";
+      var dx = document.createElement("button"); dx.className = "rm rm-corner"; dr.className = "layer layer-drone";
       dx.appendChild(document.createTextNode("\u00D7"));
       dx.addEventListener("click", function () { drone = false; stopDrone(); renderPanel(); }, false);
       var dp = document.createElement("button"); dp.className = "inst";
-      dp.appendChild(document.createTextNode(pulseOn ? "pulse \u00B7 16" : "hum"));
-      dp.title = "Hum, or a 16-step pulse \u2014 tap the dotted ring to switch packets";
-      dp.addEventListener("click", function (e) { e.preventDefault(); setPulseMode(!pulseOn); }, false);
-      drMain.appendChild(dd); drMain.appendChild(dn); drMain.appendChild(di); drMain.appendChild(dp); drMain.appendChild(dx);
+      dp.appendChild(document.createTextNode(pulseOn ? "pulse \u00B7 " + PULSE_N : "hum"));
+      dp.title = "Hum, or a pulse of 3 to 16 packets a bar \u2014 tap the dotted ring to switch packets";
+      dp.addEventListener("click", function (e) { e.preventDefault(); if (dp.__dragged) { return; } setPulseMode(!pulseOn); }, false);
+      bindDrum(dp, function () { return pulseOn ? PULSE_N : 0; },
+        function (v) { if (v === 0) { pulseModeRaw(false); } else { pulseDivRaw(v); pulseModeRaw(true); } },
+        function (v) { return v ? "pulse \u00B7 " + v : "hum"; },
+        function () { renderPanel(); });
+      var pw = document.createElement("span"); pw.className = "own-wrap";
+      if (pulseOn) {
+        var pdn = document.createElement("button"); pdn.className = "nudge";
+        pdn.appendChild(document.createTextNode("\u25BE")); pdn.title = "fewer packets to a bar";
+        pdn.addEventListener("click", function (e) { e.preventDefault(); setPulseDiv(PULSE_N - 1); }, false);
+        var pup = document.createElement("button"); pup.className = "nudge";
+        pup.appendChild(document.createTextNode("\u25B4")); pup.title = "more packets to a bar";
+        pup.addEventListener("click", function (e) { e.preventDefault(); setPulseDiv(PULSE_N + 1); }, false);
+        pw.appendChild(pdn); pw.appendChild(dp); pw.appendChild(pup);
+      } else { pw.appendChild(dp); }
+      drMain.appendChild(dd); drMain.appendChild(dn); drMain.appendChild(di); drMain.appendChild(pw); drMain.appendChild(dx);
       var dVolWrap = document.createElement("div"); dVolWrap.className = "vol-wrap";
       var dVolLabel = document.createElement("span"); dVolLabel.className = "ctrl-label";
       dVolLabel.appendChild(document.createTextNode("VOL"));
@@ -2118,6 +2416,7 @@
         var deg = Math.round((s.rot % 1) * 360);
         if (deg) { label += " \u00B7 " + deg + "\u00B0"; }
         if (!isEven(s)) { label += " \u00B7 free"; }
+        if (s.own && s.skips.length) { label += " \u00B7 loop " + activeOrder(s).length; }
         nm.appendChild(document.createTextNode(label));
         var ib = document.createElement("button"); ib.className = "inst";
         ib.appendChild(document.createTextNode(s.inst));
@@ -2153,7 +2452,31 @@
         bindVolTrack(volTrack, volKnob, volPct,
           function () { return s.vol; }, function (v) { setShapeVolume(s, v); });
         var gap = document.createElement("span"); gap.className = "gap";
-        main.appendChild(dot); main.appendChild(nm); main.appendChild(ib);
+        /* bar / own, and in own mode a dial for how many steps fill a bar:
+           3 to 16, so "own 7" makes every corner a seventh of a bar */
+        var ow = document.createElement("span"); ow.className = "own-wrap";
+        var ob = document.createElement("button"); ob.className = "inst";
+        ob.appendChild(document.createTextNode(s.own ? "own \u00B7 " + s.own : "bar"));
+        ob.title = "bar: corners spread across the bar \u00B7 own: one step per corner, N steps to a bar";
+        ob.addEventListener("click", function (e) {
+          e.preventDefault();
+          if (ob.__dragged) { return; }
+          setOwnUnit(s, s.own ? 0 : 16);
+        }, false);
+        bindDrum(ob, function () { return s.own || 0; },
+          function (v) { s.own = v; s.ownN = -1; s.samAt = 0; if (playing && ac) { align(s); } },
+          function (v) { return v ? "own \u00B7 " + v : "bar"; },
+          function () { renderPanel(); });
+        if (s.own) {
+          var odn = document.createElement("button"); odn.className = "nudge";
+          odn.appendChild(document.createTextNode("\u25BE")); odn.title = "fewer steps to a bar";
+          odn.addEventListener("click", function (e) { e.preventDefault(); setOwnUnit(s, Math.max(3, s.own - 1)); }, false);
+          var oup = document.createElement("button"); oup.className = "nudge";
+          oup.appendChild(document.createTextNode("\u25B4")); oup.title = "more steps to a bar";
+          oup.addEventListener("click", function (e) { e.preventDefault(); setOwnUnit(s, Math.min(16, s.own + 1)); }, false);
+          ow.appendChild(odn); ow.appendChild(ob); ow.appendChild(oup);
+        } else { ow.appendChild(ob); }
+        main.appendChild(dot); main.appendChild(nm); main.appendChild(ib); main.appendChild(ow);
         main.appendChild(gap); main.appendChild(volInline); main.appendChild(rm);
         row.appendChild(main);
         if (s.silent) { row.className = "layer off"; }
@@ -2162,6 +2485,7 @@
           /* the sound button, remove button, and the volume slider each
              keep their own jobs */
           if (e.target === ib || ib.contains(e.target)) { return; }
+          if (e.target === ow || ow.contains(e.target)) { return; }
           if (e.target === rm || rm.contains(e.target)) { return; }
           if (e.target === volInline || volInline.contains(e.target)) { return; }
           s.silent = !s.silent;
@@ -2314,7 +2638,8 @@
       var instIdx = INSTS.indexOf(s.inst); if (instIdx < 0) { instIdx = 0; }
       var seg = { n: s.n, instIdx: instIdx, rot: Math.round(s.rot * 1000),
                   mutes: s.mutes.slice(), ang: null, silent: s.silent ? 1 : 0,
-                  vol: Math.round((typeof s.vol === "number" ? s.vol : 1) * 1000) };
+                  vol: Math.round((typeof s.vol === "number" ? s.vol : 1) * 1000),
+                  own: s.own || 0, skips: (s.skips || []).slice() };
       if (!isEven(s)) {
         var am = [], k;
         for (k = 0; k < s.ang.length; k++) { am.push(Math.round(s.ang[k] * 1000)); }
@@ -2325,6 +2650,8 @@
     st.free = freeOn ? freeCents : -1;
     st.pulse = pulseOn ? pulseMutes.slice() : null;
     st.oct = droneOct;
+    st.pskips = pulseSkips.slice();
+    st.pdiv = PULSE_N;
     return st;
   }
   function encodeState(st) {
@@ -2337,6 +2664,8 @@
       if (s.ang) { seg += ".a" + s.ang.join("-"); }
       if (s.silent) { seg += ".s1"; }
       if (typeof s.vol === "number" && s.vol !== 1000) { seg += ".v" + s.vol; }
+      if (s.own) { seg += ".o" + s.own; }
+      if (s.skips && s.skips.length) { seg += ".k" + s.skips.join("-"); }
       shp.push(seg);
     }
     parts.push(shp.join("_"));
@@ -2351,7 +2680,7 @@
     var pf = "-";
     if (st.pulse) {
       pf = "";
-      for (var w = 0; w < PULSE_N / 4; w++) {
+      for (var w = 0; w < Math.ceil(PULSE_N / 4); w++) {
         var nib = 0;
         for (var bt = 0; bt < 4; bt++) {
           if (st.pulse.indexOf(w * 4 + bt) === -1) { nib |= (8 >> bt); }
@@ -2361,6 +2690,18 @@
     }
     parts.push(pf);
     parts.push(String(typeof st.oct === "number" ? st.oct : 1));
+    /* skipped pulse packets: "-" for none, else one hex digit per 4 (1 = skipped) */
+    var sk = "-";
+    if (st.pskips && st.pskips.length) {
+      sk = "";
+      for (var w3 = 0; w3 < Math.ceil(PULSE_N / 4); w3++) {
+        var nb3 = 0;
+        for (var b3 = 0; b3 < 4; b3++) { if (st.pskips.indexOf(w3 * 4 + b3) !== -1) { nb3 |= (8 >> b3); } }
+        sk += nb3.toString(16);
+      }
+    }
+    parts.push(sk);
+    parts.push(String(st.pdiv || 16));
     return parts.join("~");
   }
   function decodeState(str) {
@@ -2382,11 +2723,17 @@
       if (!isNaN(fvParsed)) { fv = fvParsed; }
     }
     var pz = null;
-    if (parts[7] && parts[7].length === PULSE_N / 4 && /^[0-9a-f]+$/.test(parts[7])) {
+    var pn = 16;
+    if (parts[10] !== undefined) {
+      var pnP = parseInt(parts[10], 10);
+      if (pnP >= 3 && pnP <= 16) { pn = pnP; }
+    }
+    var pnd = Math.ceil(pn / 4);
+    if (parts[7] && parts[7].length === pnd && /^[0-9a-f]+$/.test(parts[7])) {
       pz = [];
-      for (var w2 = 0; w2 < PULSE_N / 4; w2++) {
+      for (var w2 = 0; w2 < pnd; w2++) {
         var nb = parseInt(parts[7].charAt(w2), 16);
-        for (var b2 = 0; b2 < 4; b2++) { if (!(nb & (8 >> b2))) { pz.push(w2 * 4 + b2); } }
+        for (var b2 = 0; b2 < 4; b2++) { if (!(nb & (8 >> b2)) && w2 * 4 + b2 < pn) { pz.push(w2 * 4 + b2); } }
       }
     }
     var oc = 1;
@@ -2394,7 +2741,14 @@
       var ocP = parseInt(parts[8], 10);
       if (!isNaN(ocP) && ocP >= 0 && ocP <= 2) { oc = ocP; }
     }
-    var out = { bpm: parseInt(parts[1], 10) || 96, free: fv, pulse: pz, oct: oc,
+    var psk = [];
+    if (parts[9] && parts[9].length === pnd && /^[0-9a-f]+$/.test(parts[9])) {
+      for (var w4 = 0; w4 < pnd; w4++) {
+        var nb4 = parseInt(parts[9].charAt(w4), 16);
+        for (var b4 = 0; b4 < 4; b4++) { if ((nb4 & (8 >> b4)) && w4 * 4 + b4 < pn) { psk.push(w4 * 4 + b4); } }
+      }
+    }
+    var out = { bpm: parseInt(parts[1], 10) || 96, free: fv, pulse: pz, oct: oc, pskips: psk, pdiv: pn,
                 drone: parts[2] === "1",
                 droneKey: parseInt(parts[3], 10) || 0,
                 droneVol: dv, shapes: [] };
@@ -2418,6 +2772,13 @@
           for (var b = 0; b < av.length; b++) { sh.ang.push((parseInt(av[b], 10) || 0) / 1000); }
         } else if (tag === "s") {
           sh.silent = rest === "1";
+        } else if (tag === "o") {
+          var oP = parseInt(rest, 10);
+          sh.own = (oP >= 3 && oP <= 16) ? oP : 0;
+        } else if (tag === "k") {
+          sh.skips = [];
+          var kv = rest.split("-");
+          for (var kk = 0; kk < kv.length; kk++) { var kn = parseInt(kv[kk], 10); if (!isNaN(kn)) { sh.skips.push(kn); } }
         } else if (tag === "v") {
           var vParsed = parseInt(rest, 10);
           if (!isNaN(vParsed)) { sh.vol = vParsed / 1000; }
@@ -2445,6 +2806,9 @@
       s.silent = !!sh.silent;
       s.vol = (typeof sh.vol === "number") ? Math.max(0, Math.min(1, sh.vol)) : 1;
       if (sh.ang && sh.ang.length === sh.n) { s.ang = sh.ang.slice(); }
+      s.own = sh.own || 0;
+      s.skips = [];
+      if (sh.skips) { for (var q2 = 0; q2 < sh.skips.length; q2++) { if (sh.skips[q2] >= 0 && sh.skips[q2] < sh.n) { s.skips.push(sh.skips[q2]); } } }
       rebuildOrder(s);
       shapes.push(s);
     }
@@ -2454,6 +2818,8 @@
       freeOn = true; freeCents = Math.max(0, Math.min(1200, st.free));
     } else { freeOn = false; }
     droneOct = (typeof st.oct === "number") ? st.oct : 1;
+    PULSE_N = st.pdiv || 16;
+    pulseSkips = st.pskips ? st.pskips.slice() : [];
     if (st.pulse) { pulseOn = true; pulseMutes = st.pulse.slice(); }
     else { pulseOn = false; pulseMutes = []; }
     drone = false;            /* start from silence; only turn on if requested */
@@ -2576,6 +2942,11 @@
       }, { threshold: 0 });
       io.observe(yantraSection);
     }
+    var cvio = new IntersectionObserver(function (entries) {
+      if (entries[0].isIntersecting) { document.body.classList.add("cta-hide"); }
+      else { document.body.classList.remove("cta-hide"); }
+    }, { threshold: 0.05 });
+    cvio.observe(cv);
   }
 })();
 </script>
