@@ -387,23 +387,28 @@
                  cursor: pointer; flex: none; width: 5.4em; text-align: left; padding: 0.2rem 0;
                  -webkit-appearance: none; appearance: none; touch-action: manipulation; }
   .layer .inst { white-space: nowrap; width: auto; min-width: 5.4em; }
-  .layer .own-wrap { display: inline-flex; align-items: center; gap: 0.1rem; }
+  .layer .own-wrap { display: inline-flex; flex-direction: column; align-items: center; gap: 0; }
   /* the drone row grows wide in pulse mode; its remove button stays in the corner */
   .layer.layer-drone { position: relative; padding-right: 2.2rem; }
   .layer .rm.rm-corner { position: absolute; top: 0.55rem; right: 0.55rem; }
-  /* drum: press a step label and drag up/down to roll through values */
-  .layer .drumable { position: relative; touch-action: none; -webkit-user-select: none; user-select: none; }
-  .drum { position: absolute; left: -0.6em; right: -0.6em; top: 50%; height: 9em; margin-top: -4.5em;
-          z-index: 40; pointer-events: none; border-radius: 3px;
-          background: linear-gradient(to bottom, rgba(20,16,13,0), rgba(20,16,13,0.97) 22%,
-                                      rgba(20,16,13,0.97) 78%, rgba(20,16,13,0));
-          box-shadow: inset 0 0 0 1px rgba(201,162,75,0.0); }
-  .drum span { position: absolute; left: 0; right: 0; top: 50%; height: 1.8em; margin-top: -0.9em;
-               line-height: 1.8em; text-align: center; white-space: nowrap;
-               font-family: var(--mono); font-size: 0.66rem; letter-spacing: 0.08em; text-transform: uppercase; }
-  .drum .hair { position: absolute; left: 12%; right: 12%; height: 1px; background: rgba(201,162,75,0.35); }
+  .chooser { position: fixed; z-index: 200; background: #14100d; overflow: hidden;
+             border: 1px solid rgba(201,162,75,0.35); border-radius: 4px;
+             box-shadow: 0 12px 32px rgba(0,0,0,0.6); }
+  .chooser-list { position: absolute; left: 0; top: 0; right: 0; bottom: 0; overflow-y: auto;
+                  -webkit-overflow-scrolling: touch; scroll-snap-type: y proximity; scrollbar-width: none; }
+  .chooser-list::-webkit-scrollbar { display: none; }
+  .chooser .pad { height: 60px; }
+  .chooser .opt { height: 30px; line-height: 30px; text-align: center; white-space: nowrap; cursor: pointer;
+                  scroll-snap-align: center; color: #c9a24b; font-family: var(--mono); font-size: 0.66rem;
+                  letter-spacing: 0.08em; text-transform: uppercase; }
+  .chooser .opt.cur { color: #e8e0d2; }
+  .chooser .opt:hover { color: #e8e0d2; }
+  .chooser .mask { position: absolute; left: 0; top: 0; right: 0; bottom: 0; pointer-events: none;
+                   background: linear-gradient(to bottom, rgba(20,16,13,0.92), rgba(20,16,13,0) 36%,
+                                                rgba(20,16,13,0) 64%, rgba(20,16,13,0.92)); }
+  .chooser .hair { position: absolute; left: 14%; right: 14%; height: 1px; background: rgba(201,162,75,0.4); pointer-events: none; }
   .layer .nudge { background: none; border: none; color: var(--brass); font-family: var(--mono);
-                  font-size: 0.72rem; line-height: 1; padding: 0.3rem 0.45rem; cursor: pointer;
+                  font-size: 0.62rem; line-height: 1; padding: 0.15rem 0.9rem; cursor: pointer;
                   -webkit-appearance: none; appearance: none; touch-action: manipulation; }
   .layer .gap { flex: 1; min-width: 0.4rem; align-self: stretch; }
   .layer .rm { background: none; border: none; color: var(--muted); font-family: var(--mono);
@@ -865,7 +870,7 @@
   /* saptak: 0 mandra, 1 madhya, 2 tara. Shifts the drone by whole octaves;
      the free voice rides on the drone's root, so it moves with it. */
   var droneOct = 1;
-  var SAPTAK = ["mandra", "madhya", "t\u0101ra"];
+  var SAPTAK = ["mandra", "madhya", "t\u0101r"];
   function droneRoot() { return 110 * Math.pow(2, droneKey / 12) * Math.pow(2, droneOct - 1); }
   /* Free voice: a second oscillator with no fixed notes. Its pitch is held
      as cents above the drone's Sa (0 = Sa, 1200 = upper Sa), one octave up
@@ -889,79 +894,68 @@
   function setPulseDiv(n) { pulseDivRaw(n); renderPanel(); }
   /* one list for both drums: 0 is "bar" (or "hum"), then 3..16 steps a bar */
   var DRUM_VALUES = [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
-  var DRUM_ROW = 15;          /* pixels of drag per value */
-  /* Press a label and drag: it rolls like a drum, neighbours fading in above
-     and below, and the instrument follows live. A plain tap is left alone so
-     the label's own click (toggle) still works. */
-  function bindDrum(el, getVal, setVal, labelFor, onDone) {
-    el.className += " drumable";
-    var st = null, drumEl = null;
-    function idxOf(v) { var i = DRUM_VALUES.indexOf(v); return i < 0 ? 0 : i; }
-    function paintDrum(pos) {
-      if (!drumEl) {
-        drumEl = document.createElement("div"); drumEl.className = "drum";
-        var h1 = document.createElement("div"); h1.className = "hair"; h1.style.top = "calc(50% - 0.9em)";
-        var h2 = document.createElement("div"); h2.className = "hair"; h2.style.top = "calc(50% + 0.9em)";
-        drumEl.appendChild(h1); drumEl.appendChild(h2);
-        el.appendChild(drumEl);
-        el.style.color = "transparent";     /* the drum's centre row stands in for the label */
-      }
-      var olds = drumEl.querySelectorAll("span"), k;
-      for (k = 0; k < olds.length; k++) { drumEl.removeChild(olds[k]); }
-      var c = Math.round(pos);
-      for (k = c - 2; k <= c + 2; k++) {
-        if (k < 0 || k >= DRUM_VALUES.length) { continue; }
-        var d = k - pos, sp = document.createElement("span");
-        sp.appendChild(document.createTextNode(labelFor(DRUM_VALUES[k])));
-        sp.style.transform = "translateY(" + (-d * 1.8).toFixed(3) + "em)";
-        var near = Math.abs(d);
-        sp.style.opacity = String(Math.max(0, 1 - near * 0.42).toFixed(3));
-        sp.style.color = k === c ? "#e8e0d2" : "#c9a24b";
-        drumEl.appendChild(sp);
-      }
+  var COUNT_VALUES = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+  /* Tap a step label to open the chooser - a short drum of values, the
+     current one centred between brass hairlines - then tap the one you want.
+     Tapping the label again, or anywhere outside, closes it. */
+  var chooserEl = null, chooserOwner = null, chooserClosedAt = 0;
+  var CH_ROW = 30;
+  function closeChooser() {
+    if (!chooserEl) { return; }
+    if (chooserEl.parentNode) { chooserEl.parentNode.removeChild(chooserEl); }
+    chooserEl = null; chooserClosedAt = now_();
+    document.removeEventListener("mousedown", chooserOutside, true);
+    document.removeEventListener("touchstart", chooserOutside, true);
+    window.removeEventListener("scroll", closeChooser, false);
+    window.removeEventListener("resize", closeChooser, false);
+  }
+  function chooserOutside(e) {
+    if (chooserEl && (e.target === chooserEl || chooserEl.contains(e.target))) { return; }
+    if (chooserOwner && (e.target === chooserOwner || chooserOwner.contains(e.target))) {
+      chooserOwner.__closeTap = true;             /* the label's own click should just close */
     }
-    function begin(y) { st = { y0: y, i0: idxOf(getVal()), i: idxOf(getVal()), active: false }; }
-    function track(y) {
-      if (!st) { return false; }
-      var dy = st.y0 - y;
-      if (!st.active && Math.abs(dy) < 6) { return false; }
-      st.active = true;
-      var pos = st.i0 + dy / DRUM_ROW;
-      if (pos < 0) { pos = 0; } if (pos > DRUM_VALUES.length - 1) { pos = DRUM_VALUES.length - 1; }
-      var i = Math.round(pos);
-      if (i !== st.i) {
-        st.i = i; setVal(DRUM_VALUES[i]);
-        if (el.firstChild) { el.firstChild.nodeValue = labelFor(DRUM_VALUES[i]); }
-      }
-      paintDrum(pos);
-      return true;
+    closeChooser();
+  }
+  function toggleChooser(el, cur, labelFor, onPick, values) {
+    var VALS = values || DRUM_VALUES;
+    if (el.__closeTap) { el.__closeTap = false; return; }
+    if (chooserEl) { closeChooser(); return; }
+    var box = document.createElement("div"); box.className = "chooser";
+    var list = document.createElement("div"); list.className = "chooser-list";
+    var padT = document.createElement("div"); padT.className = "pad"; list.appendChild(padT);
+    var ci = 0, i;
+    for (i = 0; i < VALS.length; i++) {
+      (function (v) {
+        var o = document.createElement("div");
+        o.className = "opt" + (v === cur ? " cur" : "");
+        o.appendChild(document.createTextNode(labelFor(v)));
+        o.addEventListener("click", function (e) { e.stopPropagation(); closeChooser(); onPick(v); }, false);
+        list.appendChild(o);
+      })(VALS[i]);
+      if (VALS[i] === cur) { ci = i; }
     }
-    function finish() {
-      if (!st) { return; }
-      var was = st.active; st = null;
-      if (drumEl && drumEl.parentNode) { drumEl.parentNode.removeChild(drumEl); }
-      drumEl = null; el.style.color = "";
-      if (was) { el.__dragged = true; setTimeout(function () { el.__dragged = false; }, 400); onDone(); }
-    }
-    el.addEventListener("mousedown", function (e) { e.preventDefault(); begin(e.clientY);
-      var mv = function (ev) { track(ev.clientY); };
-      var upf = function () { window.removeEventListener("mousemove", mv, false); window.removeEventListener("mouseup", upf, false); finish(); };
-      window.addEventListener("mousemove", mv, false); window.addEventListener("mouseup", upf, false);
-    }, false);
-    el.addEventListener("touchstart", function (e) {
-      if (e.touches.length !== 1) { return; }
-      begin(e.touches[0].clientY);
-    }, { passive: true });
-    el.addEventListener("touchmove", function (e) {
-      if (e.touches.length !== 1) { return; }
-      if (track(e.touches[0].clientY) && e.cancelable) { e.preventDefault(); }
-    }, { passive: false });
-    el.addEventListener("touchend", function (e) {
-      var was = st && st.active;
-      finish();
-      if (was && e.cancelable) { e.preventDefault(); }   /* no click after a roll */
-    }, { passive: false });
-    el.addEventListener("touchcancel", function () { finish(); }, false);
+    var padB = document.createElement("div"); padB.className = "pad"; list.appendChild(padB);
+    box.appendChild(list);
+    var mask = document.createElement("div"); mask.className = "mask"; box.appendChild(mask);
+    var h1 = document.createElement("div"); h1.className = "hair"; h1.style.top = (CH_ROW * 2) + "px"; box.appendChild(h1);
+    var h2 = document.createElement("div"); h2.className = "hair"; h2.style.top = (CH_ROW * 3) + "px"; box.appendChild(h2);
+    document.body.appendChild(box);
+    var r = el.getBoundingClientRect();
+    var bw = Math.max(r.width + 28, 128), bh = CH_ROW * 5;
+    box.style.width = bw + "px"; box.style.height = bh + "px";
+    var vw = window.innerWidth || document.documentElement.clientWidth;
+    var vh = window.innerHeight || document.documentElement.clientHeight;
+    var left = r.left + r.width / 2 - bw / 2, top = r.top + r.height / 2 - bh / 2;
+    left = Math.max(8, Math.min(vw - bw - 8, left)); top = Math.max(8, Math.min(vh - bh - 8, top));
+    box.style.left = left + "px"; box.style.top = top + "px";
+    list.scrollTop = ci * CH_ROW;
+    chooserEl = box; chooserOwner = el;
+    setTimeout(function () {
+      document.addEventListener("mousedown", chooserOutside, true);
+      document.addEventListener("touchstart", chooserOutside, true);
+      window.addEventListener("scroll", closeChooser, false);
+      window.addEventListener("resize", closeChooser, false);
+    }, 0);
   }
   function pulseActive() {
     var out = [], i;
@@ -976,7 +970,12 @@
   }
   var FREE_LEVEL = 0.34;
   function freeRatio() { return 2 * Math.pow(2, freeCents / 1200); }
-  var SWARAS = ["Sa", "re", "Re", "ga", "Ga", "ma", "Ma", "Pa", "dha", "Dha", "ni", "Ni", "\u1E60a"];
+  /* Lowercase (smaller) for a note sitting off its natural spot - komal re,
+     ga, dha, ni and shuddha ma - capitals otherwise. On top of that, the
+     Bhatkhande marks: a line beneath komal, a stroke above tivra Ma.
+     (0 plain, 1 komal, 2 tivra) */
+  var SWARAS = [["Sa", 0], ["re", 1], ["Re", 0], ["ga", 1], ["Ga", 0], ["ma", 0], ["Ma", 2],
+                ["Pa", 0], ["dha", 1], ["Dha", 0], ["ni", 1], ["Ni", 0], ["\u1E60a", 0]];
   var playing = false;
   var bpm = 96, T = 240 / bpm, t0 = 0;
   var ac = null, master = null, noiseBuf = null, timer = null;
@@ -1345,7 +1344,7 @@
   }
   /* ---------- scheduling ---------- */
   function align(s) {
-    if (s.own) { s.ownN = -1; return; }
+    if (ownTime(s)) { s.ownN = -1; return; }
     var now = ac.currentTime;
     var turns = (now - t0) / T;
     var p = turns - Math.floor(turns);
@@ -1444,7 +1443,7 @@
     schedulePulse(until);
     for (var i = 0; i < shapes.length; i++) {
       var s = shapes[i], guard = 0;
-      if (s.own) { scheduleOwn(s, until); continue; }
+      if (ownTime(s)) { scheduleOwn(s, until); continue; }
       while (s.nt < until && guard++ < 96) {
         if (!s.silent && s.mutes.indexOf(s.nk) === -1) {
           SYNTH[s.inst](s.nt, getShapeGain(s));
@@ -1591,7 +1590,7 @@
   }
   function swaraOf(c) {
     var k = Math.round(c / 100), off = c - k * 100;
-    return { name: SWARAS[k], off: off };
+    return { name: SWARAS[k][0], mark: SWARAS[k][1], off: off };
   }
   var freeGlow = 0;
   function drawFreeArc() {
@@ -1635,7 +1634,8 @@
     if (sounding) {
       var sw = swaraOf(freeCents);
       var offTxt = sw.off === 0 ? "\u00B7" : (sw.off > 0 ? "+" : "\u2212") + Math.abs(sw.off) + "\u00A2";
-      var lx = cx + (pr + 17) * Math.cos(a), ly = cy + (pr + 17) * Math.sin(a);
+      var lx = cx + (pr + 21) * Math.cos(a), ly = cy + (pr + 21) * Math.sin(a);
+      ly = Math.max(ly, (live ? 17 : 15) * 1.15);    /* keep the tivra stroke inside the canvas */
       ctx.font = "italic " + (live ? 17 : 15) + "px 'Cormorant Garamond', serif";
       var nw = ctx.measureText(sw.name).width;
       ctx.font = "9px 'Space Mono', monospace";
@@ -1644,6 +1644,14 @@
       ctx.font = "italic " + (live ? 17 : 15) + "px 'Cormorant Garamond', serif";
       ctx.fillStyle = "#e8e0d2";
       ctx.fillText(sw.name, lx - tw / 2, ly);
+      var fs = live ? 17 : 15;
+      if (sw.mark === 1) {                         /* komal: line beneath */
+        ctx.beginPath(); ctx.moveTo(lx - tw / 2, ly + fs * 0.55); ctx.lineTo(lx - tw / 2 + nw, ly + fs * 0.55);
+        ctx.strokeStyle = "#e8e0d2"; ctx.lineWidth = 1; ctx.stroke();
+      } else if (sw.mark === 2) {                  /* tivra: stroke above */
+        ctx.beginPath(); ctx.moveTo(lx - tw / 2 + nw * 0.5, ly - fs * 0.95); ctx.lineTo(lx - tw / 2 + nw * 0.5, ly - fs * 0.6);
+        ctx.strokeStyle = "#e8e0d2"; ctx.lineWidth = 1; ctx.stroke();
+      }
       ctx.font = "9px 'Space Mono', monospace";
       ctx.fillStyle = Math.abs(sw.off) <= 5 ? DRONE_COL : "rgba(232,224,210,0.55)";
       ctx.fillText(offTxt, lx - tw / 2 + nw + gap, ly + 1);
@@ -1736,7 +1744,7 @@
     var i, j, s, tn = now_(), owns = 0, newest = 0, oldest = Infinity;
     for (i = 0; i < shapes.length; i++) {
       s = shapes[i];
-      if (!s.own) { continue; }
+      if (!ownTime(s)) { continue; }
       var act = activeOrder(s);
       if (!act.length) { continue; }
       var ph = [];
@@ -1789,8 +1797,16 @@
       var y = g.sy0 - i * (g.sy0 - g.sy1) / 2, on = i === droneOct;
       ctx.beginPath(); ctx.moveTo(g.sx - 4, y); ctx.lineTo(g.sx + 4, y);
       ctx.strokeStyle = "rgba(232,224,210,0.4)"; ctx.lineWidth = 1; ctx.stroke();
-      cText(SAPTAK[i], g.sx + 14, y, "italic " + (on ? (live ? 15 : 14) : 12) + "px 'Cormorant Garamond', serif",
-            on ? "#e8e0d2" : "rgba(232,224,210,0.35)", "left");
+      var fsz = on ? (live ? 15 : 14) : 12, lcol = on ? "#e8e0d2" : "rgba(232,224,210,0.35)";
+      var lf = "italic " + fsz + "px 'Cormorant Garamond', serif", x0 = g.sx + 14;
+      cText(SAPTAK[i], x0, y, lf, lcol, "left");
+      if (i !== 1) {          /* octave dot on the first letter: above tar, below mandra */
+        ctx.font = lf;
+        var fw = ctx.measureText(SAPTAK[i].charAt(0)).width;
+        ctx.beginPath();
+        ctx.arc(x0 + fw * 0.6, i === 2 ? y - fsz * 0.6 : y + fsz * 0.6, on ? 1.4 : 1.1, 0, Math.PI * 2);
+        ctx.fillStyle = on ? DRONE_COL : "rgba(201,162,75,0.45)"; ctx.fill();
+      }
       if (on) {
         ctx.save(); ctx.translate(g.sx, y); ctx.rotate(Math.PI / 2);
         var sz = live ? 7 : 6;
@@ -2208,7 +2224,7 @@
               ring: 1, ringT: 1, rot: 0, ang: ang, order: [], oi: 0,
               silent: false, vol: 1, gain: null,
               mutes: mutes ? mutes.slice() : [], nk: 0, nt: 0,
-              own: 0, skips: [], ownN: -1, samAt: 0 };
+              own: def.n, skips: [], ownN: -1, samAt: 0 };
     rebuildOrder(s);
     return s;
   }
@@ -2229,6 +2245,10 @@
      can run its own loop, one 16th (or 8th) per corner, like a Volca
      sequence. Skipped corners (Active Step) drop out of that loop and
      shorten it; muted corners still keep their step as a rest. */
+  /* A shape's count starts at its own corners (triangle 3, decagon 10), which
+     plays exactly as the old "bar" mode did, dragged corners and all. Dial a
+     different count, or skip a corner, and it runs its own step loop. */
+  function ownTime(s) { return !!s.own && !(s.own === s.n && !s.skips.length); }
   function activeOrder(s) {
     var out = [], i;
     for (i = 0; i < s.order.length; i++) {
@@ -2374,11 +2394,11 @@
       var dp = document.createElement("button"); dp.className = "inst";
       dp.appendChild(document.createTextNode(pulseOn ? "pulse \u00B7 " + PULSE_N : "hum"));
       dp.title = "Hum, or a pulse of 3 to 16 packets a bar \u2014 tap the dotted ring to switch packets";
-      dp.addEventListener("click", function (e) { e.preventDefault(); if (dp.__dragged) { return; } setPulseMode(!pulseOn); }, false);
-      bindDrum(dp, function () { return pulseOn ? PULSE_N : 0; },
-        function (v) { if (v === 0) { pulseModeRaw(false); } else { pulseDivRaw(v); pulseModeRaw(true); } },
-        function (v) { return v ? "pulse \u00B7 " + v : "hum"; },
-        function () { renderPanel(); });
+      dp.addEventListener("click", function (e) {
+        e.preventDefault();
+        toggleChooser(dp, pulseOn ? PULSE_N : 0, function (v) { return v ? "pulse \u00B7 " + v : "hum"; },
+          function (v) { if (v === 0) { setPulseMode(false); } else { pulseDivRaw(v); setPulseMode(true); } });
+      }, false);
       var pw = document.createElement("span"); pw.className = "own-wrap";
       if (pulseOn) {
         var pdn = document.createElement("button"); pdn.className = "nudge";
@@ -2387,7 +2407,7 @@
         var pup = document.createElement("button"); pup.className = "nudge";
         pup.appendChild(document.createTextNode("\u25B4")); pup.title = "more packets to a bar";
         pup.addEventListener("click", function (e) { e.preventDefault(); setPulseDiv(PULSE_N + 1); }, false);
-        pw.appendChild(pdn); pw.appendChild(dp); pw.appendChild(pup);
+        pw.appendChild(pup); pw.appendChild(dp); pw.appendChild(pdn);
       } else { pw.appendChild(dp); }
       drMain.appendChild(dd); drMain.appendChild(dn); drMain.appendChild(di); drMain.appendChild(pw); drMain.appendChild(dx);
       var dVolWrap = document.createElement("div"); dVolWrap.className = "vol-wrap";
@@ -2456,17 +2476,13 @@
            3 to 16, so "own 7" makes every corner a seventh of a bar */
         var ow = document.createElement("span"); ow.className = "own-wrap";
         var ob = document.createElement("button"); ob.className = "inst";
-        ob.appendChild(document.createTextNode(s.own ? "own \u00B7 " + s.own : "bar"));
+        ob.appendChild(document.createTextNode("own \u00B7 " + s.own));
         ob.title = "bar: corners spread across the bar \u00B7 own: one step per corner, N steps to a bar";
         ob.addEventListener("click", function (e) {
           e.preventDefault();
-          if (ob.__dragged) { return; }
-          setOwnUnit(s, s.own ? 0 : 16);
+          toggleChooser(ob, s.own, function (v) { return "own \u00B7 " + v + (v === s.n ? "  \u25E6" : ""); },
+            function (v) { setOwnUnit(s, v); }, COUNT_VALUES);
         }, false);
-        bindDrum(ob, function () { return s.own || 0; },
-          function (v) { s.own = v; s.ownN = -1; s.samAt = 0; if (playing && ac) { align(s); } },
-          function (v) { return v ? "own \u00B7 " + v : "bar"; },
-          function () { renderPanel(); });
         if (s.own) {
           var odn = document.createElement("button"); odn.className = "nudge";
           odn.appendChild(document.createTextNode("\u25BE")); odn.title = "fewer steps to a bar";
@@ -2474,7 +2490,7 @@
           var oup = document.createElement("button"); oup.className = "nudge";
           oup.appendChild(document.createTextNode("\u25B4")); oup.title = "more steps to a bar";
           oup.addEventListener("click", function (e) { e.preventDefault(); setOwnUnit(s, Math.min(16, s.own + 1)); }, false);
-          ow.appendChild(odn); ow.appendChild(ob); ow.appendChild(oup);
+          ow.appendChild(oup); ow.appendChild(ob); ow.appendChild(odn);
         } else { ow.appendChild(ob); }
         main.appendChild(dot); main.appendChild(nm); main.appendChild(ib); main.appendChild(ow);
         main.appendChild(gap); main.appendChild(volInline); main.appendChild(rm);
@@ -2639,7 +2655,7 @@
       var seg = { n: s.n, instIdx: instIdx, rot: Math.round(s.rot * 1000),
                   mutes: s.mutes.slice(), ang: null, silent: s.silent ? 1 : 0,
                   vol: Math.round((typeof s.vol === "number" ? s.vol : 1) * 1000),
-                  own: s.own || 0, skips: (s.skips || []).slice() };
+                  own: (s.own && s.own !== s.n) ? s.own : 0, skips: (s.skips || []).slice() };
       if (!isEven(s)) {
         var am = [], k;
         for (k = 0; k < s.ang.length; k++) { am.push(Math.round(s.ang[k] * 1000)); }
@@ -2806,7 +2822,7 @@
       s.silent = !!sh.silent;
       s.vol = (typeof sh.vol === "number") ? Math.max(0, Math.min(1, sh.vol)) : 1;
       if (sh.ang && sh.ang.length === sh.n) { s.ang = sh.ang.slice(); }
-      s.own = sh.own || 0;
+      s.own = sh.own || s.n;
       s.skips = [];
       if (sh.skips) { for (var q2 = 0; q2 < sh.skips.length; q2++) { if (sh.skips[q2] >= 0 && sh.skips[q2] < sh.n) { s.skips.push(sh.skips[q2]); } } }
       rebuildOrder(s);
