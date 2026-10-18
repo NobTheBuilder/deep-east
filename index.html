@@ -860,10 +860,17 @@
   var shapes = [];
   var drone = false, droneNodes = null;
   var droneVol = 1;
+  /* tapping the Infinity layer row mutes it, the same as a shape's row;
+     the fader keeps its value so unmuting returns to the same level */
+  var droneSilent = false;
+  function droneLevel() { return droneSilent ? 0 : droneVol; }
+  function applyDroneLevel() {
+    if (droneNodes && ac) { droneNodes.userGain.gain.setTargetAtTime(droneLevel(), ac.currentTime, 0.012); }
+  }
   function setDroneVolume(v) {
     if (v < 0) { v = 0; } if (v > 1) { v = 1; }
     droneVol = v;
-    if (droneNodes && ac) { droneNodes.userGain.gain.setTargetAtTime(v, ac.currentTime, 0.012); }
+    applyDroneLevel();
   }
   var droneKey = 0;   /* semitones above A2 (110 Hz) */
   var NOTE_NAMES = ["A","A\u266F","B","C","C\u266F","D","D\u266F","E","F","F\u266F","G","G\u266F"];
@@ -1243,7 +1250,7 @@
     /* separate from the envelope above — this is the user-facing volume
        fader, so raising/lowering it never fights the fade-in ramp */
     var userGain = ac.createGain();
-    userGain.gain.value = droneVol;
+    userGain.gain.value = droneLevel();
     var lp = ac.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 1400; lp.Q.value = 0.6;
     out.connect(userGain); userGain.connect(lp); lp.connect(master);
     var base = droneRoot();
@@ -1774,6 +1781,25 @@
       }
     }
   }
+  /* ---------- reset, top-left ---------- */
+  /* The empty 0 of the oscillation mark: back to nothing. */
+  function topGeo() {
+    var r = cv.getBoundingClientRect();
+    return { x: r.width * 0.075, y: r.height * 0.085, rr: 9 };
+  }
+  function drawTopIcons() {
+    var g = topGeo();
+    ctx.save();
+    ctx.globalAlpha = 0.95;
+    ctx.beginPath(); ctx.arc(g.x, g.y, g.rr, 0, Math.PI * 2); ctx.strokeStyle = DRONE_COL; ctx.lineWidth = 2; ctx.stroke();
+    ctx.font = "9px 'Space Mono', monospace"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillStyle = "#e8e0d2"; ctx.fillText("reset", g.x, g.y + g.rr + 10);
+    ctx.restore();
+  }
+  function topIconAt(x, y) {
+    var g = topGeo();
+    return (Math.abs(y - g.y - 5) <= 22 && Math.abs(x - g.x) < 22) ? "reset" : null;
+  }
   /* ---------- corner controls ---------- */
   /* Bottom-left: the saptak slider, its knob a filled brass triangle like the
      drone marker. Bottom-right: hum and pulse as a solid and a dashed ring.
@@ -1857,7 +1883,7 @@
       s.ring += (s.ringT - s.ring) * 0.12;
     }
     /* infinity glow */
-    glowAmt += ((drone ? 1 : 0) - glowAmt) * 0.04;
+    glowAmt += ((drone ? (droneSilent ? 0.3 : 1) : 0) - glowAmt) * 0.04;
     if (glowAmt > 0.01 && pulseOn) { drawPulseRing(cx, cy, R); }
     else if (glowAmt > 0.01) {
       var pulse = 0.5 + 0.5 * Math.sin(now_() / 1400);
@@ -1930,6 +1956,7 @@
     drawPitchArc();
     drawFreeArc();
     drawCorners();
+    drawTopIcons();
     if (playing && ac) {
       /* prefer the audio clock; fall back to wall clock if it has stalled */
       var aclk = ac.currentTime;
@@ -1988,6 +2015,12 @@
   }
   function angleAt(x, y) { return Math.atan2(y - geo.cy, x - geo.cx); }
   function down(x, y) {
+    var ti = topIconAt(x, y);
+    if (ti) {
+      drag = { mode: "ring", s: null, k: -1, moved: false, dist: 0 };
+      resetScene();
+      return true;
+    }
     var mr = modeRingAt(x, y);
     if (mr) {
       drag = { mode: "ring", s: null, k: -1, moved: false, dist: 0 };
@@ -2279,7 +2312,7 @@
   }
   function toggleShape(def) {
     if (def.n === 0) {
-      drone = !drone;
+      drone = !drone; droneSilent = false;
       if (!drone) { stopDrone(); } else if (playing) { audio(); startDrone(); }
       renderPanel(); return;
     }
@@ -2390,7 +2423,7 @@
       di.addEventListener("click", function (e) { e.preventDefault(); cycleDroneKey(); }, false);
       var dx = document.createElement("button"); dx.className = "rm rm-corner"; dr.className = "layer layer-drone";
       dx.appendChild(document.createTextNode("\u00D7"));
-      dx.addEventListener("click", function () { drone = false; stopDrone(); renderPanel(); }, false);
+      dx.addEventListener("click", function () { drone = false; droneSilent = false; stopDrone(); renderPanel(); }, false);
       var dp = document.createElement("button"); dp.className = "inst";
       dp.appendChild(document.createTextNode(pulseOn ? "pulse \u00B7 " + PULSE_N : "hum"));
       dp.title = "Hum, or a pulse of 3 to 16 packets a bar \u2014 tap the dotted ring to switch packets";
@@ -2423,6 +2456,18 @@
       bindVolTrack(dVolTrack, dVolKnob, dVolPct,
         function () { return droneVol; }, function (v) { setDroneVolume(v); });
       dr.appendChild(drMain); dr.appendChild(dVolWrap);
+      if (droneSilent) { dr.className = "layer layer-drone off"; }
+      dr.style.cursor = "pointer";
+      dr.addEventListener("click", function (e) {
+        /* key, hum/pulse, remove and the fader keep their own jobs */
+        if (e.target === di || di.contains(e.target)) { return; }
+        if (e.target === pw || pw.contains(e.target)) { return; }
+        if (e.target === dx || dx.contains(e.target)) { return; }
+        if (e.target === dVolWrap || dVolWrap.contains(e.target)) { return; }
+        droneSilent = !droneSilent;
+        applyDroneLevel();
+        renderPanel();
+      }, false);
       layersEl.appendChild(dr);
     }
     for (var i = 0; i < shapes.length; i++) {
@@ -2476,19 +2521,19 @@
            3 to 16, so "own 7" makes every corner a seventh of a bar */
         var ow = document.createElement("span"); ow.className = "own-wrap";
         var ob = document.createElement("button"); ob.className = "inst";
-        ob.appendChild(document.createTextNode("own \u00B7 " + s.own));
-        ob.title = "bar: corners spread across the bar \u00B7 own: one step per corner, N steps to a bar";
+        ob.appendChild(document.createTextNode("m\u0101tr\u0101 \u00B7 " + s.own));
+        ob.title = "m\u0101tr\u0101: how many beats fill one turn \u00B7 each corner takes one m\u0101tr\u0101 \u00B7 \u25E6 marks the shape's home count";
         ob.addEventListener("click", function (e) {
           e.preventDefault();
-          toggleChooser(ob, s.own, function (v) { return "own \u00B7 " + v + (v === s.n ? "  \u25E6" : ""); },
+          toggleChooser(ob, s.own, function (v) { return "m\u0101tr\u0101 \u00B7 " + v + (v === s.n ? "  \u25E6" : ""); },
             function (v) { setOwnUnit(s, v); }, COUNT_VALUES);
         }, false);
         if (s.own) {
           var odn = document.createElement("button"); odn.className = "nudge";
-          odn.appendChild(document.createTextNode("\u25BE")); odn.title = "fewer steps to a bar";
+          odn.appendChild(document.createTextNode("\u25BE")); odn.title = "fewer m\u0101tr\u0101s to a turn";
           odn.addEventListener("click", function (e) { e.preventDefault(); setOwnUnit(s, Math.max(3, s.own - 1)); }, false);
           var oup = document.createElement("button"); oup.className = "nudge";
-          oup.appendChild(document.createTextNode("\u25B4")); oup.title = "more steps to a bar";
+          oup.appendChild(document.createTextNode("\u25B4")); oup.title = "more m\u0101tr\u0101s to a turn";
           oup.addEventListener("click", function (e) { e.preventDefault(); setOwnUnit(s, Math.min(16, s.own + 1)); }, false);
           ow.appendChild(oup); ow.appendChild(ob); ow.appendChild(odn);
         } else { ow.appendChild(ob); }
@@ -2540,7 +2585,7 @@
         playing = true;
         hushSoundEmbeds();
         t0 = ac.currentTime + 0.06; pulseNext = -1;
-        if (!shapes.length && !drone) { toggleShape(SHAPES[0]); }
+        if (!shapes.length && !drone) { toggleShape(defByN(0)); }   /* an empty yantra wakes the drone */
         for (var i = 0; i < shapes.length; i++) { align(shapes[i]); }
         timer = setInterval(schedule, 16);
         if (drone) { startDrone(); }
@@ -2643,7 +2688,7 @@
   /* ============================================================
      Share Scene: encode the live pattern into the URL hash so it
      travels in a plain link — no server, works on the static site.
-     Format:  v1~<bpm>~<drone>~<droneKey>~shape_shape_shape
+     Format:  v1~<bpm>~<drone>~<droneKey>~shape_shape_shape~droneVol~free~pulse~oct~pskips~pdiv[~1 drone muted]
      shape:   n.instIdx.rotMilli[.m<muted-csv>][.a<angles-milli-csv>][.s1]
      ============================================================ */
   function captureState() {
@@ -2668,6 +2713,7 @@
     st.oct = droneOct;
     st.pskips = pulseSkips.slice();
     st.pdiv = PULSE_N;
+    st.dmute = (drone && droneSilent) ? 1 : 0;
     return st;
   }
   function encodeState(st) {
@@ -2718,6 +2764,9 @@
     }
     parts.push(sk);
     parts.push(String(st.pdiv || 16));
+    /* drone muted from its layer row: only written when true, so every
+       other link stays exactly as it was, and older links simply lack it */
+    if (st.dmute) { parts.push("1"); }
     return parts.join("~");
   }
   function decodeState(str) {
@@ -2767,7 +2816,7 @@
     var out = { bpm: parseInt(parts[1], 10) || 96, free: fv, pulse: pz, oct: oc, pskips: psk, pdiv: pn,
                 drone: parts[2] === "1",
                 droneKey: parseInt(parts[3], 10) || 0,
-                droneVol: dv, shapes: [] };
+                droneVol: dv, dmute: parts[11] === "1", shapes: [] };
     var shp = parts[4] ? parts[4].split("_") : [], i, j;
     for (i = 0; i < shp.length; i++) {
       if (!shp[i]) { continue; }
@@ -2840,6 +2889,7 @@
     else { pulseOn = false; pulseMutes = []; }
     drone = false;            /* start from silence; only turn on if requested */
     if (st.drone) { drone = true; }   /* startDrone() fires when playback begins */
+    droneSilent = !!(st.drone && st.dmute);
     return true;
   }
   /* read a scene from the page hash, e.g. #y=v1~... */
@@ -2918,6 +2968,15 @@
     }, false);
   })();
 
+  /* ---------- reset ---------- */
+  /* An empty yantra: no shapes, drone asleep, free voice off, hum.
+     Tempo, key and saptak stay as they were. */
+  function resetScene() {
+    for (var i = 0; i < shapes.length; i++) { if (shapes[i].gain) { shapes[i].gain.disconnect(); } }
+    shapes = []; drone = false; droneSilent = false; stopDrone(); freeOn = false;
+    pulseOn = false; pulseMutes = []; pulseSkips = []; pulseNext = -1;
+    recomputeRings(); renderPanel();
+  }
   /* ---------- opening pattern: shared scene if present, else 4-against-3 ---------- */
   (function seed() {
     var shared = stateFromHash();
