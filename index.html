@@ -439,6 +439,14 @@
     font-family: var(--mono); font-size: 0.56rem; letter-spacing: 0.14em;
     text-transform: uppercase; color: var(--muted); flex: none; width: 2em;
   }
+  /* phones: every shape row keeps the same two lines, name / sound / matra
+     on top and the volume with its remove button beneath, instead of
+     wrapping differently depending on how wide the matra number is */
+  @media (max-width: 640px) {
+    .layer .gap { display: none; }
+    .layer .vol-inline { order: 5; flex: 1 1 0; min-width: calc(100% - 3rem); padding-left: calc(10px + 0.6rem); }
+    .layer .rm:not(.rm-corner) { order: 6; flex: none; margin-left: auto; }
+  }
   .tempo-line { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.4rem; }
   .bpm { font-family: var(--mono); font-size: 0.7rem; color: var(--bone); }
   input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 2px;
@@ -883,6 +891,13 @@
      as cents above the drone's Sa (0 = Sa, 1200 = upper Sa), one octave up
      from the drone, so changing the drone key carries the phrase with it. */
   var freeOn = false, freeCents = 700;
+  /* the free voice's own saptak: 0 mandra, 1 madhya, 2 tar. Absolute, on
+     the same scale as droneOct, so the voice can sit in tar over a mandra
+     drone. Changed by holding the dot and pushing it out (up) or in (down). */
+  var freeOct = 1, freeOctFlash = 0;
+  /* reverb on the free voice rises with its register: a dry mandra, a little
+     air in madhya, a long bloom in tar */
+  var FREE_REV = [0.10, 0.30, 0.62];
   /* Pulse mode: the one hum divided into 16 packets per turn of the Yantra,
      a trance gate on the drone (never on the free voice). Each packet can
      be switched off from the dotted ring. Hum is the default. */
@@ -976,7 +991,7 @@
     pulseNext = -1;
   }
   var FREE_LEVEL = 0.34;
-  function freeRatio() { return 2 * Math.pow(2, freeCents / 1200); }
+  function freeRatio() { return 2 * Math.pow(2, freeOct - droneOct) * Math.pow(2, freeCents / 1200); }
   /* Lowercase (smaller) for a note sitting off its natural spot - komal re,
      ga, dha, ni and shuddha ma - capitals otherwise. On top of that, the
      Bhatkhande marks: a line beneath komal, a stroke above tivra Ma.
@@ -1241,6 +1256,38 @@
     s.vol = v;
     if (s.gain && ac) { s.gain.gain.setTargetAtTime(v, ac.currentTime, 0.012); }
   }
+  /* a temple-ish space made once from decaying noise: no files to load.
+     About 3.6 s, darker as it fades, slightly different in each ear. */
+  var revBuf = null;
+  function makeReverb() {
+    try {
+      if (!revBuf) {
+        var sr = ac.sampleRate, len = Math.floor(sr * 3.6);
+        revBuf = ac.createBuffer(2, len, sr);
+        for (var ch = 0; ch < 2; ch++) {
+          var d = revBuf.getChannelData(ch), lp = 0;
+          for (var i = 0; i < len; i++) {
+            var t = i / len, k = 0.25 + 0.7 * t;             /* gentle darkening */
+            lp += (Math.random() * 2 - 1 - lp) * (1 - k);
+            d[i] = lp * Math.pow(1 - t, 2.4) * (i < sr * 0.012 ? i / (sr * 0.012) : 1);
+          }
+        }
+      }
+      var c = ac.createConvolver(); c.buffer = revBuf;
+      return c;
+    } catch (e) { return null; }
+  }
+  function applyFreeReverb() {
+    if (!droneNodes || !ac || !droneNodes.revSend) { return; }
+    droneNodes.revSend.gain.setTargetAtTime(FREE_REV[freeOct], ac.currentTime, 0.25);
+  }
+  function setFreeOct(o) {
+    if (o < 0) { o = 0; } if (o > 2) { o = 2; }
+    if (o === freeOct) { return; }
+    freeOct = o; freeOctFlash = now_();
+    applyFreePitch(0.07);        /* a short slide between saptaks, not a jump */
+    applyFreeReverb();
+  }
   function startDrone() {
     if (droneNodes || !ac) { return; }
     var now = ac.currentTime;
@@ -1279,6 +1326,10 @@
     var fg = ac.createGain();
     fg.gain.value = freeOn ? FREE_LEVEL : 0;
     fg.connect(out);
+    var rsend = ac.createGain();
+    rsend.gain.value = FREE_REV[freeOct];
+    var conv = makeReverb();
+    if (conv) { fg.connect(rsend); rsend.connect(conv); conv.connect(out); }
     var fparts = [["sine", 0.62, 0], ["triangle", 0.22, 5]];
     var vlfo = ac.createOscillator(), vg = ac.createGain();
     vlfo.frequency.value = 4.6; vg.gain.value = 7;      /* +/- 7 cents */
@@ -1294,13 +1345,14 @@
       fo.__ratio = freeRatio(); fo.__free = true;
       oscs.push(fo);
     }
-    droneNodes = { out: out, userGain: userGain, oscs: oscs, lfo: lfo, vlfo: vlfo, freeGain: fg, gate: gate };
+    droneNodes = { out: out, userGain: userGain, oscs: oscs, lfo: lfo, vlfo: vlfo, freeGain: fg, gate: gate, revSend: rsend };
   }
   function retuneDrone() {
     if (!droneNodes || !ac) { return; }
     var now = ac.currentTime, base = droneRoot(), i, o;
     for (i = 0; i < droneNodes.oscs.length; i++) {
       o = droneNodes.oscs[i];
+      if (o.__free) { o.__ratio = freeRatio(); }
       var target = base * o.__ratio;
       o.frequency.cancelScheduledValues(now);
       o.frequency.setValueAtTime(Math.max(o.frequency.value, 0.0001), now);
@@ -1309,15 +1361,16 @@
   }
   /* glide the free voice to its new pitch: short enough to follow a finger,
      long enough to sound like a meend rather than steps */
-  function applyFreePitch() {
+  function applyFreePitch(glide) {
     if (!droneNodes || !ac) { return; }
     var now = ac.currentTime, r = freeRatio(), f = droneRoot() * r, i, o;
+    var tc = (typeof glide === "number") ? glide : 0.03;
     for (i = 0; i < droneNodes.oscs.length; i++) {
       o = droneNodes.oscs[i];
       if (!o.__free) { continue; }
       o.__ratio = r;
       o.frequency.cancelScheduledValues(now);
-      o.frequency.setTargetAtTime(f, now, 0.03);
+      o.frequency.setTargetAtTime(f, now, tc);
     }
   }
   function applyFreeLevel() {
@@ -1600,6 +1653,13 @@
     return { name: SWARAS[k][0], mark: SWARAS[k][1], off: off };
   }
   var freeGlow = 0;
+  /* saptak marks in the usual way: a dot below for mandra, above for tar */
+  function saptakDot(x, y, fs, oct, col) {
+    if (oct === 1) { return; }
+    var dy = oct === 0 ? fs * 0.62 : -fs * 0.78;
+    ctx.beginPath(); ctx.arc(x, y + dy, 1.5, 0, Math.PI * 2);
+    ctx.fillStyle = col; ctx.fill();
+  }
   function drawFreeArc() {
     var cx = geo.cx, cy = geo.cy, pr = pitchR(), a, i;
     var live = drag && drag.mode === "free" && drag.moved;
@@ -1619,7 +1679,9 @@
       ctx.fillStyle = "rgba(232,224,210,0.42)"; ctx.fill();
       if (Math.abs(guides[i][0] - freeCents) > 90 || !sounding) {
         ctx.fillStyle = "rgba(232,224,210,0.32)";
-        ctx.fillText(guides[i][1], cx + (pr + 13) * Math.cos(a), cy + (pr + 13) * Math.sin(a));
+        var gx = cx + (pr + 13) * Math.cos(a), gy = cy + (pr + 13) * Math.sin(a);
+        ctx.fillText(guides[i][1], gx, gy);
+        saptakDot(gx, gy, 12, freeOct, "rgba(232,224,210,0.32)");
       }
     }
     /* the dot */
@@ -1632,6 +1694,28 @@
       g.addColorStop(0, "rgba(232,224,210," + (0.38 * freeGlow).toFixed(3) + ")");
       g.addColorStop(1, "rgba(232,224,210,0)");
       ctx.fillStyle = g; ctx.beginPath(); ctx.arc(mx, my, gr, 0, Math.PI * 2); ctx.fill();
+    }
+    /* a ring that opens out when the saptak changes */
+    var fo = freeOctFlash ? (now_() - freeOctFlash) / 520 : 1;
+    if (fo < 1) {
+      ctx.beginPath(); ctx.arc(mx, my, 8 + 26 * fo, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(232,224,210," + (0.7 * (1 - fo)).toFixed(3) + ")";
+      ctx.lineWidth = 1.4; ctx.stroke();
+    }
+    /* while held: small marks inward and outward where another saptak waits */
+    if (live) {
+      var ux = Math.cos(a), uy = Math.sin(a), px = -uy, py = ux;
+      ctx.fillStyle = "rgba(201,162,75,0.75)";
+      if (freeOct < 2) {
+        var ox = mx + ux * 15, oy = my + uy * 15;
+        ctx.beginPath(); ctx.moveTo(ox + ux * 5, oy + uy * 5);
+        ctx.lineTo(ox + px * 4, oy + py * 4); ctx.lineTo(ox - px * 4, oy - py * 4); ctx.closePath(); ctx.fill();
+      }
+      if (freeOct > 0) {
+        var ix = mx - ux * 15, iy = my - uy * 15;
+        ctx.beginPath(); ctx.moveTo(ix - ux * 5, iy - uy * 5);
+        ctx.lineTo(ix + px * 4, iy + py * 4); ctx.lineTo(ix - px * 4, iy - py * 4); ctx.closePath(); ctx.fill();
+      }
     }
     ctx.beginPath(); ctx.arc(mx, my, live ? 7.5 : 6.5, 0, Math.PI * 2);
     ctx.fillStyle = sounding ? "#e8e0d2" : "rgba(13,11,10,0.95)"; ctx.fill();
@@ -1652,6 +1736,7 @@
       ctx.fillStyle = "#e8e0d2";
       ctx.fillText(sw.name, lx - tw / 2, ly);
       var fs = live ? 17 : 15;
+      saptakDot(lx - tw / 2 + (sw.mark === 2 ? nw * 0.8 : nw * 0.5), ly, fs, freeOct, "#e8e0d2");
       if (sw.mark === 1) {                         /* komal: line beneath */
         ctx.beginPath(); ctx.moveTo(lx - tw / 2, ly + fs * 0.55); ctx.lineTo(lx - tw / 2 + nw, ly + fs * 0.55);
         ctx.strokeStyle = "#e8e0d2"; ctx.lineWidth = 1; ctx.stroke();
@@ -2009,6 +2094,7 @@
   }
   /* ---------- interaction ---------- */
   var drag = null;
+  var OCT_PULL = 30;
   function local(clientX, clientY) {
     var r = cv.getBoundingClientRect();
     return [clientX - r.left, clientY - r.top];
@@ -2035,7 +2121,8 @@
     if (onFreeArc(x, y)) {
       var onDot = nearFreeDot(x, y);
       drag = { mode: "free", s: null, k: -1, moved: false, dist: 0, onDot: onDot,
-               wasOn: freeOn && drone };
+               wasOn: freeOn && drone, oct0: freeOct,
+               r0: Math.sqrt(Math.pow(x - geo.cx, 2) + Math.pow(y - geo.cy, 2)) };
       if (!onDot) {
         freeCents = freeCentsAt(x, y); freeOn = true;
         droneOn(); applyFreePitch(); applyFreeLevel();
@@ -2098,6 +2185,12 @@
     }
     if (drag.mode === "free") {
       drag.moved = true;
+      /* push the dot outward (up) for the saptak above, inward (down) for
+         the one below; each step needs a deliberate pull of OCT_PULL px */
+      var rr = Math.sqrt(Math.pow(x - geo.cx, 2) + Math.pow(y - geo.cy, 2));
+      var steps = (rr - drag.r0) / OCT_PULL;
+      steps = steps > 0 ? Math.floor(steps) : Math.ceil(steps);
+      setFreeOct(drag.oct0 + steps);
       freeCents = freeCentsAt(x, y);
       droneOn();
       if (!freeOn) { freeOn = true; applyFreeLevel(); }
@@ -2710,10 +2803,11 @@
     }
     st.free = freeOn ? freeCents : -1;
     st.pulse = pulseOn ? pulseMutes.slice() : null;
-    st.oct = droneOct;
     st.pskips = pulseSkips.slice();
     st.pdiv = PULSE_N;
     st.dmute = (drone && droneSilent) ? 1 : 0;
+    st.foct = freeOct;
+    st.oct = droneOct;
     return st;
   }
   function encodeState(st) {
@@ -2766,7 +2860,11 @@
     parts.push(String(st.pdiv || 16));
     /* drone muted from its layer row: only written when true, so every
        other link stays exactly as it was, and older links simply lack it */
-    if (st.dmute) { parts.push("1"); }
+    /* the free voice's own saptak: only written when it differs from the
+       drone's, which is where older links placed it, so they open as before */
+    var fOwn = (typeof st.foct === "number" && st.foct !== st.oct);
+    if (st.dmute || fOwn) { parts.push(st.dmute ? "1" : "0"); }
+    if (fOwn) { parts.push(String(st.foct)); }
     return parts.join("~");
   }
   function decodeState(str) {
@@ -2817,6 +2915,8 @@
                 drone: parts[2] === "1",
                 droneKey: parseInt(parts[3], 10) || 0,
                 droneVol: dv, dmute: parts[11] === "1", shapes: [] };
+    var foP = parts[12] !== undefined ? parseInt(parts[12], 10) : NaN;
+    out.foct = (!isNaN(foP) && foP >= 0 && foP <= 2) ? foP : oc;
     var shp = parts[4] ? parts[4].split("_") : [], i, j;
     for (i = 0; i < shp.length; i++) {
       if (!shp[i]) { continue; }
@@ -2883,6 +2983,7 @@
       freeOn = true; freeCents = Math.max(0, Math.min(1200, st.free));
     } else { freeOn = false; }
     droneOct = (typeof st.oct === "number") ? st.oct : 1;
+    freeOct = (typeof st.foct === "number") ? st.foct : droneOct;
     PULSE_N = st.pdiv || 16;
     pulseSkips = st.pskips ? st.pskips.slice() : [];
     if (st.pulse) { pulseOn = true; pulseMutes = st.pulse.slice(); }
@@ -2973,7 +3074,7 @@
      Tempo, key and saptak stay as they were. */
   function resetScene() {
     for (var i = 0; i < shapes.length; i++) { if (shapes[i].gain) { shapes[i].gain.disconnect(); } }
-    shapes = []; drone = false; droneSilent = false; stopDrone(); freeOn = false;
+    shapes = []; drone = false; droneSilent = false; stopDrone(); freeOn = false; freeOct = 1;
     pulseOn = false; pulseMutes = []; pulseSkips = []; pulseNext = -1;
     recomputeRings(); renderPanel();
   }
