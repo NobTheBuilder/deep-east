@@ -6,7 +6,6 @@
 <title>Deep East — New Age Indian Electronica</title>
 <meta name="description" content="Deep East — new age Indian electronica from Goa. “The machines will reveal.” Fully live electronic sets from Goa." />
 <meta name="theme-color" content="#0d0b0a" />
-<meta name="copyright" content="© 2026 Deep East. All rights reserved." />
 <!-- Open Graph / social previews. NOTE: replace https://deepeast.in with your final domain before launch -->
 <meta property="og:type" content="website" />
 <meta property="og:title" content="Deep East — New Age Indian Electronica" />
@@ -836,16 +835,12 @@
   </div>
   <div class="epigraph"><span>The Universe is changing… The Gods are pleased by the nature of its flux.</span></div>
   <footer>
-    <span>Deep East © 2026 · All rights reserved</span>
+    <span>Deep East © 2026</span>
     <span>New Age Indian Electronica</span>
   </footer>
 </div>
 <script>
-/* Deep East Yantra · © 2026 Deep East (deepeast.in). All rights reserved.
-   The code, sound design and visual design of this instrument may not be
-   copied, adapted or reused without written permission. Contact via deepeast.in.
-
-   Deliberately conservative: var, function expressions, no template literals,
+/* Deliberately conservative: var, function expressions, no template literals,
    no arrow functions, no optional chaining. Runs on any browser from ~2016 on. */
 (function () {
   "use strict";
@@ -1161,6 +1156,16 @@
     o.start(t); o.stop(t + dur + 0.02);
     return o;
   }
+  /* dip the drone under a kick: deeper for a louder kick, back in ~0.25 s */
+  var DUCK_DEPTH = 0.6;
+  function duckDrone(t, dest) {
+    if (!droneNodes || !droneNodes.duck) { return; }
+    var kv = (dest && dest.gain) ? Math.min(1, dest.gain.value) : 1;
+    var low = 1 - DUCK_DEPTH * Math.sqrt(kv);
+    var g = droneNodes.duck.gain;
+    g.setTargetAtTime(low, t, 0.004);
+    g.setTargetAtTime(1, t + 0.035, 0.08);
+  }
   var SYNTH = {
     /* 808 lineage: long sine, deep pitch drop, plus a click transient */
     kick: function (t, dest) {
@@ -1170,6 +1175,7 @@
       noiseHit(t, 0.009, "highpass", 2600, 0.7, 0.13, "linear", dest);   /* click, first */
       body(t + 0.0025, 340, 200, 0.035, 0.11, 0.24, "triangle", dest);   /* knock */
       body(t + 0.006, 175, 52, 0.085, 0.52, 0.72, undefined, dest);      /* sub, last + deeper */
+      duckDrone(t, dest);
     },
     /* 909 lineage: six squares at odd ratios through a steep highpass */
     hat: function (t, dest) {
@@ -1306,13 +1312,31 @@
     var lp = ac.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 1400; lp.Q.value = 0.6;
     out.connect(userGain); userGain.connect(lp); lp.connect(master);
     var base = droneRoot();
-    /* tanpura logic: tonic, a detuned twin, the fifth, the octave */
-    var ratios = [1, 1, 1.5, 2];
-    var parts = [["sawtooth",0.22,0],["sine",0.30,6],["sine",0.16,-4],["sine",0.10,3]];
+    /* the body: two sawtooth VCOs on the tonic, detuned apart like a
+       Volca Bass, a sine sub an octave below for weight on a real PA, a
+       sine on the tonic for a round core, then the tanpura's fifth and
+       octave kept quiet on top */
+    var ratios = [1, 1, 0.5, 1, 1.5, 2];
+    var parts = [["sawtooth",0.19,-7],["sawtooth",0.19,7],["sine",0.34,0],
+                 ["sine",0.26,0],["sine",0.10,-4],["sine",0.06,3]];
     var oscs = [];
     var gate = ac.createGain();
     gate.gain.value = pulseOn ? 0 : 1;
-    gate.connect(out);
+    /* gentle saturation adds harmonics of the low notes, so phone and
+       laptop speakers, which cannot play the fundamental, still carry the
+       bass; a low shelf adds weight where a PA can reproduce it */
+    var drive = ac.createWaveShaper();
+    var DN = 2048, dc = new Float32Array(DN), DK = 1.8, dnorm = Math.tanh(DK);
+    for (var di = 0; di < DN; di++) { var dx2 = (di * 2) / (DN - 1) - 1; dc[di] = Math.tanh(DK * dx2) / dnorm; }
+    drive.curve = dc; drive.oversample = "2x";
+    var shelf = ac.createBiquadFilter(); shelf.type = "lowshelf";
+    shelf.frequency.value = 140; shelf.gain.value = 5;
+    /* below ~30 Hz nothing is heard, it only eats headroom and shakes small speakers */
+    var hp = ac.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 30; hp.Q.value = 0.7;
+    /* sidechain: every kick briefly dips the drone body (not the free
+       voice), so the two share the low end instead of fighting for it */
+    var duck = ac.createGain(); duck.gain.value = 1;
+    gate.connect(drive); drive.connect(shelf); shelf.connect(hp); hp.connect(duck); duck.connect(out);
     for (var i = 0; i < parts.length; i++) {
       var o = ac.createOscillator(), g = ac.createGain();
       o.type = parts[i][0];
@@ -1350,7 +1374,7 @@
       fo.__ratio = freeRatio(); fo.__free = true;
       oscs.push(fo);
     }
-    droneNodes = { out: out, userGain: userGain, oscs: oscs, lfo: lfo, vlfo: vlfo, freeGain: fg, gate: gate, revSend: rsend };
+    droneNodes = { out: out, userGain: userGain, oscs: oscs, lfo: lfo, vlfo: vlfo, freeGain: fg, gate: gate, revSend: rsend, duck: duck };
   }
   function retuneDrone() {
     if (!droneNodes || !ac) { return; }
@@ -3132,8 +3156,7 @@
 })();
 </script>
 <script>
-/* © 2026 Deep East (deepeast.in). All rights reserved.
-   One reveal convention across hero, Yantra, About and Rig.
+/* One reveal convention across hero, Yantra, About and Rig.
    Same behaviour on desktop and touch — no hover branch. */
 (function () {
   "use strict";
