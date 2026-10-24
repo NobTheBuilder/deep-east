@@ -1150,7 +1150,14 @@
   }
   document.addEventListener("visibilitychange", function () {
     if (document.visibilityState === "visible" && playing) { holdWake(); }
+    /* Leaving the page stops Yantra, the same as scrolling away from it.
+       Claiming the media channel (so it plays with the silent switch on)
+       also lets iOS keep the audio alive in the background, but the page's
+       timers freeze there: the drone would drone on unattended while the
+       drums and pulse stutter whenever iOS briefly wakes the page. */
+    if (document.visibilityState === "hidden" && playing) { togglePlay(); }
   }, false);
+  window.addEventListener("pagehide", function () { if (playing) { togglePlay(); } }, false);
   /* short noise burst helper */
   function noiseHit(t, dur, type, freq, q, peak, curve, dest) {
     var s = ac.createBufferSource(); s.buffer = noiseBuf; s.loop = true;
@@ -1236,19 +1243,26 @@
       noiseHit(t, 0.02, "bandpass", 620, 0.9, 0.16, "linear", dest);
     },
     /* bright rimmed stroke — sharp attack, fast metallic ring */
+    /* na rings on Sa, the way a tabla player tunes the dayan before a note
+       is played: whatever key the drone is in, the stroke settles on that
+       key's Sa, in the dayan's own register (it doesn't follow the drone's
+       octave). The strike starts a little sharp and falls onto it. */
     "na": function (t, dest) {
+      var sa = 110 * Math.pow(2, droneKey / 12);
+      sa = sa * Math.pow(2, Math.round(Math.log(880 / sa) / Math.LN2));
+      var k = sa / 880;
       var o = ac.createOscillator(), g = ac.createGain();
       o.type = "triangle";
-      o.frequency.setValueAtTime(880, t);
-      o.frequency.exponentialRampToValueAtTime(760, t + 0.05);
+      o.frequency.setValueAtTime(sa * (880 / 760), t);
+      o.frequency.exponentialRampToValueAtTime(sa, t + 0.05);
       g.gain.setValueAtTime(0.4, t);
       g.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
       var bp = ac.createBiquadFilter(); bp.type = "bandpass";
-      bp.frequency.value = 1750; bp.Q.value = 5.5;
+      bp.frequency.value = 1750 * k; bp.Q.value = 5.5;
       o.connect(bp); bp.connect(g); g.connect(dest || master);
       o.start(t); o.stop(t + 0.18);
       noiseHit(t, 0.014, "highpass", 5200, 0.8, 0.3, "linear", dest);
-      body(t, 1500, 1180, 0.02, 0.05, 0.14, "sine", dest);
+      body(t, 1500 * k, 1180 * k, 0.02, 0.05, 0.14, "sine", dest);
     },
     /* low bending stroke — the pitch slide that gives it its voice */
     "ge": function (t, dest) {
