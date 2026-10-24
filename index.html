@@ -19,7 +19,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%230d0b0a'/%3E%3Cg fill='none' stroke='%23c9a24b' stroke-width='2.8' stroke-linecap='round'%3E%3Ccircle cx='11' cy='32' r='7'/%3E%3Cpath d='M20 32C22.9 24 25.1 24 28 32C30.9 36.8 33.1 36.8 36 32C38.9 30.1 41.1 30.1 44 32'/%3E%3Cpath d='M44 32H52'/%3E%3Cpath d='M54 22V42'/%3E%3C/g%3E%3C/svg%3E" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500&family=Space+Mono:wght@400&family=Eczar:wght@600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Eczar:wght@400;500;600;700&family=Spectral:ital,wght@0,300;1,300&family=Space+Mono:wght@400&display=swap" rel="stylesheet" />
 <style>
   :root {
     --stone: #0d0b0a;
@@ -28,8 +28,9 @@
     --rust: #8c4734;
     --bone: #e8e0d2;
     --muted: #8a8074;
-    --display: "Cormorant Garamond", serif;
-    --body: "Inter", sans-serif;
+    --display: "Eczar", serif;
+    --body: "Eczar", serif;
+    --verse: "Spectral", serif;      /* Eczar has no italic: verse, lore and swaras are Spectral light italic */
     --mono: "Space Mono", monospace;
     --carve: "Eczar", serif;
   }
@@ -39,7 +40,7 @@
     background: var(--stone);
     color: var(--bone);
     font-family: var(--body);
-    font-weight: 300;
+    font-weight: 400;
     line-height: 1.6;
     overflow-x: hidden;
   }
@@ -196,12 +197,13 @@
   .hero h1 {
     font-family: var(--display);
     font-weight: 500;
-    font-size: clamp(2.6rem, 8vw, 6.5rem);
+    font-size: clamp(2.3rem, 9vw, 3.2rem);   /* first guess; the script below fits it just under the logo */
     line-height: 1.02;
     letter-spacing: -0.01em;
     color: var(--bone);
   }
   .hero h1 .em {
+    font-family: var(--verse); font-weight: 300;
     font-style: italic;
     color: var(--brass);
   }
@@ -296,9 +298,9 @@
   .live-frame iframe { width: 100%; height: 100%; border: 0; }
   /* LORE FRAGMENTS */
   .lore {
-    font-family: var(--display);
+    font-family: var(--verse); font-weight: 300;
     font-style: italic;
-    font-size: clamp(1.1rem, 2vw, 1.4rem);
+    font-size: clamp(1rem, 1.8vw, 1.3rem);
     color: var(--brass);
     opacity: 0.85;
     margin: -1.6rem 0 2.6rem;
@@ -308,9 +310,9 @@
   .epigraph {
     padding: clamp(3.5rem, 8vw, 6rem) 2rem;
     text-align: center;
-    font-family: var(--display);
+    font-family: var(--verse); font-weight: 300;
     font-style: italic;
-    font-size: clamp(1.25rem, 2.4vw, 1.8rem);
+    font-size: clamp(1.15rem, 2.2vw, 1.65rem);
     color: var(--brass);
     border-top: 1px solid rgba(201,162,75,0.12);
     position: relative;
@@ -496,10 +498,10 @@
      brass. That reading is the better one, so it is now the rule. Scoping to
      .reveal-panel outranks .about-wrap p, so About no longer overrides it. */
   .reveal-panel .hidden-verse {
-    font-family: var(--display); font-style: italic;
-    font-weight: 400;
+    font-family: var(--verse); font-style: italic;
+    font-weight: 300;
     color: var(--bone);
-    font-size: clamp(1.3rem, 2.6vw, 1.9rem);
+    font-size: clamp(1.15rem, 2.3vw, 1.7rem);
     line-height: 1.5; opacity: 0.92;
   }
   .reveal-panel .hidden-verse + .hidden-verse { margin-top: 0.7em; }
@@ -542,13 +544,13 @@
   .about-wrap { max-width: 720px; position: relative; z-index: 2; }
   .about-wrap p {
     font-family: var(--display);
-    font-size: clamp(1.3rem, 2.6vw, 1.9rem);
-    line-height: 1.5;
+    font-size: clamp(1.12rem, 2.2vw, 1.6rem);
+    line-height: 1.55;
     color: var(--bone);
     font-weight: 400;
   }
   .about-wrap p + p { margin-top: 1.6rem; }
-  .about-wrap .accent { color: var(--brass); font-style: italic; }
+  .about-wrap .accent { color: var(--brass); font-family: var(--verse); font-weight: 300; font-style: italic; }
   .about-meta { margin-top: 3rem; display: flex; flex-wrap: wrap; gap: 2.5rem; }
   .about-meta .mi .k { font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); }
   .about-meta .mi .v { font-family: var(--body); font-size: 0.95rem; color: var(--bone); margin-top: 0.3rem; }
@@ -556,7 +558,7 @@
   .connect-wrap { max-width: 760px; }
   .connect-wrap .big {
     font-family: var(--display);
-    font-size: clamp(1.8rem, 4vw, 3rem);
+    font-size: clamp(1.55rem, 3.4vw, 2.5rem);
     line-height: 1.3;
     color: var(--bone);
     margin-bottom: 2.4rem;
@@ -895,6 +897,12 @@
      the same scale as droneOct, so the voice can sit in tar over a mandra
      drone. Changed by holding the dot and pushing it out (up) or in (down). */
   var freeOct = 1, freeOctFlash = 0;
+  /* the register itself is continuous: freeReg (0..2) is where the voice
+     really sits, set by how far the dot is pushed out or in, at whatever
+     speed the finger moves, and it stays exactly where it is let go -
+     between saptaks too - and is saved that way. freeOct is only the nearest
+     saptak, for notation. freeRegVis is the register smoothed, for the glow. */
+  var freeReg = 1, freeHeld = false, freeRegVis = 1;
   /* reverb on the free voice rises with its register: a dry mandra, a little
      air in madhya, a long bloom in tar */
   var FREE_REV = [0.10, 0.30, 0.62];
@@ -991,7 +999,15 @@
     pulseNext = -1;
   }
   var FREE_LEVEL = 0.34;
-  function freeRatio() { return 2 * Math.pow(2, freeOct - droneOct) * Math.pow(2, freeCents / 1200); }
+  function freeRatio() {
+    return 2 * Math.pow(2, freeReg - droneOct) * Math.pow(2, freeCents / 1200);
+  }
+  /* reverb send for any register, blended between the three saptak levels */
+  function freeRevAt(reg) {
+    if (reg <= 0) { return FREE_REV[0]; } if (reg >= 2) { return FREE_REV[2]; }
+    var i = Math.floor(reg), f = reg - i;
+    return FREE_REV[i] + (FREE_REV[Math.min(2, i + 1)] - FREE_REV[i]) * f;
+  }
   /* Lowercase (smaller) for a note sitting off its natural spot - komal re,
      ga, dha, ni and shuddha ma - capitals otherwise. On top of that, the
      Bhatkhande marks: a line beneath komal, a stroke above tivra Ma.
@@ -1288,16 +1304,10 @@
       return c;
     } catch (e) { return null; }
   }
-  function applyFreeReverb() {
+  function applyFreeReverb(tc) {
     if (!droneNodes || !ac || !droneNodes.revSend) { return; }
-    droneNodes.revSend.gain.setTargetAtTime(FREE_REV[freeOct], ac.currentTime, 0.25);
-  }
-  function setFreeOct(o) {
-    if (o < 0) { o = 0; } if (o > 2) { o = 2; }
-    if (o === freeOct) { return; }
-    freeOct = o; freeOctFlash = now_();
-    applyFreePitch(0.07);        /* a short slide between saptaks, not a jump */
-    applyFreeReverb();
+    droneNodes.revSend.gain.setTargetAtTime(freeRevAt(freeReg), ac.currentTime,
+                                            (typeof tc === "number") ? tc : 0.25);
   }
   function startDrone() {
     if (droneNodes || !ac) { return; }
@@ -1356,7 +1366,7 @@
     fg.gain.value = freeOn ? FREE_LEVEL : 0;
     fg.connect(out);
     var rsend = ac.createGain();
-    rsend.gain.value = FREE_REV[freeOct];
+    rsend.gain.value = freeRevAt(freeReg);
     var conv = makeReverb();
     if (conv) { fg.connect(rsend); rsend.connect(conv); conv.connect(out); }
     var fparts = [["sine", 0.62, 0], ["triangle", 0.22, 5]];
@@ -1493,25 +1503,52 @@
   /* own-time loops: counted in steps from the same t0 as everything else,
      so a loop of L steps comes back to the bar's downbeat - sam - whenever
      the step count is a multiple of both L and the steps in a bar */
+  /* The circle is one loop. Each active corner owns one step of it, and
+     however far the corner has been dragged (or the shape turned) away from
+     its even spot, its hit moves by the same fraction of the loop: a whole
+     corner-spacing is a whole step. An undragged, unturned shape lands
+     exactly on the step grid, as before. Returns the hits sorted by where
+     they fall in the loop, positions in steps, 0..L. */
+  function ownHits(s) {
+    var out = [], r = 0, i, d, p;
+    for (i = 0; i < s.n; i++) {
+      if (s.skips.indexOf(i) !== -1) { continue; }
+      d = phaseOf(s, i) - i / s.n; d = d - Math.round(d);
+      out.push({ k: i, pos: r + d * s.n }); r++;
+    }
+    for (i = 0; i < out.length; i++) {
+      p = out[i].pos % r; if (p < 0) { p += r; }
+      if (p > r - 1e-9) { p = 0; }
+      out[i].pos = p;
+    }
+    out.sort(function (a, b) { return a.pos - b.pos; });
+    return out;
+  }
   function scheduleOwn(s, until) {
-    var act = activeOrder(s), L = act.length;
+    var hits = ownHits(s), L = hits.length;
     if (!L) { return; }
-    var step = T / s.own, now = ac.currentTime;
+    var step = T / s.own, now = ac.currentTime, from;
     if (s.ownN < 0 || s.ownT !== T || s.ownL !== L) {
-      s.ownN = Math.ceil((now - t0) / step - 1e-6); s.ownT = T; s.ownL = L;
-    }
-    var guard = 0;
-    while (t0 + s.ownN * step < until && guard++ < 64) {
-      var t = t0 + s.ownN * step, j = ((s.ownN % L) + L) % L, k = act[j];
-      if (t >= now - 0.002) {
-        if (!s.silent && s.mutes.indexOf(k) === -1) {
-          SYNTH[s.inst](t, getShapeGain(s));
-          queueFlash(s, k, t);
+      /* re-entry after a drag, tempo or loop change: carry on from whatever
+         was already sent to the audio clock, so nothing plays twice */
+      from = (typeof s.ownUpTo === "number" && s.ownUpTo > now - 0.002 && s.ownUpTo < now + 0.2)
+             ? s.ownUpTo : now - 0.002;
+      s.ownN = 0; s.ownT = T; s.ownL = L;
+    } else { from = s.ownUpTo; }
+    var u0 = (from - t0) / step, u1 = (until - t0) / step;
+    var m0 = Math.floor(u0 / L), m1 = Math.floor(u1 / L), m, h, u;
+    for (m = m0; m <= m1; m++) {
+      u = m * L;
+      if (u > u0 + 1e-9 && u <= u1 && ((u % s.own) + s.own) % s.own === 0) { queueSam(s, t0 + u * step); }
+      for (h = 0; h < L; h++) {
+        u = m * L + hits[h].pos;
+        if (u > u0 + 1e-9 && u <= u1 && !s.silent && s.mutes.indexOf(hits[h].k) === -1) {
+          SYNTH[s.inst](t0 + u * step, getShapeGain(s));
+          queueFlash(s, hits[h].k, t0 + u * step);
         }
-        if (j === 0 && ((s.ownN % s.own) + s.own) % s.own === 0) { queueSam(s, t); }
       }
-      s.ownN++;
     }
+    s.ownUpTo = until;
   }
   function queueSam(s, at) {
     setTimeout(function () { if (playing) { s.samAt = now_(); } },
@@ -1701,7 +1738,7 @@
     /* guide marks */
     var guides = [[0, "Sa"], [702, "Pa"], [1200, "\u1E60a"]];
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.font = "italic 12px 'Cormorant Garamond', serif";
+    ctx.font = "italic 300 12px 'Spectral', serif";
     for (i = 0; i < guides.length; i++) {
       a = freeAngle(guides[i][0]);
       ctx.beginPath(); ctx.arc(cx + pr * Math.cos(a), cy + pr * Math.sin(a), 2, 0, Math.PI * 2);
@@ -1716,11 +1753,16 @@
     /* the dot */
     a = freeAngle(freeCents);
     var mx = cx + pr * Math.cos(a), my = cy + pr * Math.sin(a);
+    /* the glow follows the register: a small close light in mandra, as
+       before in madhya, a wide bloom in tar - growing with the reverb, and
+       breathing slower the higher it goes */
+    freeRegVis += (freeReg - freeRegVis) * (freeHeld ? 0.35 : 0.1);
     if (freeGlow > 0.02) {
-      var breathe = 0.85 + 0.15 * Math.sin(now_() / 520);
-      var gr = (live ? 22 : 18) * breathe;
+      var rv = freeRegVis;
+      var breathe = 0.85 + 0.15 * Math.sin(now_() / (340 + 180 * rv));
+      var gr = (live ? 22 : 18) * (0.7 + 0.3 * rv) * breathe;
       var g = ctx.createRadialGradient(mx, my, 0, mx, my, gr);
-      g.addColorStop(0, "rgba(232,224,210," + (0.38 * freeGlow).toFixed(3) + ")");
+      g.addColorStop(0, "rgba(232,224,210," + ((0.24 + 0.14 * rv) * freeGlow).toFixed(3) + ")");
       g.addColorStop(1, "rgba(232,224,210,0)");
       ctx.fillStyle = g; ctx.beginPath(); ctx.arc(mx, my, gr, 0, Math.PI * 2); ctx.fill();
     }
@@ -1752,20 +1794,24 @@
     ctx.lineWidth = 1.4; ctx.stroke();
     /* readout: the nearest swara in italic serif, the offset in small mono */
     if (sounding) {
-      var sw = swaraOf(freeCents);
+      /* name what is really sounding: between saptaks the register shifts
+         the note too, so read it from arc and register together */
+      var dC = freeCents + (freeReg - freeOct) * 1200, dOct = freeOct;
+      if (dC < -50) { dC += 1200; dOct--; } else if (dC >= 1250) { dC -= 1200; dOct++; }
+      var sw = swaraOf(Math.round(dC));
       var offTxt = sw.off === 0 ? "\u00B7" : (sw.off > 0 ? "+" : "\u2212") + Math.abs(sw.off) + "\u00A2";
       var lx = cx + (pr + 21) * Math.cos(a), ly = cy + (pr + 21) * Math.sin(a);
       ly = Math.max(ly, (live ? 17 : 15) * 1.15);    /* keep the tivra stroke inside the canvas */
-      ctx.font = "italic " + (live ? 17 : 15) + "px 'Cormorant Garamond', serif";
+      ctx.font = "italic 300 " + (live ? 17 : 15) + "px \'Spectral\', serif";
       var nw = ctx.measureText(sw.name).width;
       ctx.font = "9px 'Space Mono', monospace";
       var ow = ctx.measureText(offTxt).width, gap = 4, tw = nw + gap + ow;
       ctx.textAlign = "left";
-      ctx.font = "italic " + (live ? 17 : 15) + "px 'Cormorant Garamond', serif";
+      ctx.font = "italic 300 " + (live ? 17 : 15) + "px \'Spectral\', serif";
       ctx.fillStyle = "#e8e0d2";
       ctx.fillText(sw.name, lx - tw / 2, ly);
       var fs = live ? 17 : 15;
-      saptakDot(lx - tw / 2 + (sw.mark === 2 ? nw * 0.8 : nw * 0.5), ly, fs, freeOct, "#e8e0d2");
+      saptakDot(lx - tw / 2 + (sw.mark === 2 ? nw * 0.8 : nw * 0.5), ly, fs, dOct, "#e8e0d2");
       if (sw.mark === 1) {                         /* komal: line beneath */
         ctx.beginPath(); ctx.moveTo(lx - tw / 2, ly + fs * 0.55); ctx.lineTo(lx - tw / 2 + nw, ly + fs * 0.55);
         ctx.strokeStyle = "#e8e0d2"; ctx.lineWidth = 1; ctx.stroke();
@@ -1841,6 +1887,24 @@
     if (pb <= pa + 1e-9) { pb += 1; }
     return { ph: pa + (pb - pa) * f, live: true, span: pb - pa };
   }
+  /* the own-time bead follows the real hit times: it reaches each corner
+     the instant that corner sounds, wherever it has been dragged to */
+  function ownBead(s) {
+    var hits = ownHits(s), L = hits.length;
+    if (!playing || !ac) { return { ph: phaseOf(s, hits[0].k), live: false, span: 0 }; }
+    var nf = (ac.currentTime + wallDrift - t0) / (T / s.own);
+    if (nf < 0) { nf = 0; }
+    var u = nf % L, j = -1, i;
+    for (i = 0; i < L; i++) { if (hits[i].pos <= u + 1e-9) { j = i; } }
+    var ua, ub, ha, hb;
+    if (j === -1) { ha = hits[L - 1]; hb = hits[0]; ua = ha.pos - L; ub = hb.pos; }
+    else { ha = hits[j]; hb = hits[(j + 1) % L]; ua = ha.pos; ub = (j + 1 < L) ? hb.pos : hb.pos + L; }
+    var pa = phaseOf(s, ha.k), pb = phaseOf(s, hb.k);
+    if (L === 1) { pb = pa + 1; } else if (pb <= pa + 1e-9) { pb += 1; }
+    if (ub - ua < 1e-9) { return { ph: pa, live: true, span: 0 }; }
+    var f = (u - ua) / (ub - ua);
+    return { ph: pa + (pb - pa) * f, live: true, span: pb - pa };
+  }
   function drawBead(rr, b, col) {
     var cx = geo.cx, cy = geo.cy, a = -Math.PI / 2 + b.ph * Math.PI * 2, k;
     var bx = cx + rr * Math.cos(a), by = cy + rr * Math.sin(a);
@@ -1866,11 +1930,8 @@
     for (i = 0; i < shapes.length; i++) {
       s = shapes[i];
       if (!ownTime(s)) { continue; }
-      var act = activeOrder(s);
-      if (!act.length) { continue; }
-      var ph = [];
-      for (j = 0; j < act.length; j++) { ph.push(phaseOf(s, act[j])); }
-      drawBead(geo.R * s.ring, beadPhase(ph, s.own), s.color);
+      if (!activeOrder(s).length) { continue; }
+      drawBead(geo.R * s.ring, ownBead(s), s.color);
       owns++;
       if (s.samAt > newest) { newest = s.samAt; }
       if (s.samAt < oldest) { oldest = s.samAt; }
@@ -1889,7 +1950,7 @@
     if (owns && newest - oldest < 150) {
       var wg = 1 - (tn - newest) / 900;
       if (wg > 0) {
-        ctx.font = "italic 18px 'Cormorant Garamond', serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.font = "italic 300 18px 'Spectral', serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
         ctx.fillStyle = "rgba(232,224,210," + wg.toFixed(3) + ")";
         ctx.fillText("sam", geo.cx, geo.cy + Math.max(44, geo.R * 0.3));
       }
@@ -1938,7 +1999,7 @@
       ctx.beginPath(); ctx.moveTo(g.sx - 4, y); ctx.lineTo(g.sx + 4, y);
       ctx.strokeStyle = "rgba(232,224,210,0.4)"; ctx.lineWidth = 1; ctx.stroke();
       var fsz = on ? (live ? 15 : 14) : 12, lcol = on ? "#e8e0d2" : "rgba(232,224,210,0.35)";
-      var lf = "italic " + fsz + "px 'Cormorant Garamond', serif", x0 = g.sx + 14;
+      var lf = "italic 300 " + fsz + "px 'Spectral', serif", x0 = g.sx + 14;
       cText(SAPTAK[i], x0, y, lf, lcol, "left");
       if (i !== 1) {          /* octave dot on the first letter: above tar, below mandra */
         ctx.font = lf;
@@ -2123,7 +2184,7 @@
   }
   /* ---------- interaction ---------- */
   var drag = null;
-  var OCT_PULL = 30;
+  var OCT_PULL = 30, OCT_DEAD = 8;
   function local(clientX, clientY) {
     var r = cv.getBoundingClientRect();
     return [clientX - r.left, clientY - r.top];
@@ -2150,7 +2211,7 @@
     if (onFreeArc(x, y)) {
       var onDot = nearFreeDot(x, y);
       drag = { mode: "free", s: null, k: -1, moved: false, dist: 0, onDot: onDot,
-               wasOn: freeOn && drone, oct0: freeOct,
+               wasOn: freeOn && drone, oct0: freeReg,
                r0: Math.sqrt(Math.pow(x - geo.cx, 2) + Math.pow(y - geo.cy, 2)) };
       if (!onDot) {
         freeCents = freeCentsAt(x, y); freeOn = true;
@@ -2217,13 +2278,19 @@
       /* push the dot outward (up) for the saptak above, inward (down) for
          the one below; each step needs a deliberate pull of OCT_PULL px */
       var rr = Math.sqrt(Math.pow(x - geo.cx, 2) + Math.pow(y - geo.cy, 2));
-      var steps = (rr - drag.r0) / OCT_PULL;
-      steps = steps > 0 ? Math.floor(steps) : Math.ceil(steps);
-      setFreeOct(drag.oct0 + steps);
+      /* a small dead zone so bending along the arc doesn't wobble the
+         register; past it, every OCT_PULL px is one whole saptak, glided */
+      var dr = rr - drag.r0, ad = Math.abs(dr);
+      var reg = ad < OCT_DEAD ? drag.oct0 : drag.oct0 + (dr > 0 ? 1 : -1) * (ad - OCT_DEAD) / OCT_PULL;
+      if (reg < 0) { reg = 0; } if (reg > 2) { reg = 2; }
+      freeHeld = true; freeReg = reg;
+      var near = Math.round(reg);
+      if (near !== freeOct) { freeOct = near; freeOctFlash = now_(); }   /* ring opens as each saptak passes */
       freeCents = freeCentsAt(x, y);
       droneOn();
       if (!freeOn) { freeOn = true; applyFreeLevel(); }
       applyFreePitch();
+      applyFreeReverb(0.08);
       return;
     }
     var da = angleAt(x, y) - drag.a0;
@@ -2239,8 +2306,15 @@
       val = ((val % 1) + 1) % 1;
       /* snap to this shape's even grid, and to any sibling vertex */
       var step = 1 / s.n, i;
-      var near = Math.round(val / step) * step;
-      if (Math.abs(val - near) < 0.005) { val = ((near % 1) + 1) % 1; }
+      if (ownTime(s)) {
+        /* in its own loop a corner-spacing is one step: catch on the step
+           grid as the shape is turned, a little more readily than in bar */
+        var nearO = Math.round((val + s.rot) / step) * step - s.rot;
+        if (Math.abs(val - nearO) < 0.12 * step) { val = ((nearO % 1) + 1) % 1; }
+      } else {
+        var near = Math.round(val / step) * step;
+        if (Math.abs(val - near) < 0.005) { val = ((near % 1) + 1) % 1; }
+      }
       for (i = 0; i < s.n; i++) {
         if (i === drag.k) { continue; }
         if (Math.abs(val - s.ang[i]) < 0.004) { val = s.ang[i]; break; }
@@ -2252,7 +2326,7 @@
       val = ((val % 1) + 1) % 1;
       var st = 1 / s.n;
       var nr = Math.round(val / st) * st;
-      if (Math.abs(val - nr) < 0.006) { val = nr; }
+      if (Math.abs(val - nr) < (ownTime(s) ? 0.12 * st : 0.006)) { val = ((nr % 1) + 1) % 1; }
       s.rot = val;
     }
     if (playing && ac) { align(s); }
@@ -2273,6 +2347,9 @@
     if (drag && drag.mode === "pulse" && !drag.applied && !drag.longDone) {
       if (pulseSkips.indexOf(drag.start) !== -1) { togglePulseSkip(drag.start); }
       else { setPacket(drag.start, drag.paint); }
+    }
+    if (drag && drag.mode === "free" && freeHeld) {
+      freeHeld = false;            /* let go: the voice stays exactly where it was left */
     }
     if (drag && drag.mode === "free" && !drag.moved && drag.onDot) {
       freeOn = !drag.wasOn;          /* a tap on the dot turns the voice on or off */
@@ -2835,7 +2912,7 @@
     st.pskips = pulseSkips.slice();
     st.pdiv = PULSE_N;
     st.dmute = (drone && droneSilent) ? 1 : 0;
-    st.foct = freeOct;
+    st.foct = Math.round(freeReg * 100) / 100;
     st.oct = droneOct;
     return st;
   }
@@ -2944,7 +3021,7 @@
                 drone: parts[2] === "1",
                 droneKey: parseInt(parts[3], 10) || 0,
                 droneVol: dv, dmute: parts[11] === "1", shapes: [] };
-    var foP = parts[12] !== undefined ? parseInt(parts[12], 10) : NaN;
+    var foP = parts[12] !== undefined ? parseFloat(parts[12]) : NaN;
     out.foct = (!isNaN(foP) && foP >= 0 && foP <= 2) ? foP : oc;
     var shp = parts[4] ? parts[4].split("_") : [], i, j;
     for (i = 0; i < shp.length; i++) {
@@ -3012,7 +3089,8 @@
       freeOn = true; freeCents = Math.max(0, Math.min(1200, st.free));
     } else { freeOn = false; }
     droneOct = (typeof st.oct === "number") ? st.oct : 1;
-    freeOct = (typeof st.foct === "number") ? st.foct : droneOct;
+    freeReg = (typeof st.foct === "number") ? st.foct : droneOct;
+    freeOct = Math.round(freeReg); freeRegVis = freeReg;
     PULSE_N = st.pdiv || 16;
     pulseSkips = st.pskips ? st.pskips.slice() : [];
     if (st.pulse) { pulseOn = true; pulseMutes = st.pulse.slice(); }
@@ -3103,7 +3181,7 @@
      Tempo, key and saptak stay as they were. */
   function resetScene() {
     for (var i = 0; i < shapes.length; i++) { if (shapes[i].gain) { shapes[i].gain.disconnect(); } }
-    shapes = []; drone = false; droneSilent = false; stopDrone(); freeOn = false; freeOct = 1;
+    shapes = []; drone = false; droneSilent = false; stopDrone(); freeOn = false; freeOct = 1; freeReg = 1; freeRegVis = 1;
     pulseOn = false; pulseMutes = []; pulseSkips = []; pulseNext = -1;
     recomputeRings(); renderPanel();
   }
@@ -3185,6 +3263,45 @@
   for (var i = 0; i < pairs.length; i++) {
     bind(document.getElementById(pairs[i][0]), document.getElementById(pairs[i][1]));
   }
+})();
+</script>
+<script>
+/* The headline is set a touch narrower than the logo above it, so the mark
+   always leads. Its widest line is measured in the real fonts (Eczar, with
+   Spectral for the italic word) once they have loaded, and on resize. */
+(function () {
+  var RATIO = 0.88;
+  var h1 = document.querySelector(".hero h1"), svg = document.querySelector(".hero .lockup svg");
+  if (!h1 || !svg) { return; }
+  var cv = document.createElement("canvas"), ctx = cv.getContext && cv.getContext("2d");
+  if (!ctx) { return; }
+  function fontOf(el, px) {
+    var cs = window.getComputedStyle(el);
+    return cs.fontStyle + " " + cs.fontWeight + " " + px + "px " + cs.fontFamily;
+  }
+  function widthAt(px) {
+    var lines = h1.querySelectorAll(".line"), max = 0, i, j, n, w;
+    for (i = 0; i < lines.length; i++) {
+      w = 0;
+      for (j = 0; j < lines[i].childNodes.length; j++) {
+        n = lines[i].childNodes[j];
+        ctx.font = fontOf(n.nodeType === 1 ? n : lines[i], px);
+        w += ctx.measureText(n.textContent).width;
+      }
+      w += lines[i].textContent.length * px * -0.01;     /* the h1's letter-spacing */
+      if (w > max) { max = w; }
+    }
+    return max;
+  }
+  function fit() {
+    var target = svg.getBoundingClientRect().width * RATIO, w = widthAt(100);
+    if (target > 0 && w > 0) { h1.style.fontSize = (100 * target / w).toFixed(2) + "px"; }
+  }
+  fit();
+  if (document.fonts && document.fonts.ready) { document.fonts.ready.then(fit); }
+  window.addEventListener("load", fit, false);
+  var rt = null;
+  window.addEventListener("resize", function () { clearTimeout(rt); rt = setTimeout(fit, 120); }, false);
 })();
 </script>
 </body>
