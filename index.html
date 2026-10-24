@@ -899,12 +899,7 @@
      the same scale as droneOct, so the voice can sit in tar over a mandra
      drone. Changed by holding the dot and pushing it out (up) or in (down). */
   var freeOct = 1, freeOctFlash = 0;
-  /* the register itself is continuous: freeReg (0..2) is where the voice
-     really sits, set by how far the dot is pushed out or in, at whatever
-     speed the finger moves, and it stays exactly where it is let go -
-     between saptaks too - and is saved that way. freeOct is only the nearest
-     saptak, for notation. freeRegVis is the register smoothed, for the glow. */
-  var freeReg = 1, freeHeld = false, freeRegVis = 1;
+  var freeRegVis = 1;     /* the saptak, smoothed, so the glow swells between them */
   /* reverb on the free voice rises with its register: a dry mandra, a little
      air in madhya, a long bloom in tar */
   var FREE_REV = [0.10, 0.30, 0.62];
@@ -1001,15 +996,7 @@
     pulseNext = -1;
   }
   var FREE_LEVEL = 0.34;
-  function freeRatio() {
-    return 2 * Math.pow(2, freeReg - droneOct) * Math.pow(2, freeCents / 1200);
-  }
-  /* reverb send for any register, blended between the three saptak levels */
-  function freeRevAt(reg) {
-    if (reg <= 0) { return FREE_REV[0]; } if (reg >= 2) { return FREE_REV[2]; }
-    var i = Math.floor(reg), f = reg - i;
-    return FREE_REV[i] + (FREE_REV[Math.min(2, i + 1)] - FREE_REV[i]) * f;
-  }
+  function freeRatio() { return 2 * Math.pow(2, freeOct - droneOct) * Math.pow(2, freeCents / 1200); }
   /* Lowercase (smaller) for a note sitting off its natural spot - komal re,
      ga, dha, ni and shuddha ma - capitals otherwise. On top of that, the
      Bhatkhande marks: a line beneath komal, a stroke above tivra Ma.
@@ -1320,10 +1307,16 @@
       return c;
     } catch (e) { return null; }
   }
-  function applyFreeReverb(tc) {
+  function applyFreeReverb() {
     if (!droneNodes || !ac || !droneNodes.revSend) { return; }
-    droneNodes.revSend.gain.setTargetAtTime(freeRevAt(freeReg), ac.currentTime,
-                                            (typeof tc === "number") ? tc : 0.25);
+    droneNodes.revSend.gain.setTargetAtTime(FREE_REV[freeOct], ac.currentTime, 0.25);
+  }
+  function setFreeOct(o) {
+    if (o < 0) { o = 0; } if (o > 2) { o = 2; }
+    if (o === freeOct) { return; }
+    freeOct = o; freeOctFlash = now_();
+    applyFreePitch(0.07);        /* a short slide between saptaks, not a jump */
+    applyFreeReverb();
   }
   function startDrone() {
     if (droneNodes || !ac) { return; }
@@ -1382,7 +1375,7 @@
     fg.gain.value = freeOn ? FREE_LEVEL : 0;
     fg.connect(out);
     var rsend = ac.createGain();
-    rsend.gain.value = freeRevAt(freeReg);
+    rsend.gain.value = FREE_REV[freeOct];
     var conv = makeReverb();
     if (conv) { fg.connect(rsend); rsend.connect(conv); conv.connect(out); }
     var fparts = [["sine", 0.62, 0], ["triangle", 0.22, 5]];
@@ -1769,10 +1762,10 @@
     /* the dot */
     a = freeAngle(freeCents);
     var mx = cx + pr * Math.cos(a), my = cy + pr * Math.sin(a);
-    /* the glow follows the register: a small close light in mandra, as
+    /* the glow follows the saptak: a small close light in mandra, as
        before in madhya, a wide bloom in tar - growing with the reverb, and
        breathing slower the higher it goes */
-    freeRegVis += (freeReg - freeRegVis) * (freeHeld ? 0.35 : 0.1);
+    freeRegVis += (freeOct - freeRegVis) * 0.1;
     if (freeGlow > 0.02) {
       var rv = freeRegVis;
       var breathe = 0.85 + 0.15 * Math.sin(now_() / (340 + 180 * rv));
@@ -1810,11 +1803,7 @@
     ctx.lineWidth = 1.4; ctx.stroke();
     /* readout: the nearest swara in italic serif, the offset in small mono */
     if (sounding) {
-      /* name what is really sounding: between saptaks the register shifts
-         the note too, so read it from arc and register together */
-      var dC = freeCents + (freeReg - freeOct) * 1200, dOct = freeOct;
-      if (dC < -50) { dC += 1200; dOct--; } else if (dC >= 1250) { dC -= 1200; dOct++; }
-      var sw = swaraOf(Math.round(dC));
+      var sw = swaraOf(freeCents);
       var offTxt = sw.off === 0 ? "\u00B7" : (sw.off > 0 ? "+" : "\u2212") + Math.abs(sw.off) + "\u00A2";
       var lx = cx + (pr + 21) * Math.cos(a), ly = cy + (pr + 21) * Math.sin(a);
       ly = Math.max(ly, (live ? 17 : 15) * 1.15);    /* keep the tivra stroke inside the canvas */
@@ -1827,7 +1816,7 @@
       ctx.fillStyle = "#e8e0d2";
       ctx.fillText(sw.name, lx - tw / 2, ly);
       var fs = live ? 17 : 15;
-      saptakDot(lx - tw / 2 + (sw.mark === 2 ? nw * 0.8 : nw * 0.5), ly, fs, dOct, "#e8e0d2");
+      saptakDot(lx - tw / 2 + (sw.mark === 2 ? nw * 0.8 : nw * 0.5), ly, fs, freeOct, "#e8e0d2");
       if (sw.mark === 1) {                         /* komal: line beneath */
         ctx.beginPath(); ctx.moveTo(lx - tw / 2, ly + fs * 0.55); ctx.lineTo(lx - tw / 2 + nw, ly + fs * 0.55);
         ctx.strokeStyle = "#e8e0d2"; ctx.lineWidth = 1; ctx.stroke();
@@ -2200,7 +2189,7 @@
   }
   /* ---------- interaction ---------- */
   var drag = null;
-  var OCT_PULL = 30, OCT_DEAD = 8;
+  var OCT_PULL = 30;
   function local(clientX, clientY) {
     var r = cv.getBoundingClientRect();
     return [clientX - r.left, clientY - r.top];
@@ -2227,7 +2216,7 @@
     if (onFreeArc(x, y)) {
       var onDot = nearFreeDot(x, y);
       drag = { mode: "free", s: null, k: -1, moved: false, dist: 0, onDot: onDot,
-               wasOn: freeOn && drone, oct0: freeReg,
+               wasOn: freeOn && drone, oct0: freeOct,
                r0: Math.sqrt(Math.pow(x - geo.cx, 2) + Math.pow(y - geo.cy, 2)) };
       if (!onDot) {
         freeCents = freeCentsAt(x, y); freeOn = true;
@@ -2294,19 +2283,13 @@
       /* push the dot outward (up) for the saptak above, inward (down) for
          the one below; each step needs a deliberate pull of OCT_PULL px */
       var rr = Math.sqrt(Math.pow(x - geo.cx, 2) + Math.pow(y - geo.cy, 2));
-      /* a small dead zone so bending along the arc doesn't wobble the
-         register; past it, every OCT_PULL px is one whole saptak, glided */
-      var dr = rr - drag.r0, ad = Math.abs(dr);
-      var reg = ad < OCT_DEAD ? drag.oct0 : drag.oct0 + (dr > 0 ? 1 : -1) * (ad - OCT_DEAD) / OCT_PULL;
-      if (reg < 0) { reg = 0; } if (reg > 2) { reg = 2; }
-      freeHeld = true; freeReg = reg;
-      var near = Math.round(reg);
-      if (near !== freeOct) { freeOct = near; freeOctFlash = now_(); }   /* ring opens as each saptak passes */
+      var steps = (rr - drag.r0) / OCT_PULL;
+      steps = steps > 0 ? Math.floor(steps) : Math.ceil(steps);
+      setFreeOct(drag.oct0 + steps);
       freeCents = freeCentsAt(x, y);
       droneOn();
       if (!freeOn) { freeOn = true; applyFreeLevel(); }
       applyFreePitch();
-      applyFreeReverb(0.08);
       return;
     }
     var da = angleAt(x, y) - drag.a0;
@@ -2363,9 +2346,6 @@
     if (drag && drag.mode === "pulse" && !drag.applied && !drag.longDone) {
       if (pulseSkips.indexOf(drag.start) !== -1) { togglePulseSkip(drag.start); }
       else { setPacket(drag.start, drag.paint); }
-    }
-    if (drag && drag.mode === "free" && freeHeld) {
-      freeHeld = false;            /* let go: the voice stays exactly where it was left */
     }
     if (drag && drag.mode === "free" && !drag.moved && drag.onDot) {
       freeOn = !drag.wasOn;          /* a tap on the dot turns the voice on or off */
@@ -2928,7 +2908,7 @@
     st.pskips = pulseSkips.slice();
     st.pdiv = PULSE_N;
     st.dmute = (drone && droneSilent) ? 1 : 0;
-    st.foct = Math.round(freeReg * 100) / 100;
+    st.foct = freeOct;
     st.oct = droneOct;
     return st;
   }
@@ -3037,7 +3017,7 @@
                 drone: parts[2] === "1",
                 droneKey: parseInt(parts[3], 10) || 0,
                 droneVol: dv, dmute: parts[11] === "1", shapes: [] };
-    var foP = parts[12] !== undefined ? parseFloat(parts[12]) : NaN;
+    var foP = parts[12] !== undefined ? parseInt(parts[12], 10) : NaN;
     out.foct = (!isNaN(foP) && foP >= 0 && foP <= 2) ? foP : oc;
     var shp = parts[4] ? parts[4].split("_") : [], i, j;
     for (i = 0; i < shp.length; i++) {
@@ -3105,8 +3085,7 @@
       freeOn = true; freeCents = Math.max(0, Math.min(1200, st.free));
     } else { freeOn = false; }
     droneOct = (typeof st.oct === "number") ? st.oct : 1;
-    freeReg = (typeof st.foct === "number") ? st.foct : droneOct;
-    freeOct = Math.round(freeReg); freeRegVis = freeReg;
+    freeOct = (typeof st.foct === "number") ? st.foct : droneOct;
     PULSE_N = st.pdiv || 16;
     pulseSkips = st.pskips ? st.pskips.slice() : [];
     if (st.pulse) { pulseOn = true; pulseMutes = st.pulse.slice(); }
@@ -3197,7 +3176,7 @@
      Tempo, key and saptak stay as they were. */
   function resetScene() {
     for (var i = 0; i < shapes.length; i++) { if (shapes[i].gain) { shapes[i].gain.disconnect(); } }
-    shapes = []; drone = false; droneSilent = false; stopDrone(); freeOn = false; freeOct = 1; freeReg = 1; freeRegVis = 1;
+    shapes = []; drone = false; droneSilent = false; stopDrone(); freeOn = false; freeOct = 1;
     pulseOn = false; pulseMutes = []; pulseSkips = []; pulseNext = -1;
     recomputeRings(); renderPanel();
   }
