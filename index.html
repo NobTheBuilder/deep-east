@@ -2954,11 +2954,14 @@
       var begin = function () {
         playing = true;
         hushSoundEmbeds();
-        t0 = ac.currentTime + 0.06; pulseNext = -1;
+        /* sam is 25 ms out (was 60) and handed to the audio engine at once, not on the next 16 ms tick; the slow
+           one-off work (building the drone, which fades in over 2 s anyway) comes after, so it cannot delay it */
         if (!shapes.length && !drone) { toggleShape(defByN(0)); }   /* an empty yantra wakes the drone */
+        t0 = ac.currentTime + 0.025; pulseNext = -1;
         for (var i = 0; i < shapes.length; i++) { align(shapes[i]); }
+        schedule();
         timer = setInterval(schedule, 16);
-        if (drone) { startDrone(); }
+        if (drone) { startDrone(); pulseNext = -1; schedule(); }   /* the pulse gate needs the drone: queue it now */
         holdWake();
         syncBtn(); renderPanel();
       };
@@ -2976,7 +2979,26 @@
       syncBtn(); renderPanel();
     }
   }
-  playBtn.addEventListener("click", function (e) { e.preventDefault(); togglePlay(); }, false);
+  /* A tap lasts 50-150 ms, so starting on release made sam late by that much. Once audio is unlocked (the first
+     play does that), play starts on the press itself. iOS only unlocks audio on a release, so the very first
+     play still starts on release. */
+  var playPressed = false;
+  /* iOS before 17 keeps playing through the silent switch only with an <audio> trick that needs a release, so
+     there play still starts on release; everywhere else (iOS 17+, Android, desktop) it starts on the press */
+  var oldIOS = (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)) &&
+               !navigator.audioSession;
+  playBtn.addEventListener("pointerdown", function (e) {
+    if (oldIOS || e.button > 0 || !ac || ac.state !== "running") { return; }
+    e.preventDefault(); playPressed = true; togglePlay();
+  }, false);
+  playBtn.addEventListener("click", function (e) {
+    e.preventDefault();
+    if (playPressed) { playPressed = false; return; }
+    togglePlay();
+  }, false);
+  /* No early unlock at a first touch: creating the audio engine before the page claims the playback audio
+     session made iOS reconfigure the output afterwards, and the drawing's latency compensation (the hand, the
+     beads) drifted off the sound. The first play creates the engine, session first, as it always did. */
   /* Some browsers keep a new AudioContext suspended even after a click,
      especially on local files. Resume on ANY interaction, keep checking,
      and say so plainly if it is still blocked. */
