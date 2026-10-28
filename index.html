@@ -377,6 +377,16 @@
   .row button .sw { display: inline-block; width: 7px; height: 7px; border-radius: 50%;
                     margin-right: 0.5em; vertical-align: middle; opacity: 0.5; }
   .row button.on .sw { opacity: 1; }
+  /* press and hold: no text selection or callout on phones; a thin line fills along the bottom edge while held */
+  .row button { position: relative; overflow: hidden; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+  .row button::after { content: ""; position: absolute; left: 0; bottom: 0; height: 1px; width: 0; background: currentColor; opacity: 0.85; }
+  .row button.holding::after { width: 100%; transition: width 0.38s linear 0.12s; }
+  /* a silenced shape: its swatch becomes a hollow ring, like a silenced node on the circle */
+  .row button.muted .sw { background: transparent !important; box-shadow: inset 0 0 0 1.2px currentColor; opacity: 1; }
+  .row button.muted { opacity: 0.72; }
+  .shape-tip { margin: -0.4rem 0 0.75rem; opacity: 0.8; }
+  .shape-tip[hidden] { display: none; }
+  @media (prefers-reduced-motion: reduce) { .row button.holding::after { transition: none; } }
   .layers { display: flex; flex-direction: column; gap: 0.45rem; min-height: 2.5rem; }
   .layer { display: flex; flex-direction: column; gap: 0.4rem; background: var(--stone-2);
            border: 1px solid rgba(201,162,75,0.14); border-radius: 3px; padding: 0.45rem 0.6rem; }
@@ -734,6 +744,7 @@
     <div class="panel">
       <div>
         <div class="hint" style="margin-bottom:0.7rem;">Add a shape</div>
+        <div class="hint shape-tip" id="shapeTip" hidden>Tap to silence &middot; Hold to remove</div>
         <div class="grp">Even</div>
         <div class="row" id="rowEven"></div>
         <div class="grp">Odd</div>
@@ -1555,7 +1566,7 @@
         gg.linearRampToValueAtTime(0, t + open + fout);
         (function (k, at) {
           setTimeout(function () { if (playing && drone && pulseOn) { pulseFlash[k] = now_(); } },
-                     Math.max(0, (at - ac.currentTime) * 1000));
+                     Math.max(0, (at - ac.currentTime + heardLag()) * 1000));
         })(idx, t);
       }
       pulseNext++;
@@ -1613,7 +1624,7 @@
   }
   function queueSam(s, at) {
     setTimeout(function () { if (playing) { s.samAt = now_(); } },
-               Math.max(0, (at - ac.currentTime) * 1000));
+               Math.max(0, (at - ac.currentTime + heardLag()) * 1000));
   }
   function pulseModeRaw(on) {
     if (!!on === pulseOn) { return; }
@@ -1642,7 +1653,7 @@
     }
   }
   function queueFlash(s, k, at) {
-    var delay = Math.max(0, (at - ac.currentTime) * 1000);
+    var delay = Math.max(0, (at - ac.currentTime + heardLag()) * 1000);
     setTimeout(function () {
       if (playing && s.mutes.indexOf(k) === -1) { flashes.push({ s: s, k: k, t: now_() }); }
     }, delay);
@@ -1674,7 +1685,10 @@
   var PITCH_SPAN = Math.PI * 2 / 3;          /* 120 degrees of arc */
   var PITCH_REST = 0.3;          /* how present the arcs are while the drone sleeps */
   var pitchShow = PITCH_REST;
-  function pitchR() { return geo.R + Math.max(18, geo.R * 0.1); }
+  /* the free-voice arc above and the drone key arc below share one radius, in proportion to the rings,
+     so the mirror holds at any size; 1.2 leaves a finger's room between the top nodes and the arc */
+  var ARC_RATIO = 1.2;
+  function pitchR() { return geo.R * ARC_RATIO; }
   function pitchAngle(k) { return Math.PI / 2 + PITCH_SPAN / 2 - k * (PITCH_SPAN / 11); }
   function pitchKeyAt(x, y) {
     var a = Math.atan2(y - geo.cy, x - geo.cx);
@@ -1686,7 +1700,7 @@
   function onPitchArc(x, y) {
     var dx = x - geo.cx, dy = y - geo.cy;
     var d = Math.sqrt(dx * dx + dy * dy), pr = pitchR();
-    if (d < geo.R + 8 || d > pr + 30) { return false; }
+    if (d < (geo.R + pr) / 2 || d > pr + 30) { return false; }
     var a = Math.atan2(dy, dx);
     if (a < -Math.PI / 2) { a += Math.PI * 2; }
     return Math.abs(a - Math.PI / 2) <= PITCH_SPAN / 2 + 0.12;
@@ -1744,8 +1758,8 @@
     ctx.strokeStyle = DRONE_COL; ctx.lineWidth = 1.6; ctx.stroke();
     ctx.restore();
     /* note name just outside the marker */
-    var lr = pr + 18;
-    ctx.font = (live ? "12px" : "11px") + " 'Space Mono', monospace";
+    var ks = uiScale(), lr = pr + 18 * ks;
+    ctx.font = ((live ? 12 : 11) * ks).toFixed(1) + "px 'Space Mono', monospace";
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
     ctx.fillStyle = live ? "#e8e0d2" : DRONE_COL;
     ctx.fillText(NOTE_NAMES[droneKey], cx + lr * Math.cos(a), cy + lr * Math.sin(a));
@@ -1766,7 +1780,7 @@
   function onFreeArc(x, y) {
     var dx = x - geo.cx, dy = y - geo.cy;
     var d = Math.sqrt(dx * dx + dy * dy), pr = pitchR();
-    if (d < geo.R + 8 || d > pr + 30) { return false; }
+    if (d < (geo.R + pr) / 2 || d > pr + 30) { return false; }
     var a = Math.atan2(dy, dx);
     return Math.abs(a + Math.PI / 2) <= PITCH_SPAN / 2 + 0.12;
   }
@@ -1937,6 +1951,14 @@
      time plus an offset that is nudged gently towards each fresh audio reading: it never steps backwards,
      and it snaps only on a real jump (resume, device change), so a stalled audio clock still keeps it moving. */
   var vOff = null, vSeen = -1, vLast = -1;
+  /* a sound scheduled for audio time t reaches the ears outputLatency later (a little on a phone speaker, a lot
+     on Bluetooth). The drawing shows what is HEARD, so it runs that far behind the audio clock, and the
+     flashes wait that much longer; otherwise the beads and hand arrive before the sound. */
+  function heardLag() {
+    var l = (ac && typeof ac.outputLatency === "number" && ac.outputLatency > 0) ? ac.outputLatency
+          : (ac && typeof ac.baseLatency === "number" ? ac.baseLatency : 0);
+    return Math.min(0.5, Math.max(0, l));
+  }
   function viewClock() {
     var a = ac.currentTime, w = now_() / 1000;
     if (vOff === null) { vOff = a - w; }
@@ -1945,7 +1967,7 @@
       var err = (a - w) - vOff;
       if (Math.abs(err) > 0.25) { vOff = a - w; } else { vOff += err * 0.08; }
     }
-    var t = w + vOff;
+    var t = w + vOff - heardLag();
     if (t < vLast && vLast - t < 0.25) { t = vLast; }
     vLast = t;
     return t;
@@ -2054,10 +2076,19 @@
   /* Bottom-left: the saptak slider, its knob a filled brass triangle like the
      drone marker. Bottom-right: hum and pulse as a solid and a dashed ring.
      Both rest translucent with the arcs while the drone sleeps. */
+  /* the circle scales with the screen but text does not, so on small screens the key arc ran into the corner
+     labels; the corner controls and the key letter scale with the canvas below 400 px (never under 0.78) */
+  function uiScale() {
+    var r = cv.getBoundingClientRect();
+    return Math.max(0.78, Math.min(1, Math.min(r.width, r.height) / 400));
+  }
   function cornerGeo() {
     var r = cv.getBoundingClientRect(), W = r.width, H = r.height;
-    return { W: W, H: H, sx: W * 0.075, sy0: H * 0.955, sy1: H * 0.80,
-             ry: H * 0.9, rxr: W * 0.925, rxl: W * 0.925 - 30, rr: 9 };
+    /* the slider starts below the key arc's left end (keys A to C reach about 0.84 of the height); same left
+       edge as reset above it */
+    var s = uiScale();
+    return { W: W, H: H, s: s, sx: W * 0.075, sy0: H * 0.962, sy1: H * 0.87,
+             ry: H * 0.9, rxr: W * 0.925, rxl: W * 0.925 - 30 * s, rr: 9 * s };
   }
   function cText(t, x, y, font, col, align) {
     ctx.font = font; ctx.fillStyle = col; ctx.textAlign = align || "center";
@@ -2073,8 +2104,8 @@
       var y = g.sy0 - i * (g.sy0 - g.sy1) / 2, on = i === droneOct;
       ctx.beginPath(); ctx.moveTo(g.sx - 4, y); ctx.lineTo(g.sx + 4, y);
       ctx.strokeStyle = "rgba(232,224,210,0.4)"; ctx.lineWidth = 1; ctx.stroke();
-      var fsz = on ? (live ? 15 : 14) : 12, lcol = on ? "#e8e0d2" : "rgba(232,224,210,0.35)";
-      var lf = "italic 300 " + fsz + "px 'Spectral', serif", x0 = g.sx + 14;
+      var fsz = (on ? (live ? 15 : 14) : 12) * g.s, lcol = on ? "#e8e0d2" : "rgba(232,224,210,0.35)";
+      var lf = "italic 300 " + fsz.toFixed(1) + "px 'Spectral', serif", x0 = g.sx + 14 * g.s;
       cText(SAPTAK[i], x0, y, lf, lcol, "left");
       if (i !== 1) {          /* octave dot on the first letter: above tar, below mandra */
         ctx.font = lf;
@@ -2097,8 +2128,9 @@
       ctx.beginPath(); ctx.arc(g.rxr, g.ry, g.rr, a0, a0 + (Math.PI * 2 / PULSE_N) * PULSE_GATE);
       ctx.strokeStyle = pulseOn ? DRONE_COL : "rgba(201,162,75,0.3)"; ctx.lineWidth = pulseOn ? 2 : 1.2; ctx.stroke();
     }
-    cText("hum", g.rxl, g.ry + g.rr + 10, "9px 'Space Mono', monospace", pulseOn ? "rgba(232,224,210,0.3)" : "#e8e0d2");
-    cText("pulse", g.rxr, g.ry + g.rr + 10, "9px 'Space Mono', monospace", pulseOn ? "#e8e0d2" : "rgba(232,224,210,0.3)");
+    var cf = (9 * g.s).toFixed(1) + "px 'Space Mono', monospace";
+    cText("hum", g.rxl, g.ry + g.rr + 10 * g.s, cf, pulseOn ? "rgba(232,224,210,0.3)" : "#e8e0d2");
+    cText("pulse", g.rxr, g.ry + g.rr + 10 * g.s, cf, pulseOn ? "#e8e0d2" : "rgba(232,224,210,0.3)");
     ctx.globalAlpha = 1;
   }
   function octAt(y) {
@@ -2108,7 +2140,7 @@
   }
   function onOctSlider(x, y) {
     var g = cornerGeo();
-    return x < g.sx + 80 && x > g.sx - 18 && y > g.sy1 - 14 && y < g.sy0 + 14;
+    return x < g.sx + 64 * g.s && x > g.sx - 18 && y > g.sy1 - 9 && y < g.sy0 + 14;
   }
   function modeRingAt(x, y) {
     var g = cornerGeo(), r = 17;
@@ -2126,7 +2158,7 @@
     var r = cv.getBoundingClientRect();
     var w = r.width, h = r.height;
     ctx.clearRect(0, 0, w, h);
-    geo.cx = w / 2; geo.cy = h / 2; geo.R = Math.min(w, h) * 0.37;
+    geo.cx = w / 2; geo.cy = h / 2; geo.R = Math.min(w, h) * 0.35;
     var cx = geo.cx, cy = geo.cy, R = geo.R, i, k, s, pos;
     for (i = 0; i < shapes.length; i++) {
       s = shapes[i];
@@ -2234,25 +2266,50 @@
   function nearVertex(x, y) {
     var gap = ringStep * geo.R;
     var thr = shapes.length <= 1 ? 26 : Math.max(8, Math.min(24, gap * 0.5));
+    /* two rounds: first only sounding shapes; a silenced shape answers only where nothing sounding is in reach,
+       so where a lit node and a dim node overlap, the lit one is the one you get */
     var best = null, bd = thr;
+    for (var pass = 0; pass < 2 && !best; pass++) {
+      for (var i = 0; i < shapes.length; i++) {
+        var s = shapes[i];
+        if (!!s.silent !== (pass === 1)) { continue; }
+        for (var k = 0; k < s.n; k++) {
+          var p = vpos(s, k);
+          var d = Math.sqrt(Math.pow(x - p[0], 2) + Math.pow(y - p[1], 2));
+          if (d < bd) { bd = d; best = { s: s, k: k }; }
+        }
+      }
+    }
+    return best;
+  }
+  function nearOuterVertex(x, y) {
+    var d0 = Math.sqrt(Math.pow(x - geo.cx, 2) + Math.pow(y - geo.cy, 2)), best = null, bd = 24;
+    for (var pass = 0; pass < 2 && !best; pass++) {   /* sounding shapes first, as in nearVertex */
     for (var i = 0; i < shapes.length; i++) {
       var s = shapes[i];
+      if (!!s.silent !== (pass === 1)) { continue; }
       for (var k = 0; k < s.n; k++) {
-        var p = vpos(s, k);
+        var p = vpos(s, k), dp = Math.sqrt(Math.pow(p[0] - geo.cx, 2) + Math.pow(p[1] - geo.cy, 2));
+        if (d0 < dp) { continue; }                    /* only outward of the node */
+        var reach = Math.min(24, (pitchR() - dp) * 0.7);  /* and stopping short of the arc itself */
         var d = Math.sqrt(Math.pow(x - p[0], 2) + Math.pow(y - p[1], 2));
-        if (d < bd) { bd = d; best = { s: s, k: k }; }
+        if (d < bd && d < reach) { bd = d; best = { s: s, k: k }; }
       }
+    }
     }
     return best;
   }
   function nearShape(x, y) {
     var best = null, bd = 26;
-    for (var i = 0; i < shapes.length; i++) {
-      var s = shapes[i];
-      for (var k = 0; k < s.n; k++) {
-        var a = vpos(s, k), b = vpos(s, (k + 1) % s.n);
-        var d = segDist(x, y, a[0], a[1], b[0], b[1]);
-        if (d < bd) { bd = d; best = s; }
+    for (var pass = 0; pass < 2 && !best; pass++) {   /* sounding shapes first, as for nodes */
+      for (var i = 0; i < shapes.length; i++) {
+        var s = shapes[i];
+        if (!!s.silent !== (pass === 1)) { continue; }
+        for (var k = 0; k < s.n; k++) {
+          var a = vpos(s, k), b = vpos(s, (k + 1) % s.n);
+          var d = segDist(x, y, a[0], a[1], b[0], b[1]);
+          if (d < bd) { bd = d; best = s; }
+        }
       }
     }
     return best;
@@ -2283,7 +2340,12 @@
       setOct(octAt(y));
       return true;
     }
-    if (onFreeArc(x, y)) {
+    /* a finger near a node means the node, unless it is right on the pitch dot or key marker. Between rings
+       the reach stays tight (neighbours), but just OUTSIDE a node there is nothing else to touch but the arc,
+       so there a finger's width (24 px) still counts */
+    var vOut = nearOuterVertex(x, y);
+    var nodeFirst = !!vOut && !nearFreeDot(x, y) && !nearPitchMarker(x, y);
+    if (!nodeFirst && onFreeArc(x, y)) {
       var onDot = nearFreeDot(x, y);
       drag = { mode: "free", s: null, k: -1, moved: false, dist: 0, onDot: onDot,
                wasOn: freeOn && drone, oct0: freeOct,
@@ -2294,13 +2356,13 @@
       }
       return true;
     }
-    if (onPitchArc(x, y)) {
+    if (!nodeFirst && onPitchArc(x, y)) {
       var onMk = nearPitchMarker(x, y);
       drag = { mode: "pitch", s: null, k: -1, moved: false, dist: 0, onMarker: onMk, wasOn: drone };
       if (!onMk) { setDroneKey(pitchKeyAt(x, y)); droneOn(); }
       return true;
     }
-    var v = nearVertex(x, y);
+    var v = nearVertex(x, y) || (nodeFirst ? vOut : null);
     var pi0 = v ? -1 : pulseIndexAt(x, y);
     if (pi0 !== -1) {
       drag = { mode: "pulse", s: null, k: -1, moved: false, dist: 0, start: pi0, last: pi0,
@@ -2607,6 +2669,46 @@
   var rows = { even: document.getElementById("rowEven"),
                odd: document.getElementById("rowOdd"),
                inf: document.getElementById("rowInf") };
+  /* Shape buttons: a tap adds a shape that is not on the circle, and silences (or brings back) one that is; holding
+     half a second removes it. The drone button works the same way. A finger that moves, i.e. a scroll, cancels. */
+  var HOLD_MS = 500;
+  function shapeOf(n) { for (var i = 0; i < shapes.length; i++) { if (shapes[i].n === n) { return shapes[i]; } } return null; }
+  function shapeTap(def) {
+    if (def.n === 0) {
+      if (!drone) { toggleShape(def); return; }
+      droneSilent = !droneSilent; applyDroneLevel(); renderPanel(); return;
+    }
+    var s = shapeOf(def.n);
+    if (!s) { toggleShape(def); return; }
+    s.silent = !s.silent; renderPanel();
+  }
+  function shapeHold(def) {
+    toggleShape(def);   /* removes what is there, adds what is not */
+    try { if (navigator.vibrate) { navigator.vibrate(12); } } catch (e) {}
+  }
+  function bindPress(b, def) {
+    var timer = null, x0 = 0, y0 = 0, down = false;
+    function cancel() { if (timer) { clearTimeout(timer); timer = null; } down = false; b.classList.remove("holding"); }
+    b.addEventListener("pointerdown", function (e) {
+      if (e.button > 0) { return; }
+      down = true; x0 = e.clientX; y0 = e.clientY;
+      b.classList.add("holding");
+      timer = setTimeout(function () { timer = null; cancel(); shapeHold(def); }, HOLD_MS);
+    }, false);
+    b.addEventListener("pointermove", function (e) {
+      if (down && (Math.abs(e.clientX - x0) > 8 || Math.abs(e.clientY - y0) > 8)) { cancel(); }
+    }, false);
+    b.addEventListener("pointerup", function () { if (down) { cancel(); shapeTap(def); } }, false);
+    b.addEventListener("pointercancel", cancel, false);
+    b.addEventListener("pointerleave", function () { if (down) { cancel(); } }, false);
+    b.addEventListener("contextmenu", function (e) { e.preventDefault(); }, false);
+    /* presses are handled above; a click with no press behind it (keyboard Enter or Space, or a browser
+       without pointer events) is a tap */
+    b.addEventListener("click", function (e) {
+      e.preventDefault();
+      if (!window.PointerEvent || e.detail === 0) { shapeTap(def); }
+    }, false);
+  }
   (function buildRows() {
     for (var i = 0; i < SHAPES.length; i++) {
       (function (def) {
@@ -2618,7 +2720,7 @@
         b.appendChild(document.createTextNode(def.name + " \u00B7 " + (def.n === 0 ? def.label : def.n)));
         b.setAttribute("data-n", String(def.n));
         b.setAttribute("data-col", col);
-        b.addEventListener("click", function (e) { e.preventDefault(); toggleShape(def); }, false);
+        bindPress(b, def);
         rows[def.g].appendChild(b);
       })(SHAPES[i]);
     }
@@ -2826,11 +2928,14 @@
       var on = false;
       if (n === 0) { on = drone; }
       else { for (var q = 0; q < shapes.length; q++) { if (shapes[q].n === n) { on = true; break; } } }
-      btns[b].className = on ? "row-on on" : "";
+      var sil = n === 0 ? (drone && droneSilent) : !!(shapeOf(n) && shapeOf(n).silent);
+      btns[b].className = on ? ("row-on on" + (sil ? " muted" : "")) : "";
       btns[b].style.borderColor = on ? btns[b].getAttribute("data-col") : "rgba(201,162,75,0.25)";
       btns[b].style.color = on ? btns[b].getAttribute("data-col") : "";
       btns[b].style.background = on ? "rgba(255,255,255,0.04)" : "none";
     }
+    var tip = document.getElementById("shapeTip");
+    if (tip) { tip.hidden = !(shapes.length || drone); }
   }
   /* ---------- transport ---------- */
   function syncBtn() {
@@ -3290,6 +3395,10 @@
       return code;
     },
     playing: function () { return playing; },
+    clock: function () {   /* for the studio latency readout */
+      if (!ac) { return null; }
+      return { audio: ac.currentTime, view: viewClock(), lag: heardLag(), out: ac.outputLatency, base: ac.baseLatency };
+    },
     play: function () { if (!playing) { togglePlay(); } }
   };
   fit();
@@ -3917,6 +4026,11 @@
 
   var css =
     '.rd{margin-top:1.2rem;position:relative}' +
+    /* a quiet chevron on the right: points down while closed and turns up as the drawer unfolds, in step with it */
+    '.rd-toggle{position:relative}' +
+    '.rd-chev{position:absolute;right:.95rem;top:50%;width:10px;height:6px;margin-top:-3px;opacity:.7;' +
+      'transition:transform .55s cubic-bezier(.2,.7,.2,1)}' +
+    '.rd-toggle[aria-expanded="true"] .rd-chev{transform:rotate(180deg)}' +
     /* the drawer unfolds downward; visibility keeps it out of tab order while closed */
     '.rd-body{margin-top:0;border:1px solid rgba(201,162,75,.2);border-radius:3px;background:var(--stone-2,#14100d);' +
       'max-height:0;opacity:0;overflow:hidden;visibility:hidden;transform:translateY(-6px);' +
@@ -3929,7 +4043,7 @@
     '.rd-run:after{content:"";position:absolute;right:-2px;top:-2px;width:5px;height:5px;border-radius:50%;' +
       'background:#e8e0d2;box-shadow:0 0 6px 2px rgba(232,224,210,.6),0 0 14px 4px rgba(232,224,210,.2)}' +
     '@keyframes rd-run{0%{opacity:0;transform:translateX(0)}12%{opacity:1}80%{opacity:1}100%{opacity:0;transform:translateX(var(--rd-w,240px))}}' +
-    '@media (prefers-reduced-motion:reduce){.rd-body,.rd-body.open{transition:none;transform:none}.rd-run{display:none}}' +
+    '@media (prefers-reduced-motion:reduce){.rd-body,.rd-body.open{transition:none;transform:none}.rd-run{display:none}.rd-chev{transition:none}}' +
     '.rd-tabs{display:flex;flex-wrap:wrap;border-bottom:1px solid rgba(201,162,75,.15)}' +
     '.rd-tab{flex:1 1 auto;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted,#8a8074);' +
       'font-family:var(--mono,monospace);font-size:.58rem;letter-spacing:.16em;text-transform:uppercase;padding:.75rem .6rem;cursor:pointer;' +
@@ -3960,6 +4074,10 @@
     root = el('div', 'rd');
     toggle = el('button', 'share-btn rd-toggle', TITLE);
     toggle.type = 'button';
+    var chev = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    chev.setAttribute('class', 'rd-chev'); chev.setAttribute('viewBox', '0 0 10 6'); chev.setAttribute('aria-hidden', 'true');
+    chev.innerHTML = '<path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>';
+    toggle.appendChild(chev);
     toggle.setAttribute('aria-expanded', 'false');
     body = el('div', 'rd-body');
     var tabRow = el('div', 'rd-tabs');
