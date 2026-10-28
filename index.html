@@ -1170,13 +1170,20 @@
   }
   /* dip the drone under a kick: deeper for a louder kick, back in ~0.25 s */
   var DUCK_DEPTH = 0.6;
+  /* in mandra the whole drone lives in the kick's band, so a full duck reads as pumping */
+  var DUCK_MANDRA = 0.3;
   function duckDrone(t, dest) {
     if (!droneNodes || !droneNodes.duck) { return; }
     var kv = (dest && dest.gain) ? Math.min(1, dest.gain.value) : 1;
-    var low = 1 - DUCK_DEPTH * Math.sqrt(kv);
+    var low = 1 - (droneOct === 0 ? DUCK_MANDRA : DUCK_DEPTH) * Math.sqrt(kv);
     var g = droneNodes.duck.gain;
     g.setTargetAtTime(low, t, 0.004);
     g.setTargetAtTime(1, t + 0.035, 0.08);
+  }
+  /* the drone's Sa in the octave nearest f, so a pitched drum lands in tune whatever the key */
+  function saNear(f) {
+    var s = 110 * Math.pow(2, droneKey / 12);
+    return s * Math.pow(2, Math.round(Math.log(f / s) / Math.LN2));
   }
   var SYNTH = {
     /* 808 lineage: long sine, deep pitch drop, plus a click transient */
@@ -1186,7 +1193,13 @@
          sub keeps its weight on monitors while the knock carries phones. */
       noiseHit(t, 0.009, "highpass", 2600, 0.7, 0.13, "linear", dest);   /* click, first */
       body(t + 0.0025, 340, 200, 0.035, 0.11, 0.24, "triangle", dest);   /* knock */
-      body(t + 0.006, 175, 52, 0.085, 0.52, 0.72, undefined, dest);      /* sub, last + deeper */
+      /* the sub settles on the drone's Sa, in the octave nearest the old 52 Hz (so 39-73 Hz), instead
+         of a fixed 52 Hz that beat against every key but G#; and it rings 0.32 s, not 0.52 s, so
+         one tail no longer runs into the next kick */
+      var subSa = 110 * Math.pow(2, droneKey / 12);
+      subSa = subSa * Math.pow(2, Math.round(Math.log(52 / subSa) / Math.LN2));
+      /* the drop still starts at 175 Hz: scaling the start too put more kick into the band phones play */
+      body(t + 0.006, 175, subSa, 0.085, 0.32, 0.72, undefined, dest);      /* sub, last + deeper */
       duckDrone(t, dest);
     },
     /* 909 lineage: six squares at odd ratios through a steep highpass */
@@ -1207,26 +1220,28 @@
     },
     /* tuned shell + rattle */
     snare: function (t, dest) {
-      body(t, 238, 178, 0.06, 0.13, 0.42, "triangle", dest);
-      body(t, 331, 246, 0.06, 0.11, 0.28, "triangle", dest);
-      noiseHit(t, 0.19, "highpass", 1500, 0.5, 0.46, undefined, dest);
-      noiseHit(t, 0.06, "bandpass", 4200, 0.8, 0.34, undefined, dest);
+      body(t, 238, 178, 0.06, 0.13, 0.32, "triangle", dest);
+      body(t, 331, 246, 0.06, 0.11, 0.21, "triangle", dest);
+      noiseHit(t, 0.19, "highpass", 1500, 0.5, 0.35, undefined, dest);
+      noiseHit(t, 0.06, "bandpass", 4200, 0.8, 0.26, undefined, dest);
     },
     /* three fast taps then a short diffuse tail */
     clap: function (t, dest) {
       var offs = [0, 0.011, 0.021];
       for (var i = 0; i < offs.length; i++) {
-        noiseHit(t + offs[i], 0.032, "bandpass", 1150, 1.1, 0.5, "linear", dest);
+        noiseHit(t + offs[i], 0.032, "bandpass", 1150, 1.1, 1.0, "linear", dest);
       }
-      noiseHit(t + 0.03, 0.26, "bandpass", 1350, 0.9, 0.34, undefined, dest);
-      noiseHit(t, 0.01, "highpass", 3000, 0.6, 0.22, "linear", dest);
+      noiseHit(t + 0.03, 0.26, "bandpass", 1350, 0.9, 0.68, undefined, dest);
+      noiseHit(t, 0.01, "highpass", 3000, 0.6, 0.44, "linear", dest);
     },
     "tom hi": function (t, dest) {
-      body(t, 300, 170, 0.11, 0.36, 0.46, undefined, dest);
+      var th = saNear(170) / 170;   /* tail on Sa (120-240 Hz), not a fixed 170 Hz */
+      body(t, 300 * th, 170 * th, 0.11, 0.36, 0.46, undefined, dest);
       noiseHit(t, 0.02, "bandpass", 900, 0.9, 0.16, "linear", dest);
     },
     "tom lo": function (t, dest) {
-      body(t, 168, 88, 0.14, 0.48, 0.5, undefined, dest);
+      var tl = saNear(88) / 88;     /* tail on Sa (62-124 Hz), not a fixed 88 Hz */
+      body(t, 168 * tl, 88 * tl, 0.14, 0.48, 0.5, undefined, dest);
       noiseHit(t, 0.02, "bandpass", 620, 0.9, 0.16, "linear", dest);
     },
     /* bright rimmed stroke — sharp attack, fast metallic ring */
@@ -1248,22 +1263,35 @@
       bp.frequency.value = 1750 * k; bp.Q.value = 5.5;
       o.connect(bp); bp.connect(g); g.connect(dest || master);
       o.start(t); o.stop(t + 0.18);
-      noiseHit(t, 0.014, "highpass", 5200, 0.8, 0.3, "linear", dest);
+      /* a real dayan rings with harmonic overtones and a strong 2nd (Raman); the triangle has only odd ones,
+         so a quiet sine at 2x Sa follows the same falling strike. The click (70% of the energy) comes down. */
+      body(t, 2 * sa * (880 / 760), 2 * sa, 0.05, 0.14, 0.016, "sine", dest);   /* about level with the Sa ring */
+      noiseHit(t, 0.014, "highpass", 5200, 0.8, 0.19, "linear", dest);
       body(t, 1500 * k, 1180 * k, 0.02, 0.05, 0.14, "sine", dest);
     },
     /* low bending stroke — the pitch slide that gives it its voice */
     "ge": function (t, dest) {
       var o = ac.createOscillator(), g = ac.createGain();
-      o.type = "sine";
-      o.frequency.setValueAtTime(105, t);
-      o.frequency.exponentialRampToValueAtTime(180, t + 0.10);
-      o.frequency.exponentialRampToValueAtTime(96, t + 0.34);
-      g.gain.setValueAtTime(0.58, t);
+      /* the bend lands on the drone's Sa in the octave nearest the old 96 Hz (68-136 Hz), not a fixed 96 Hz
+         that sat 37 cents flat of the drone in most keys; the whole bend scales with it. A quiet 2nd and 3rd
+         harmonic carry the same bend at 140-540 Hz, where a phone can play it (the pure sine was 97% below
+         320 Hz); the fundamental comes down a touch so the stroke keeps its level. */
+      var gr = saNear(96) / 96;
+      g.gain.setValueAtTime(0.4, t);
       g.gain.exponentialRampToValueAtTime(0.0001, t + 0.46);
       var lp = ac.createBiquadFilter(); lp.type = "lowpass";
       lp.frequency.value = 900; lp.Q.value = 1.4;
-      o.connect(lp); lp.connect(g); g.connect(dest || master);
-      o.start(t); o.stop(t + 0.48);
+      lp.connect(g); g.connect(dest || master);
+      var hs = [[1, 1], [2, 0.25], [3, 0.1]];
+      for (var hi = 0; hi < hs.length; hi++) {
+        var ho = hi ? ac.createOscillator() : o, hg = ac.createGain();
+        ho.type = "sine"; hg.gain.value = hs[hi][1];
+        ho.frequency.setValueAtTime(105 * gr * hs[hi][0], t);
+        ho.frequency.exponentialRampToValueAtTime(180 * gr * hs[hi][0], t + 0.10);
+        ho.frequency.exponentialRampToValueAtTime(96 * gr * hs[hi][0], t + 0.34);
+        ho.connect(hg); hg.connect(lp);
+        ho.start(t); ho.stop(t + 0.48);
+      }
       body(t, 210, 150, 0.05, 0.10, 0.16, "triangle", dest);
       noiseHit(t, 0.016, "lowpass", 1400, 0.7, 0.2, "linear", dest);
     }
@@ -1318,6 +1346,27 @@
     applyFreePitch(0.07);        /* a short slide between saptaks, not a jump */
     applyFreeReverb();
   }
+  /* The sine an octave below the tonic sits at 27-52 Hz in mandra: half lost to the 30 Hz filter, the rest
+     right under the kick, and it smothered the drone's own harmonics. So in mandra that voice becomes a quiet
+     saw an octave ABOVE the tonic instead, which gives the drive stage upper partials to work with (so the
+     drone carries on phones, a little like a tanpura's jawari); in madhya and tar it is the sub sine again. */
+  var SUB_PRESENCE = 0.18;
+  function subMode(o, now, instant) {
+    var mandra = droneOct === 0, lvl = mandra ? SUB_PRESENCE : o.__lvl;
+    function apply() {
+      o.__ratio = mandra ? 2 : 0.5; o.type = mandra ? "sawtooth" : "sine"; o.__mandra = mandra;
+      o.frequency.cancelScheduledValues(ac.currentTime);
+      o.frequency.setValueAtTime(droneRoot() * o.__ratio, ac.currentTime);
+    }
+    if (instant) { apply(); o.__g.gain.value = lvl; return; }
+    if (o.__mandra === mandra) { return; }
+    /* fade out, switch while silent, fade back in: no click, no two-octave swoop */
+    o.__g.gain.setTargetAtTime(0, now, 0.02);
+    setTimeout(function () {
+      if (!ac) { return; }
+      apply(); o.__g.gain.setTargetAtTime(lvl, ac.currentTime, 0.08);
+    }, 110);
+  }
   function startDrone() {
     if (droneNodes || !ac) { return; }
     var now = ac.currentTime;
@@ -1362,8 +1411,10 @@
       o.frequency.value = base * ratios[i];
       o.detune.value = parts[i][2];
       g.gain.value = parts[i][1];
+      o.__g = g; o.__lvl = parts[i][1];
       o.connect(g); g.connect(gate); o.start(now);
       o.__ratio = ratios[i];
+      if (ratios[i] === 0.5) { o.__sub = true; subMode(o, now, true); }
       oscs.push(o);
     }
     var lfo = ac.createOscillator(), lg = ac.createGain();
@@ -1405,6 +1456,7 @@
       o.frequency.cancelScheduledValues(now);
       o.frequency.setValueAtTime(Math.max(o.frequency.value, 0.0001), now);
       o.frequency.exponentialRampToValueAtTime(target, now + 0.18);
+      if (o.__sub) { subMode(o, now, false); }
     }
   }
   /* glide the free voice to its new pitch: short enough to follow a finger,
@@ -1880,12 +1932,30 @@
     ctx.strokeStyle = col; ctx.lineWidth = 1.2; ctx.stroke();
     ctx.globalAlpha = 1;
   }
+  /* iOS advances ac.currentTime in coarse steps (20 ms and more, larger on Bluetooth). Filling in with wall
+     time and snapping back on every step made the hand flicker on phones. The drawing clock here is wall
+     time plus an offset that is nudged gently towards each fresh audio reading: it never steps backwards,
+     and it snaps only on a real jump (resume, device change), so a stalled audio clock still keeps it moving. */
+  var vOff = null, vSeen = -1, vLast = -1;
+  function viewClock() {
+    var a = ac.currentTime, w = now_() / 1000;
+    if (vOff === null) { vOff = a - w; }
+    if (a !== vSeen) {
+      vSeen = a;
+      var err = (a - w) - vOff;
+      if (Math.abs(err) > 0.25) { vOff = a - w; } else { vOff += err * 0.08; }
+    }
+    var t = w + vOff;
+    if (t < vLast && vLast - t < 0.25) { t = vLast; }
+    vLast = t;
+    return t;
+  }
   /* a bead travels from step to step: it sits on a corner the instant that
      corner fires, and glides over skipped corners without stopping */
   function beadPhase(phases, unit) {
     var L = phases.length;
     if (!playing || !ac) { return { ph: phases[0], live: false, span: 0 }; }
-    var step = T / unit, nf = (ac.currentTime + wallDrift - t0) / step;
+    var step = T / unit, nf = (viewClock() - t0) / step;
     if (nf < 0) { nf = 0; }
     var n = Math.floor(nf), f = nf - n, j = ((n % L) + L) % L;
     var pa = phases[j], pb = L === 1 ? pa + 1 : phases[(j + 1) % L];
@@ -1897,7 +1967,7 @@
   function ownBead(s) {
     var hits = ownHits(s), L = hits.length;
     if (!playing || !ac) { return { ph: phaseOf(s, hits[0].k), live: false, span: 0 }; }
-    var nf = (ac.currentTime + wallDrift - t0) / (T / s.own);
+    var nf = (viewClock() - t0) / (T / s.own);
     if (nf < 0) { nf = 0; }
     var u = nf % L, j = -1, i;
     for (i = 0; i < L; i++) { if (hits[i].pos <= u + 1e-9) { j = i; } }
@@ -2143,7 +2213,7 @@
       if (aclk === lastAudioT) { wallDrift += (now_() - lastWallT) / 1000; }
       else { lastAudioT = aclk; wallDrift = 0; }
       lastWallT = now_();
-      var turns = ((aclk + wallDrift) - t0) / T;
+      var turns = (viewClock() - t0) / T;
       var ph = turns - Math.floor(turns);
       var a = -Math.PI / 2 + ph * Math.PI * 2;
       ctx.beginPath();
@@ -3202,6 +3272,26 @@
     recomputeRings();
     for (var i = 0; i < shapes.length; i++) { shapes[i].ring = shapes[i].ringT; }
   })();
+  /* ---------- beat-lab hook (added by build-yantra-beats.js) ---------- */
+  /* Swaps in new shapes and tempo, keeps the drone, key, saptak, pulse and free voice as they are.
+     Goes through encode/decode so it takes exactly the path a share link does. */
+  window.YantraBeat = {
+    load: function (newBpm, segs) {
+      for (var i = 0; i < shapes.length; i++) { if (shapes[i].gain) { shapes[i].gain.disconnect(); } }
+      var st = captureState(); st.bpm = newBpm; st.shapes = segs;
+      var code = encodeState(st);
+      applyState(decodeState(code));
+      if (playing && ac) {
+        t0 = ac.currentTime + 0.06; pulseNext = -1;   /* the new beat starts on sam */
+        for (var j = 0; j < shapes.length; j++) { align(shapes[j]); }
+      }
+      renderPanel();
+      try { window.history.replaceState(null, "", window.location.pathname + "#y=" + code); } catch (e) {}
+      return code;
+    },
+    playing: function () { return playing; },
+    play: function () { if (!playing) { togglePlay(); } }
+  };
   fit();
   syncBtn();
   renderPanel();
@@ -3297,6 +3387,664 @@
   window.addEventListener("load", fit, false);
   var rt = null;
   window.addEventListener("resize", function () { clearTimeout(rt); rt = setTimeout(fit, 120); }, false);
+})();
+</script>
+<script>
+/* beats.js (from beat-lab) */
+/* beats.js: a small library of tāls and grooves, and the mapper that lays a beat onto Yantra shapes.
+ * Strict ES5. Runs in the page (window.YantraBeats) and in Node (module.exports) for testing.
+ *
+ * How a beat becomes a scene: each voice line (one instrument) becomes one shape.
+ *   1. If every hit falls on a corner of an even n-gon, use that shape and mute the other corners.
+ *   2. Otherwise drag the corners of an n-gon onto the hits (n = hits, at least 3), extra corners muted.
+ * A scene holds only one shape per corner count (3..16), so each line takes the cheapest free shape.
+ * A line with more than 16 hits is split across two shapes of the same voice.
+ */
+(function (root) {
+  'use strict';
+
+  var INSTS = ['kick', 'hat', 'snare', 'clap', 'tom hi', 'tom lo', 'na', 'ge'];
+  var SHAPE_NAMES = { 3: 'Triangle', 4: 'Square', 5: 'Pentagon', 6: 'Hexagon', 7: 'Heptagon', 8: 'Octagon',
+                      9: 'Nonagon', 10: 'Decagon', 11: 'Hendecagon', 12: 'Dodecagon', 13: 'Tridecagon',
+                      14: 'Tetradecagon', 15: 'Pentadecagon', 16: 'Hexadecagon' };
+  var BPM_MIN = 50, BPM_MAX = 180;
+
+  /* ---------- bols → voices ----------
+     dāyāñ (right drum) → na, bāyāñ open → ge, both → na + ge,
+     bāyāñ closed (Ke, Ka, Kat, Ki) → tom lo, a quiet stand-in: the Yantra has no closed-bāyāñ voice. */
+  var BOTH = ['dha', 'dhin', 'dhi', 'din', 'di', 'dhe', 'dhit'];
+  var DAYAN = ['na', 'ta', 'tin', 'ti', 'tu', 'tun', 'ra', 'te', 'tit', 'tra'];
+  var BAYAN = ['ge', 'ga', 'ghe', 'gi'];
+  var CLOSED = ['ke', 'ka', 'kat', 'ki', 'kit'];
+
+  /* ---------- the library ----------
+     Tāls: theka with "|" between vibhāgs, spaces between mātrās; a mātrā holding several bols
+     is written joined (DhaGe, TiRaKiTa) and split evenly inside its mātrā. "-" is a rest.
+     rate = a typical madhya-laya speed in mātrās per minute (the Yantra may not go that slow).
+     Grooves: one loop on a grid of `steps`, one line per voice, "x" = hit. bpm = beats per minute. */
+  var BEATS = [
+    { id: 'tintal', name: 'Tīntāl', aka: ['teentaal', 'teental', 'tintal', 'tintaal', 'trital', 'tritaal', 'teen taal'],
+      kind: 'tal', theka: 'Dha Dhin Dhin Dha | Dha Dhin Dhin Dha | Dha Tin Tin Ta | Ta Dhin Dhin Dha',
+      marks: ['X', '2', '0', '3'], rate: 140,
+      note: 'The most played tāl. The bāyāñ drops out in the khālī vibhāg (Tin Tin Ta Ta), which is the gap in the ge shape.' },
+    { id: 'jhaptal', name: 'Jhaptāl', aka: ['jhaptaal', 'jhap taal', 'japtal'],
+      kind: 'tal', theka: 'Dhi Na | Dhi Dhi Na | Ti Na | Dhi Dhi Na',
+      marks: ['X', '2', '0', '3'], rate: 120,
+      note: '10 mātrās split 2+3+2+3, so the vibhāg marks fall unevenly round the circle.' },
+    { id: 'rupak', name: 'Rūpak', aka: ['rupak', 'roopak', 'rupaktaal', 'rupak taal', 'rupaktal'],
+      kind: 'tal', theka: 'Tin Tin Na | Dhi Na | Dhi Na',
+      marks: ['X/0', '1', '2'], rate: 110,
+      note: '7 mātrās, 3+2+2. Unusually, sam is khālī: the cycle starts on the light Tin, not a Dha, and the hand waves instead of clapping.' },
+    { id: 'ektal', name: 'Ektāl', aka: ['ektaal', 'ek taal', 'ektal'],
+      kind: 'tal', theka: 'Dhin Dhin | DhaGe TraKa | Tu Na | Kat Ta | DhaGe TraKa | Dhi Na',
+      marks: ['X', '0', '2', '0', '3', '4'], rate: 110,
+      note: '12 mātrās in six vibhāgs of 2. Slower, TiRaKiTa fills mātrās 4 and 10; at this speed it is played as TraKa, as in fast laya.' },
+    { id: 'dadra', name: 'Dādrā', aka: ['dadra', 'daadra', 'dadra taal', 'dadra tal'],
+      kind: 'tal', theka: 'Dha Dhi Na | Dha Ti Na',
+      marks: ['X', '0'], rate: 120,
+      note: '6 mātrās, 3+3. Light-classical and film songs; feels like a fast 6/8.' },
+    { id: 'keherwa', name: 'Keherwā', aka: ['keherwa', 'kaherva', 'kaharwa', 'keharwa', 'kehrwa', 'kaherwa'],
+      kind: 'tal', theka: 'Dha Ge Na Ti | Na Ka Dhi Na',
+      marks: ['X', '0'], rate: 140,
+      note: '8 mātrās, 4+4. The everyday folk and bhajan groove.' },
+    { id: 'dipchandi', name: 'Dīpchandī', aka: ['deepchandi', 'dipchandi', 'deep chandi'],
+      kind: 'tal', theka: 'Dha Dhin - | Dha Dha Tin - | Ta Tin - | Dha Dha Dhin -',
+      marks: ['X', '2', '0', '3'], rate: 100,
+      note: '14 mātrās, 3+4+3+4, with a rest closing each vibhāg. Thumrī and hori.' },
+    { id: 'chautal', name: 'Chautāl', aka: ['chautaal', 'chautal', 'chartal', 'chowtal'],
+      kind: 'tal', theka: 'Dha Dha | Din Ta | KiTa Dha | Din Ta | TiTa KaTa | GaDi GaNa',
+      marks: ['X', '0', '2', '0', '3', '4'], rate: 100,
+      note: '12 mātrās, a pakhāwaj tāl for dhrupad. These are pakhāwaj bols on tabla-like voices, so treat it as a sketch.' },
+    { id: 'adi', name: 'Ādi tāḷa (counting)', group: 'carnatic', aka: ['adi', 'adi tala', 'aditala', 'adi talam', 'adi thalam'],
+      kind: 'kriya', steps: 8, rate: 80,
+      lines: [{ inst: 'clap', hits: 'x...x.x.', vol: 1 },
+              { inst: 'hat', hits: '.xxx....', vol: 0.6 },
+              { inst: 'tom hi', hits: '.....x.x', vol: 0.7 }],
+      note: 'Carnatic, 8 beats: laghu (clap + three finger counts) then two drutams (clap, wave). Clap = clap, finger counts = hat, waves = tom hi. This is the hand count, not a mridangam part.' },
+
+    { id: 'bossa', name: 'Bossa nova', aka: ['bossa', 'bossanova', 'bosa nova', 'bossa nova'],
+      kind: 'groove', steps: 16, bpm: 130,
+      lines: [{ inst: 'hat', hits: 'x.x.x.x.x.x.x.x.', vol: 0.5 },
+              { inst: 'clap', hits: 'x..x..x...x..x..', vol: 0.8 },
+              { inst: 'kick', hits: 'x..xx..xx..xx..x', vol: 0.9 }],
+      note: 'Rim pattern (on clap) is the bossa clave folded into one bar; the kick plays the surdo-like dotted figure. Real bossa clave spans two bars.' },
+    { id: 'son', name: 'Son clave 3-2', aka: ['son clave', 'clave', 'salsa', 'son', '3-2 clave', 'son montuno'],
+      kind: 'groove', steps: 16, bpm: 100,
+      lines: [{ inst: 'clap', hits: 'x..x..x...x.x...', vol: 0.9 },
+              { inst: 'hat', hits: 'x...x...x...x...', vol: 0.4 },
+              { inst: 'kick', hits: '......x.....x...', vol: 0.9 }],
+      note: 'Clave in one bar (normally two). The kick plays the tumbao bass: the "and" of 2 and beat 4.' },
+    { id: 'rumba', name: 'Rumba clave', aka: ['rumba', 'rumba clave', 'guaguanco'],
+      kind: 'groove', steps: 16, bpm: 105,
+      lines: [{ inst: 'clap', hits: 'x..x...x..x.x...', vol: 0.9 },
+              { inst: 'hat', hits: 'x...x...x...x...', vol: 0.4 },
+              { inst: 'kick', hits: '......x.....x...', vol: 0.8 }],
+      note: 'Like son clave, but the third stroke is pushed one step later.' },
+    { id: 'tresillo', name: 'Tresillo', aka: ['tresillo', '3-3-2', '332'],
+      kind: 'groove', steps: 16, bpm: 100,
+      lines: [{ inst: 'kick', hits: 'x..x..x.x..x..x.', vol: 0.9 },
+              { inst: 'hat', hits: 'x.x.x.x.x.x.x.x.', vol: 0.4 }],
+      note: '3+3+2, the cell under habanera, reggaeton and a lot of pop. The Yantra\'s own E(3,8).' },
+    { id: 'habanera', name: 'Habanera', aka: ['habanera', 'tango', 'danza'],
+      kind: 'groove', steps: 16, bpm: 80,
+      lines: [{ inst: 'kick', hits: 'x..xx.x.x..xx.x.', vol: 0.9 },
+              { inst: 'hat', hits: 'x...x...x...x...', vol: 0.4 }],
+      note: 'Tresillo with the beat filled back in. Cuban danza, early tango.' },
+    { id: 'dembow', name: 'Dembow', aka: ['dembow', 'reggaeton', 'reggaetón', 'dem bow'],
+      kind: 'groove', steps: 16, bpm: 95,
+      lines: [{ inst: 'kick', hits: 'x...x...x...x...', vol: 0.9 },
+              { inst: 'snare', hits: '...x..x....x..x.', vol: 0.8 },
+              { inst: 'hat', hits: 'x.x.x.x.x.x.x.x.', vol: 0.35 }],
+      note: 'Four kicks with the snare on the tresillo offbeats.' },
+    { id: 'blues', name: 'Blues', aka: ['blues', 'shuffle', 'blues shuffle', 'slow blues'],
+      kind: 'groove', steps: 16, bpm: 75,
+      lines: [{ inst: 'hat', hits: 'x.x.x.x.x.x.x.x.', vol: 0.4, swing: 2 / 3, role: 'hats, swung to a triplet feel' },
+              { inst: 'na', hits: '....x.......x...', vol: 0.7, role: 'backbeat on 2 and 4' },
+              { inst: 'kick', hits: '........x.......', vol: 1, role: 'kick on 3' },
+              { inst: 'snare', hits: '........x.......', vol: 0.7, role: 'rim with the kick' }],
+      note: 'Triplet-swung hats with an accent on 2 and 4: the shuffle feel. Born as a reggae one drop (kick on 3, nothing on 1); a textbook shuffle would also put the kick on 1.' },
+    { id: 'rock', name: 'Rock backbeat', aka: ['rock', 'backbeat', 'pop', 'basic beat', 'rock beat'],
+      kind: 'groove', steps: 16, bpm: 100,
+      lines: [{ inst: 'hat', hits: 'x.x.x.x.x.x.x.x.', vol: 0.4 },
+              { inst: 'snare', hits: '....x.......x...', vol: 0.9 },
+              { inst: 'kick', hits: 'x.......x.x.....', vol: 1 }],
+      note: 'Snare on 2 and 4.' },
+    { id: 'house', name: 'Four on the floor', aka: ['house', 'four on the floor', 'disco', 'techno', 'edm', '4 on the floor'],
+      kind: 'groove', steps: 16, bpm: 122,
+      lines: [{ inst: 'kick', hits: 'x...x...x...x...', vol: 1 },
+              { inst: 'hat', hits: '..x...x...x...x.', vol: 0.45 },
+              { inst: 'clap', hits: '....x.......x...', vol: 0.8 }],
+      note: 'Kick on every beat, open hat on the offbeats.' },
+    { id: 'boombap', name: 'Boom bap', aka: ['boom bap', 'boombap', 'hip hop', 'hiphop', 'hip-hop'],
+      kind: 'groove', steps: 16, bpm: 90,
+      lines: [{ inst: 'hat', hits: 'x.x.x.x.x.x.x.x.', vol: 0.4 },
+              { inst: 'snare', hits: '....x.......x...', vol: 0.9 },
+              { inst: 'kick', hits: 'x......x..x.....', vol: 1 }],
+      note: 'One common boom-bap kick; there are many.' },
+    { id: 'bell', name: '12/8 bell', aka: ['bell', 'bembe', 'bembé', 'afro 12/8', 'standard bell', 'agbekor', '12/8', 'afro'],
+      kind: 'groove', steps: 12, bpm: 100,
+      lines: [{ inst: 'tom hi', hits: 'x.x.xx.x.x.x', vol: 0.8 },
+              { inst: 'kick', hits: 'x..x..x..x..', vol: 0.9 }],
+      note: 'The West African standard bell over four dotted beats. Here BPM counts the dotted beats.' },
+
+    /* Cross-rhythm: one line runs on its own count (the shape's mātrā) and drifts against the loop.
+       `cross` corners: one character per corner, "x" played, "." muted; `own` = steps per loop. */
+    { id: 'threefour', name: '3 over 4', group: 'cross', aka: ['3 over 4', 'three over four', 'dotted eighth', 'polymeter', 'techno 3'],
+      kind: 'groove', steps: 16, bpm: 124,
+      lines: [{ inst: 'kick', hits: 'x...x...x...x...', vol: 1, role: 'four on the floor' },
+              { inst: 'hat', hits: '..x...x...x...x.', vol: 0.4, role: 'offbeats' }],
+      cross: [{ inst: 'tom hi', corners: 'x..', own: 16, vol: 0.7, role: 'a hit every 3 sixteenths' }],
+      note: 'A techno and house staple: a figure every 3 sixteenths over a straight four. It drifts across the bar and meets the downbeat again every 3 loops.' },
+    { id: 'oddriff', name: '13 over 4', group: 'cross', aka: ['13 over 4', 'odd riff', 'metal', 'prog', 'djent', 'meshuggah'],
+      kind: 'groove', steps: 16, bpm: 120,
+      lines: [{ inst: 'hat', hits: 'x.x.x.x.x.x.x.x.', vol: 0.4, role: 'steady 8ths' },
+              { inst: 'snare', hits: '....x.......x...', vol: 0.9, role: 'snare on 2 and 4' }],
+      cross: [{ inst: 'kick', corners: 'x..x.x..xx.x.', own: 16, vol: 1, role: 'a 13-step kick riff' }],
+      note: 'In the spirit of polymetric metal (Meshuggah is the famous case), not a transcription: a 13-sixteenth kick riff under a steady 4/4. It meets the downbeat again only every 13 loops.' },
+
+    /* ---------- Carnatic ----------
+       A: Ādi tāḷa at two pulses per beat (16 per cycle) with a jāti grouping running across it on its own count.
+       B: the chāpu tāḷas, one step per akṣara.  C: Khaṇḍa chāpu against Miśra chāpu.
+       Section marks are claps at the start of each section; they show the structure, not the exact kriyā. */
+  ].concat(adiJati(3, 'Tiśra', 'ta-ki-ta'), adiJati(5, 'Khaṇḍa', 'ta-ka-ta-ki-ta'),
+           adiJati(7, 'Miśra', 'ta-ka-dhi-mi-ta-ki-ta'), adiJati(9, 'Saṅkīrṇa', 'ta-ka-dhi-mi-ta-ka-ta-ki-ta'), [
+    chapu('tisrachapu', 'Tiśra chāpu', ['tisra chapu', 'tishra chapu', 'thisra chapu'], '1+2', [0, 1], 3, 180,
+          '3 akṣaras, 1+2. Here it runs at the Yantra’s top speed.'),
+    chapu('khandachapu', 'Khaṇḍa chāpu', ['khanda chapu', 'kanda chapu', 'khanda chaapu'], '2+3', [0, 2], 5, 120,
+          '5 akṣaras, 2+3 (some count it 2+1+2). Common in kritis and padams.'),
+    chapu('misrachapu', 'Miśra chāpu', ['misra chapu', 'mishra chapu', 'misra chaapu'], '3+2+2', [0, 3, 5], 7, 86,
+          '7 akṣaras, 3+2+2 (some count it 3+4). One of the most used tāḷas in Carnatic songs; the same shape as Hindustani Rūpak.'),
+    chapu('sankirnachapu', 'Saṅkīrṇa chāpu', ['sankeerna chapu', 'sankirna chapu', 'sankeerna chaapu'], '4+5', [0, 4], 9, 67,
+          '9 akṣaras, 4+5. Rare; turns up in some pallavis.'),
+    { id: 'khandamisra', name: 'Khaṇḍa against Miśra', group: 'carnatic',
+      aka: ['5 against 7', '5 over 7', 'khanda misra', 'khanda against misra', 'khanda vs misra', 'chapu cross'],
+      kind: 'groove', steps: 7, bpm: 86, sub: 'Miśra chāpu (7) with Khaṇḍa chāpu (5) on top',
+      lines: [{ inst: 'na', hits: 'xxxxxxx', vol: 0.4, role: 'akṣara pulse' },
+              { inst: 'clap', hits: 'x..x.x.', vol: 0.7, role: 'Miśra sections (3+2+2)' },
+              { inst: 'ge', hits: 'x......', vol: 0.9, role: 'Miśra sam' }],
+      cross: [{ inst: 'tom hi', corners: 'x.x..', own: 7, vol: 0.8, role: 'Khaṇḍa sections (2+3), one akṣara per corner' }],
+      note: 'An exercise built from two real Carnatic tāḷas, not a repertoire form. Both run on the same akṣara; the 5-cycle drifts across the 7-cycle and the two sams meet every 5 loops (35 akṣaras).' }
+  ], [
+
+    /* West African timelines as given in Toussaint's timeline studies. The bell line is the timeline;
+       kick and hat are a plain support layer of mine, not the traditional ensemble parts. */
+    { id: 'gahu', name: 'Gahu', aka: ['gahu', 'gahoo', 'ewe', 'ghana'],
+      kind: 'groove', steps: 16, bpm: 120,
+      lines: [{ inst: 'tom hi', hits: 'x..x..x...x...x.', vol: 0.8, role: 'timeline (bell)' },
+              { inst: 'kick', hits: 'x...x...x...x...', vol: 0.8, role: 'the four beats' },
+              { inst: 'hat', hits: '..x...x...x...x.', vol: 0.35, role: 'offbeats' }],
+      note: 'Ewe, Ghana. The timeline starts like a clave, then its last stroke lands just before the downbeat, pulling into the next cycle. Kick and hat are a simple support layer, not the ensemble parts.' },
+    { id: 'shiko', name: 'Shiko', aka: ['shiko', 'nigeria'],
+      kind: 'groove', steps: 16, bpm: 110,
+      lines: [{ inst: 'tom hi', hits: 'x...x.x...x.x...', vol: 0.8, role: 'timeline (bell)' },
+              { inst: 'kick', hits: 'x...x...x...x...', vol: 0.8, role: 'the four beats' },
+              { inst: 'hat', hits: '..x...x...x...x.', vol: 0.35, role: 'offbeats' }],
+      note: 'Nigeria. The plainest of the five-stroke timelines: two pairs of close strokes. Kick and hat are a simple support layer.' },
+    { id: 'soukous', name: 'Soukous', aka: ['soukous', 'congo', 'rumba congolaise', 'lingala'],
+      kind: 'groove', steps: 16, bpm: 130,
+      lines: [{ inst: 'tom hi', hits: 'x..x..x...xx....', vol: 0.8, role: 'timeline (bell)' },
+              { inst: 'kick', hits: 'x...x...x...x...', vol: 0.8, role: 'the four beats' },
+              { inst: 'hat', hits: '..x...x...x...x.', vol: 0.35, role: 'offbeats' }],
+      note: 'Congo. Like son clave, but the last stroke comes early and doubles. Kick and hat are a simple support layer; real soukous is driven by guitars.' },
+    { id: 'fumefume', name: 'Fume-fume', aka: ['fume fume', 'fumefume', 'fume-fume'],
+      kind: 'groove', steps: 12, bpm: 100,
+      lines: [{ inst: 'tom hi', hits: 'x.x.x..x.x..', vol: 0.8, role: 'timeline (bell)' },
+              { inst: 'kick', hits: 'x..x..x..x..', vol: 0.8, role: 'the four dotted beats' }],
+      note: 'Ghana, in 12/8. A five-stroke bell, the short sister of the 12/8 standard bell. BPM counts the dotted beats.' }
+  ]);
+
+  /* A: Ādi at 16 pulses, with groups of `g` running across it on the shape's own count */
+  function adiJati(g, jati, syl) {
+    var corners = 'x', i;
+    for (i = 1; i < g; i++) { corners += '.'; }
+    return { id: 'adi' + g, name: 'Ādi + ' + g + 's', group: 'carnatic',
+      aka: ['adi ' + g, 'adi ' + jati.toLowerCase(), jati.toLowerCase() + ' jati', jati.toLowerCase() + ' jathi', 'adi groups of ' + g],
+      kind: 'groove', steps: 16, bpm: 50, sub: 'Ādi tāḷa, 8 beats at 2 pulses each, with groups of ' + g + ' (' + jati + ' jāti)',
+      lines: [{ inst: 'na', hits: 'xxxxxxxxxxxxxxxx', vol: 0.3, role: 'the pulse, 2 per beat' },
+              { inst: 'clap', hits: 'x.......x...x...', vol: 0.7, role: 'claps: beats 1, 5, 7' },
+              { inst: 'hat', hits: '..x.x.x.........', vol: 0.4, role: 'finger counts: beats 2, 3, 4' },
+              { inst: 'tom lo', hits: '..........x...x.', vol: 0.5, role: 'waves: beats 6, 8' }],
+      cross: [{ inst: 'ge', corners: corners, own: 16, vol: 0.9, role: 'the first pulse of each ' + syl + ' group' }],
+      note: 'Groups of ' + g + ' (' + syl + ') laid across Ādi, as in korvais and moras. The ge marks where each group starts; it lands back on sam every ' +
+            g + ' cycles. At 2 pulses a beat this is Ādi in its second speed.' };
+  }
+  /* B: a chāpu tāḷa, one step per akṣara: pulse on na, a clap on each section, ge on sam */
+  function chapu(id, name, aka, parts, sections, n, bpm, note) {
+    var pulse = '', claps = '', sam = '', i;
+    for (i = 0; i < n; i++) { pulse += 'x'; claps += sections.indexOf(i) >= 0 ? 'x' : '.'; sam += i ? '.' : 'x'; }
+    return { id: id, name: name, group: 'carnatic', aka: aka, kind: 'groove', steps: n, bpm: bpm,
+      sub: n + ' akṣaras · ' + parts,
+      lines: [{ inst: 'na', hits: pulse, vol: 0.4, role: 'akṣara pulse' },
+              { inst: 'clap', hits: claps, vol: 0.7, role: 'start of each section (' + parts + ')' },
+              { inst: 'ge', hits: sam, vol: 0.9, role: 'sam' }],
+      note: note };
+  }
+
+  /* ---------- helpers ---------- */
+  function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+  function gcd(a, b) { while (b) { var t = b; b = a % b; a = t; } return a; }
+  function near(x) { return Math.abs(x - Math.round(x)) < 1e-6; }
+  function frac(x) { x = x % 1; return x < 0 ? x + 1 : x; }
+
+  function stripMarks(s) {
+    if (typeof s.normalize === 'function') { s = s.normalize('NFD').replace(/[̀-ͯ]/g, ''); }
+    return s;
+  }
+  /* "Teentaal", "tīntāl", "Tin taal" all → "tintal" */
+  function key(s) {
+    s = stripMarks(String(s).toLowerCase()).replace(/[^a-z0-9]/g, '');
+    return s.replace(/aa/g, 'a').replace(/ee/g, 'i').replace(/oo/g, 'u').replace(/w/g, 'v').replace(/h/g, '');
+  }
+  function lev(a, b) {
+    var i, j, prev = [], cur;
+    for (j = 0; j <= b.length; j++) { prev.push(j); }
+    for (i = 1; i <= a.length; i++) {
+      cur = [i];
+      for (j = 1; j <= b.length; j++) {
+        cur.push(Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a.charAt(i - 1) === b.charAt(j - 1) ? 0 : 1)));
+      }
+      prev = cur;
+    }
+    return prev[b.length];
+  }
+
+  /* ---------- find a beat from typed words ----------
+     Also reads a tempo: "120 bpm", "at 90", or "slow" / "fast". */
+  function find(query) {
+    var q = String(query || ''), low = q.toLowerCase();
+    var out = { beat: null, bpm: null, factor: 1, guess: false };
+    var m = low.match(/(\d{2,3})\s*(bpm)?/);
+    if (m && (m[2] || /\bat\s*\d/.test(low))) { out.bpm = parseInt(m[1], 10); low = low.replace(m[0], ' '); }
+    if (/\b(slow|vilambit|slower|chill)\b/.test(low)) { out.factor = 0.8; }
+    if (/\b(fast|drut|faster|quick)\b/.test(low)) { out.factor = 1.25; }
+    low = low.replace(/\b(slow|slower|fast|faster|quick|chill|vilambit|drut|madhya|beat|groove|rhythm|pattern|play|make|me|a|an|the|in|at|bpm|please|taal|tal|tala|thalam|talam)\b/g, ' ');
+    var qk = key(low).replace(/(taal|tal|tala)$/, ''), best = null, bestD = 99, i, j;
+    if (!qk) { return out; }
+    for (i = 0; i < BEATS.length; i++) {
+      var names = [BEATS[i].name, BEATS[i].id].concat(BEATS[i].aka);
+      for (j = 0; j < names.length; j++) {
+        var nk = key(names[j]).replace(/(taal|tal|tala)$/, '');
+        if (!nk) { continue; }
+        var d;
+        if (nk === qk) { d = 0; }
+        else if (qk.length >= 3 && nk.length >= 3 && (nk.indexOf(qk) >= 0 || qk.indexOf(nk) >= 0)) { d = 0.5; }
+        else { d = lev(qk, nk); }
+        if (d < bestD) { bestD = d; best = BEATS[i]; }
+      }
+    }
+    var allow = qk.length <= 4 ? 1 : 2;
+    if (best && bestD <= allow) { out.beat = best; out.guess = bestD >= 1; }
+    return out;
+  }
+
+  /* ---------- a beat → voice lines of hit positions (0..1 round the loop) ---------- */
+  function talLines(b) {
+    var vib = b.theka.split('|'), mat = [], starts = [], i, j, k;
+    for (i = 0; i < vib.length; i++) {
+      var toks = vib[i].replace(/^\s+|\s+$/g, '').split(/\s+/);
+      starts.push(mat.length);
+      for (j = 0; j < toks.length; j++) { mat.push(toks[j]); }
+    }
+    var N = mat.length, na = [], ge = [], closed = [];
+    for (i = 0; i < N; i++) {
+      var bols = mat[i] === '-' ? [] : (mat[i].match(/[A-Z][a-z]*/g) || []);
+      for (k = 0; k < bols.length; k++) {
+        var bl = bols[k].toLowerCase(), p = (i + k / bols.length) / N;
+        if (BOTH.indexOf(bl) >= 0) { na.push(p); ge.push(p); }
+        else if (DAYAN.indexOf(bl) >= 0) { na.push(p); }
+        else if (BAYAN.indexOf(bl) >= 0) { ge.push(p); }
+        else if (CLOSED.indexOf(bl) >= 0) { closed.push(p); }
+      }
+    }
+    /* the hand count: a clap on each tālī, a soft wave (hat) on each khālī.
+       Marks containing "0" are khālī, so Rūpak's sam (X/0) is a wave, not a clap. */
+    var tali = [], khali = [];
+    for (i = 0; i < starts.length; i++) {
+      ((b.marks[i] || '').indexOf('0') >= 0 ? khali : tali).push(starts[i] / N);
+    }
+    return {
+      cycle: N,
+      vibhag: starts,
+      lines: [
+        { inst: 'na', pos: na, vol: 0.9, role: 'dāyāñ: Na, Ta, Tin, and the right hand of Dha/Dhin' },
+        { inst: 'ge', pos: ge, vol: 0.9, role: 'bāyāñ: Ge, and the left hand of Dha/Dhin' },
+        { inst: 'tom lo', pos: closed, vol: 0.55, role: 'closed bāyāñ (Ke, Ka, Kat), a stand-in' },
+        { inst: 'clap', pos: tali, vol: 0.5, role: 'tālī (clap)' },
+        { inst: 'hat', pos: khali, vol: 0.35, role: 'khālī (wave)' }
+      ]
+    };
+  }
+  /* swing: an offbeat 8th (the "and", half a beat in) moves to `swing` of the beat, e.g. 2/3 = triplet feel.
+     The Yantra has no swing control, so swung hits are simply corners dragged late. */
+  function gridLines(b) {
+    var lines = [], i, j;
+    for (i = 0; i < b.lines.length; i++) {
+      var pos = [], ln = b.lines[i], h = ln.hits, perBeat = h.length / 4;
+      for (j = 0; j < h.length; j++) {
+        if (h.charAt(j) !== 'x') { continue; }
+        var step = j;
+        if (ln.swing && perBeat % 2 === 0 && j % perBeat === perBeat / 2) { step = j + perBeat * (ln.swing - 0.5); }
+        pos.push(step / h.length);
+      }
+      lines.push({ inst: ln.inst, pos: pos, vol: ln.vol, role: ln.role || '' });
+    }
+    return { cycle: b.steps, vibhag: null, lines: lines };
+  }
+
+  /* ---------- voice lines → shapes ---------- */
+  function evenFits(pos, n) {
+    for (var i = 0; i < pos.length; i++) { if (!near(pos[i] * n)) { return false; } }
+    return true;
+  }
+  /* spread the unplayed corners into the widest gaps, so a dragged shape keeps some body */
+  function fillCorners(pos, extra) {
+    var ang = pos.slice().sort(function (a, b) { return a - b; }), e, i;
+    for (e = 0; e < extra; e++) {
+      var gi = 0, gw = -1;
+      for (i = 0; i < ang.length; i++) {
+        var nx = i + 1 < ang.length ? ang[i + 1] : ang[0] + 1, w = nx - ang[i];
+        if (w > gw) { gw = w; gi = i; }
+      }
+      ang.push(frac(ang[gi] + gw / 2));
+      ang.sort(function (a, b) { return a - b; });
+    }
+    return ang;
+  }
+  function place(line, used) {
+    var k = line.pos.length, best = null, n;
+    for (n = 3; n <= 16; n++) {
+      if (used[n] || n < k) { continue; }
+      if (evenFits(line.pos, n)) {
+        var c1 = n - k;
+        if (!best || c1 < best.cost || (c1 === best.cost && !best.even)) { best = { n: n, even: true, cost: c1 }; }   /* ties go to the grid */
+      } else {
+        var c2 = n - k + 2;   /* dragged costs a little more: an even shape reads as a grid */
+        if (!best || c2 < best.cost) { best = { n: n, even: false, cost: c2 }; }
+      }
+    }
+    if (!best) { return null; }
+    var seg = { n: best.n, instIdx: INSTS.indexOf(line.inst), rot: 0, mutes: [], ang: null, silent: 0,
+                vol: Math.round(line.vol * 1000), own: 0, skips: [] }, i;
+    var hitSet = {};
+    for (i = 0; i < k; i++) { hitSet[Math.round(line.pos[i] * 1e6)] = 1; }
+    if (best.even) {
+      for (i = 0; i < best.n; i++) { if (!hitSet[Math.round((i / best.n) * 1e6)]) { seg.mutes.push(i); } }
+    } else {
+      var ang = fillCorners(line.pos, best.n - k);
+      seg.ang = [];
+      for (i = 0; i < ang.length; i++) {
+        seg.ang.push(Math.round(ang[i] * 1000));
+        if (!hitSet[Math.round(ang[i] * 1e6)]) { seg.mutes.push(i); }
+      }
+    }
+    used[best.n] = true;
+    return { seg: seg, even: best.even };
+  }
+
+  function toScene(b, opt) {
+    opt = opt || {};
+    var L = b.kind === 'tal' ? talLines(b) : gridLines(b), shapes = [], map = [], used = {}, i, j;
+    var lines = [];
+    for (i = 0; i < L.lines.length; i++) {
+      var ln = L.lines[i];
+      if (!ln.pos.length) { continue; }
+      if (ln.pos.length > 16) {   /* too many hits for one shape: alternate them across two */
+        var a = [], c = [];
+        for (j = 0; j < ln.pos.length; j++) { (j % 2 ? c : a).push(ln.pos[j]); }
+        lines.push({ inst: ln.inst, pos: a, vol: ln.vol, role: ln.role });
+        lines.push({ inst: ln.inst, pos: c, vol: ln.vol, role: ln.role + ' (second half)' });
+      } else { lines.push(ln); }
+    }
+    /* cross lines use the shape's own count (mātrā): the loop is cut into `own` steps and the shape
+       walks its corners one step each, so a loop of n corners drifts against the cycle and meets
+       sam again every n / gcd(n, own) cycles. They are placed first, since each needs exactly n corners. */
+    var crossShapes = [], crossMap = [];
+    for (i = 0; i < (b.cross || []).length; i++) {
+      var cr = b.cross[i], n = cr.corners.length, hits = 0;
+      if (n < 3 || n > 16 || used[n]) { continue; }
+      var cseg = { n: n, instIdx: INSTS.indexOf(cr.inst), rot: 0, mutes: [], ang: null, silent: 0,
+                   vol: Math.round(cr.vol * 1000), own: cr.own === n ? 0 : cr.own, skips: [] };
+      for (j = 0; j < n; j++) { if (cr.corners.charAt(j) === 'x') { hits++; } else { cseg.mutes.push(j); } }
+      used[n] = true;
+      crossShapes.push(cseg);
+      crossMap.push({ shape: SHAPE_NAMES[n], n: n, inst: cr.inst, hits: hits, even: true, role: cr.role,
+                      own: cr.own, meets: n / gcd(n, cr.own) });
+    }
+    for (i = 0; i < lines.length; i++) {
+      var p = place(lines[i], used);
+      if (!p) { continue; }
+      shapes.push(p.seg);
+      map.push({ shape: SHAPE_NAMES[p.seg.n], n: p.seg.n, inst: lines[i].inst, hits: lines[i].pos.length,
+                 even: p.even, role: lines[i].role });
+    }
+    shapes = shapes.concat(crossShapes); map = map.concat(crossMap);
+    /* tempo: the loop is 4 Yantra beats long, so bpm = 4 × (cycles per minute) */
+    var want, bpm;
+    if (opt.bpm) { want = opt.bpm; }
+    else if (b.kind === 'groove') { want = b.bpm; }
+    else { want = 4 * b.rate / L.cycle; }
+    want = want * (opt.factor || 1);
+    bpm = clamp(Math.round(want), BPM_MIN, BPM_MAX);
+    var res = { beat: b, bpm: bpm, wantBpm: Math.round(want), shapes: shapes, map: map, cycle: L.cycle, vibhag: L.vibhag };
+    if (b.kind !== 'groove') { res.rate = Math.round(bpm * L.cycle / 4); res.wantRate = Math.round(want * L.cycle / 4); }
+    return res;
+  }
+
+  var api = { BEATS: BEATS, INSTS: INSTS, SHAPE_NAMES: SHAPE_NAMES, find: find, toScene: toScene, key: key };
+  if (typeof module !== 'undefined' && module.exports) { module.exports = api; }
+  else { root.YantraBeats = api; }
+})(this);
+</script>
+<script>
+/* cards.js (from beat-lab) */
+/* cards.js: what visitors read in the Rhythms drawer. One entry per rhythm, in drawer order.
+ * DRAFT COPY for Luke to edit: [id, where it comes from, its form, one line].
+ * The id must match an id in beats.js; everything else is free text.
+ */
+(function (root) {
+  'use strict';
+  var GROUPS = [
+    { title: 'Tāls', cards: [
+      ['tintal', 'North India', '16 mātrās · 4+4+4+4', 'The most played tāl. The gap in the pink shape is the khālī.'],
+      ['jhaptal', 'North India', '10 mātrās · 2+3+2+3', 'A khayāl favourite: ten beats that lean, two then three.'],
+      ['rupak', 'North India', '7 mātrās · 3+2+2', 'A tāl that begins on a wave of the hand, not a clap.'],
+      ['ektal', 'North India', '12 mātrās · 2+2+2+2+2+2', 'The wide, slow cycle of vilambit khayāl.'],
+      ['dadra', 'North India', '6 mātrās · 3+3', 'The lilt behind ghazals and countless film songs.'],
+      ['keherwa', 'North India', '8 mātrās · 4+4', 'The everyday groove of bhajans, qawwālī and folk songs.'],
+      ['dipchandi', 'North India', '14 mātrās · 3+4+3+4', 'The sway of thumrī and Holi songs; each section ends on a breath.'],
+      ['chautal', 'North India', '12 mātrās · pakhāwaj', 'The drum cycle of dhrupad, one of India’s oldest living classical forms.']
+    ] },
+    { title: 'Carnatic', cards: [
+      ['adi', 'South India', '8 beats · 4+2+2', 'Carnatic music’s most used tāḷa, kept with claps, finger counts and waves.'],
+      ['tisrachapu', 'South India', '3 akṣaras · 1+2', 'The smallest cycle here: three beats, round and round.'],
+      ['khandachapu', 'South India', '5 akṣaras · 2+3', 'Five beats that skip; heard in many kritis and padams.'],
+      ['misrachapu', 'South India', '7 akṣaras · 3+2+2', 'One of the most common tāḷas in Carnatic songs.'],
+      ['sankirnachapu', 'South India', '9 akṣaras · 4+5', 'A rare nine, kept for showpiece pallavis.']
+    ] },
+    { title: 'World', cards: [
+      ['bossa', 'Brazil', '4/4', 'Rio, late 1950s: the soft groove under “The Girl from Ipanema”.'],
+      ['son', 'Cuba', '4/4', 'The “key” (clave) that holds salsa and son together.'],
+      ['rumba', 'Cuba', '4/4', 'The clave of Afro-Cuban rumba, sung and danced in the street.'],
+      ['tresillo', 'Cuba, from Africa', '3+3+2', 'A three-stroke cell from Africa, now under reggaeton and pop.'],
+      ['habanera', 'Cuba', '4/4', 'The dance that sailed to Europe: Carmen’s famous aria, and tango’s ancestor.'],
+      ['dembow', 'Jamaica · Puerto Rico', '4/4', 'Named after Shabba Ranks’ “Dem Bow”; the engine of reggaeton.'],
+      ['blues', 'USA', 'shuffle', 'The triplet swing of the blues, and of early rock and roll.'],
+      ['rock', 'USA', '4/4', 'Snare on 2 and 4: the backbeat behind rock and pop.'],
+      ['house', 'USA', '4/4', 'A kick on every beat: disco in the ’70s, then Chicago house.'],
+      ['boombap', 'USA', '4/4', 'The kick and snare of ’90s New York hip hop.'],
+      ['bell', 'West Africa', '12/8', 'A bell line heard from Ghana to Cuba, where it became bembé.'],
+      ['gahu', 'Ghana (Ewe)', '4/4', 'A social dance of the Ewe people, said to have travelled from Nigeria.'],
+      ['shiko', 'Nigeria', '4/4', 'A Nigerian bell line: two pairs of strokes, plain and hypnotic.'],
+      ['soukous', 'DR Congo', '4/4', 'The dance music of Kinshasa, made for packed floors.'],
+      ['fumefume', 'Ghana', '12/8', 'A five-stroke bell from Ghana, little sister of the standard bell.']
+    ] },
+    { title: 'Polymeter', cards: [
+      ['threefour', 'Clubs', '3 against 4', 'A pattern of three over a straight four: the hypnotic drift of techno.'],
+      ['oddriff', 'Metal', '13 against 4', 'A 13-step riff under a steady beat: home only every 13 loops, made popular by bands like Meshuggah.'],
+      ['adi3', 'South India', '3s against Ādi', 'Groups of three across Ādi, back on sam every 3 cycles.'],
+      ['adi5', 'South India', '5s against Ādi', 'Groups of five, the way drummers build a korvai; home every 5 cycles.'],
+      ['adi7', 'South India', '7s against Ādi', 'Groups of seven across Ādi; it takes 7 cycles to come home.'],
+      ['adi9', 'South India', '9s against Ādi', 'Groups of nine: the longest way home, every 9 cycles.'],
+      ['khandamisra', 'South India', '5 against 7', 'Two cycles that meet every 5 loops.']
+    ] }
+  ];
+  if (typeof module !== 'undefined' && module.exports) { module.exports = GROUPS; }
+  else { root.YantraCards = GROUPS; }
+})(this);
+</script>
+<script>
+/* rhythm-drawer.js (from beat-lab) */
+/* rhythm-drawer.js: a quiet "Rhythms" drawer under the Yantra. Tap a rhythm and it is laid onto the
+ * Yantra as shapes and plays. Copy comes from cards.js, patterns from beats.js.
+ * Strict ES5. Needs window.YantraBeat (added by build-yantra-beats.js). Uses the page's own CSS variables,
+ * so it follows the site's fonts and colours. Everything is try/catch-guarded so nothing can throw into the Yantra.
+ */
+(function () {
+  'use strict';
+  var Y = window.YantraBeat, B = window.YantraBeats, C = window.YantraCards;
+  if (!Y || !B || !C) { if (window.console) console.warn('rhythm-drawer: hook, beats.js or cards.js missing'); return; }
+
+  var TITLE = 'Spark';
+  var LS = 'yantraRhythmTab1';
+  function getTab() { try { return parseInt(localStorage.getItem(LS), 10) || 0; } catch (e) { return 0; } }
+  function setTab(i) { try { localStorage.setItem(LS, String(i)); } catch (e) { /* private mode */ } }
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) { e.className = cls; }
+    if (text) { e.textContent = text; }
+    return e;
+  }
+
+  var css =
+    '.rd{margin-top:1.2rem;position:relative}' +
+    /* the drawer unfolds downward; visibility keeps it out of tab order while closed */
+    '.rd-body{margin-top:0;border:1px solid rgba(201,162,75,.2);border-radius:3px;background:var(--stone-2,#14100d);' +
+      'max-height:0;opacity:0;overflow:hidden;visibility:hidden;transform:translateY(-6px);' +
+      'transition:max-height .55s cubic-bezier(.2,.7,.2,1),opacity .45s ease,transform .55s cubic-bezier(.2,.7,.2,1),margin-top .55s ease,visibility 0s linear .55s}' +
+    '.rd-body.open{max-height:44rem;opacity:1;visibility:visible;transform:none;margin-top:.7rem;' +
+      'transition:max-height .55s cubic-bezier(.2,.7,.2,1),opacity .45s ease .05s,transform .55s cubic-bezier(.2,.7,.2,1),margin-top .55s ease,visibility 0s}' +
+    /* the tap streak: a bone-white bead, like the Yantra's own, runs once along the button's bottom edge */
+    '.rd-run{position:absolute;left:0;height:1px;width:3.5rem;pointer-events:none;opacity:0;' +
+      'background:linear-gradient(90deg,rgba(232,224,210,0),rgba(232,224,210,.7));animation:rd-run .45s cubic-bezier(.4,0,.2,1) forwards}' +
+    '.rd-run:after{content:"";position:absolute;right:-2px;top:-2px;width:5px;height:5px;border-radius:50%;' +
+      'background:#e8e0d2;box-shadow:0 0 6px 2px rgba(232,224,210,.6),0 0 14px 4px rgba(232,224,210,.2)}' +
+    '@keyframes rd-run{0%{opacity:0;transform:translateX(0)}12%{opacity:1}80%{opacity:1}100%{opacity:0;transform:translateX(var(--rd-w,240px))}}' +
+    '@media (prefers-reduced-motion:reduce){.rd-body,.rd-body.open{transition:none;transform:none}.rd-run{display:none}}' +
+    '.rd-tabs{display:flex;flex-wrap:wrap;border-bottom:1px solid rgba(201,162,75,.15)}' +
+    '.rd-tab{flex:1 1 auto;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted,#8a8074);' +
+      'font-family:var(--mono,monospace);font-size:.58rem;letter-spacing:.16em;text-transform:uppercase;padding:.75rem .6rem;cursor:pointer;' +
+      '-webkit-appearance:none;appearance:none;touch-action:manipulation}' +
+    '.rd-tab.on{color:var(--brass,#c9a24b);border-bottom-color:var(--brass,#c9a24b)}' +
+    '.rd-list{max-height:22rem;overflow-y:auto;-webkit-overflow-scrolling:touch}' +
+    '.rd-item{display:block;width:100%;text-align:left;background:none;border:none;border-bottom:1px solid rgba(232,224,210,.06);' +
+      'color:var(--bone,#e8e0d2);padding:.75rem .9rem;cursor:pointer;-webkit-appearance:none;appearance:none;touch-action:manipulation}' +
+    '.rd-item:last-child{border-bottom:none}' +
+    '.rd-item:hover{background:rgba(201,162,75,.05)}' +
+    '.rd-item.on{background:rgba(201,162,75,.1)}' +
+    '.rd-top{display:flex;align-items:baseline;justify-content:space-between;gap:.8rem}' +
+    '.rd-name{font-family:var(--display,serif);font-size:1.05rem;line-height:1.2}' +
+    '.rd-item.on .rd-name{color:var(--brass,#c9a24b)}' +
+    '.rd-meta{font-family:var(--mono,monospace);font-size:.56rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted,#8a8074);text-align:right}' +
+    '.rd-line{display:block;margin-top:.3rem;font-family:var(--verse,var(--display,serif));font-style:italic;font-weight:300;' +
+      'font-size:.92rem;line-height:1.4;color:var(--muted,#8a8074)}' +
+    '.rd-item.on .rd-line{color:var(--bone,#e8e0d2)}' +
+    '@media (max-width:600px){.rd-top{flex-direction:column;gap:.15rem}.rd-meta{text-align:left}.rd-list{max-height:55vh}}';
+
+  var byId = {}, i;
+  for (i = 0; i < B.BEATS.length; i++) { byId[B.BEATS[i].id] = B.BEATS[i]; }
+
+  var root, body, toggle, tabs = [], list, current = null, tab = getTab();
+
+  function build() {
+    var st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
+    root = el('div', 'rd');
+    toggle = el('button', 'share-btn rd-toggle', TITLE);
+    toggle.type = 'button';
+    toggle.setAttribute('aria-expanded', 'false');
+    body = el('div', 'rd-body');
+    var tabRow = el('div', 'rd-tabs');
+    tabRow.setAttribute('role', 'tablist');
+    for (var g = 0; g < C.length; g++) {
+      (function (gi) {
+        var t = el('button', 'rd-tab', C[gi].title);
+        t.type = 'button'; t.setAttribute('role', 'tab');
+        t.addEventListener('click', function () { showTab(gi); }, false);
+        tabs.push(t); tabRow.appendChild(t);
+      })(g);
+    }
+    list = el('div', 'rd-list');
+    body.appendChild(tabRow); body.appendChild(list);
+    root.appendChild(toggle); root.appendChild(body);
+
+    toggle.addEventListener('click', function () {
+      var open = body.className.indexOf('open') < 0;
+      body.className = 'rd-body' + (open ? ' open' : '');
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) { streak(); }
+    }, false);
+
+    /* right under the circle and its hints, so on a phone the shapes stay close to the list */
+    var astat = document.getElementById('astat');
+    if (astat && astat.parentNode) { astat.parentNode.appendChild(root); }
+    else { document.getElementById('yantra').appendChild(root); }
+    showTab(tab < C.length ? tab : 0);
+  }
+
+  /* one bead runs along the bottom edge of the button and is removed when it is done */
+  function streak() {
+    var run = el('span', 'rd-run');
+    run.style.top = (toggle.offsetTop + toggle.offsetHeight - 1) + 'px';
+    run.style.setProperty('--rd-w', Math.max(0, toggle.offsetWidth - 56) + 'px');
+    root.appendChild(run);
+    setTimeout(function () { if (run.parentNode) { run.parentNode.removeChild(run); } }, 600);
+  }
+
+  function showTab(gi) {
+    tab = gi; setTab(gi);
+    for (var t = 0; t < tabs.length; t++) {
+      tabs[t].className = 'rd-tab' + (t === gi ? ' on' : '');
+      tabs[t].setAttribute('aria-selected', t === gi ? 'true' : 'false');
+    }
+    while (list.firstChild) { list.removeChild(list.firstChild); }
+    var cards = C[gi].cards;
+    for (var k = 0; k < cards.length; k++) {
+      var c = cards[k], b = byId[c[0]];
+      if (!b) { continue; }
+      list.appendChild(item(c, b));
+    }
+    list.scrollTop = 0;
+  }
+
+  function item(c, b) {
+    var btn = el('button', 'rd-item' + (current === b.id ? ' on' : ''));
+    btn.type = 'button';
+    btn.setAttribute('data-id', b.id);
+    var top = el('span', 'rd-top');
+    top.appendChild(el('span', 'rd-name', b.name));
+    top.appendChild(el('span', 'rd-meta', c[1] + ' · ' + c[2]));
+    btn.appendChild(top);
+    btn.appendChild(el('span', 'rd-line', c[3]));
+    btn.addEventListener('click', function () {
+      try { choose(b); } catch (e) { if (window.console) console.error('rhythm-drawer:', e); }
+    }, false);
+    return btn;
+  }
+
+  function choose(b) {
+    var sc = B.toScene(b, {});
+    Y.load(sc.bpm, sc.shapes);
+    if (!Y.playing()) { Y.play(); }   /* inside the tap, so the browser allows sound */
+    current = b.id;
+    var items = list.querySelectorAll('.rd-item');
+    for (var j = 0; j < items.length; j++) {
+      items[j].className = 'rd-item' + (items[j].getAttribute('data-id') === b.id ? ' on' : '');
+    }
+    /* if the circle has scrolled out of sight, bring it back so the shapes can be seen */
+    var stage = document.querySelector('#yantra .stage');
+    if (stage && stage.getBoundingClientRect().top < 0) { stage.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  }
+
+  try { build(); } catch (e) { if (window.console) console.error('rhythm-drawer:', e); }
 })();
 </script>
 </body>
