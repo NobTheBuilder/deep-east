@@ -333,7 +333,7 @@
   .stage {
     position: relative;
     background: var(--stone-2);
-    border: 1px solid rgba(201,162,75,0.14);
+    border: 1px solid rgba(214,178,110,0.14);
     border-radius: 4px;
     aspect-ratio: 1 / 1;
     overflow: hidden;
@@ -349,8 +349,8 @@
     position: absolute; left: 50%; top: 50%;
     transform: translate(-50%,-50%);
     width: 58px; height: 58px; border-radius: 50%;
-    background: rgba(13,11,10,0.92);
-    border: 1px solid rgba(201,162,75,0.55);
+    background: rgba(18,16,13,0.92);
+    border: 1px solid rgba(214,178,110,0.55);
     color: var(--brass); font-size: 15px; line-height: 1;
     display: flex; align-items: center; justify-content: center;
     padding: 0; cursor: pointer; z-index: 3;
@@ -368,7 +368,7 @@
   .row button {
     font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.08em;
     background: none; color: var(--bone);
-    border: 1px solid rgba(201,162,75,0.25); border-radius: 3px;
+    border: 1px solid rgba(214,178,110,0.25); border-radius: 3px;
     padding: 0.5rem 0.7rem; cursor: pointer;
     -webkit-appearance: none; appearance: none;
     -webkit-tap-highlight-color: transparent;
@@ -389,7 +389,7 @@
   @media (prefers-reduced-motion: reduce) { .row button.holding::after { transition: none; } }
   .layers { display: flex; flex-direction: column; gap: 0.45rem; min-height: 2.5rem; }
   .layer { display: flex; flex-direction: column; gap: 0.4rem; background: var(--stone-2);
-           border: 1px solid rgba(201,162,75,0.14); border-radius: 3px; padding: 0.45rem 0.6rem; }
+           border: 1px solid rgba(214,178,110,0.14); border-radius: 3px; padding: 0.45rem 0.6rem; }
   .layer-main { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; row-gap: 0.5rem; }
   .layer .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
   .layer.off { opacity: 0.4; }
@@ -405,22 +405,22 @@
   /* the drone row grows wide in pulse mode; its remove button stays in the corner */
   .layer.layer-drone { position: relative; padding-right: 2.2rem; }
   .layer .rm.rm-corner { position: absolute; top: 0.55rem; right: 0.55rem; }
-  .chooser { position: fixed; z-index: 200; background: #14100d; overflow: hidden;
-             border: 1px solid rgba(201,162,75,0.35); border-radius: 4px;
+  .chooser { position: fixed; z-index: 200; background: #17140f; overflow: hidden;
+             border: 1px solid rgba(214,178,110,0.35); border-radius: 4px;
              box-shadow: 0 12px 32px rgba(0,0,0,0.6); }
   .chooser-list { position: absolute; left: 0; top: 0; right: 0; bottom: 0; overflow-y: auto;
                   -webkit-overflow-scrolling: touch; scroll-snap-type: y proximity; scrollbar-width: none; }
   .chooser-list::-webkit-scrollbar { display: none; }
   .chooser .pad { height: 60px; }
   .chooser .opt { height: 30px; line-height: 30px; text-align: center; white-space: nowrap; cursor: pointer;
-                  scroll-snap-align: center; color: #c9a24b; font-family: var(--mono); font-size: 0.66rem;
+                  scroll-snap-align: center; color: #d6b26e; font-family: var(--mono); font-size: 0.66rem;
                   letter-spacing: 0.08em; text-transform: uppercase; }
-  .chooser .opt.cur { color: #e8e0d2; }
-  .chooser .opt:hover { color: #e8e0d2; }
+  .chooser .opt.cur { color: #f5efe4; }
+  .chooser .opt:hover { color: #f5efe4; }
   .chooser .mask { position: absolute; left: 0; top: 0; right: 0; bottom: 0; pointer-events: none;
-                   background: linear-gradient(to bottom, rgba(20,16,13,0.92), rgba(20,16,13,0) 36%,
-                                                rgba(20,16,13,0) 64%, rgba(20,16,13,0.92)); }
-  .chooser .hair { position: absolute; left: 14%; right: 14%; height: 1px; background: rgba(201,162,75,0.4); pointer-events: none; }
+                   background: linear-gradient(to bottom, rgba(23,20,15,0.92), rgba(23,20,15,0) 36%,
+                                                rgba(23,20,15,0) 64%, rgba(23,20,15,0.92)); }
+  .chooser .hair { position: absolute; left: 14%; right: 14%; height: 1px; background: rgba(214,178,110,0.4); pointer-events: none; }
   .layer .nudge { background: none; border: none; color: var(--brass); font-family: var(--mono);
                   font-size: 0.62rem; line-height: 1; padding: 0.15rem 0.9rem; cursor: pointer;
                   -webkit-appearance: none; appearance: none; touch-action: manipulation; }
@@ -435,7 +435,7 @@
   .layer .vol-inline { flex: 1.6; display: flex; align-items: center; gap: 0.55rem; min-width: 5.5rem; }
   .vtrack {
     position: relative; flex: 1; height: 2px; min-width: 3rem;
-    background: rgba(201,162,75,0.22); border-radius: 1px;
+    background: rgba(214,178,110,0.22); border-radius: 1px;
     cursor: pointer; touch-action: none;
   }
   .vtrack::after {               /* fatter invisible grab area */
@@ -464,7 +464,7 @@
   .tempo-line { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.4rem; }
   .bpm { font-family: var(--mono); font-size: 0.7rem; color: var(--bone); }
   input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 2px;
-                      background: rgba(201,162,75,0.3); border-radius: 1px; outline: none; }
+                      background: rgba(214,178,110,0.3); border-radius: 1px; outline: none; }
   input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none;
     width: 15px; height: 15px; border-radius: 50%; background: var(--brass); border: none; }
   input[type=range]::-moz-range-thumb { width: 15px; height: 15px; border-radius: 50%;
@@ -474,12 +474,12 @@
   .share-btn {
     font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.18em;
     text-transform: uppercase; background: none; color: var(--brass);
-    border: 1px solid rgba(201,162,75,0.35); border-radius: 3px;
+    border: 1px solid rgba(214,178,110,0.35); border-radius: 3px;
     padding: 0.7rem 0.9rem; cursor: pointer; width: 100%;
     -webkit-appearance: none; appearance: none; touch-action: manipulation;
     transition: border-color 0.2s ease, background 0.2s ease;
   }
-  .share-btn:hover { border-color: var(--brass); background: rgba(201,162,75,0.06); }
+  .share-btn:hover { border-color: var(--brass); background: rgba(214,178,110,0.06); }
   .share-out { display: flex; gap: 0.4rem; }
   .share-link {
     flex: 1; min-width: 0;
@@ -489,19 +489,19 @@
        large enough that doing so doesn't trigger the zoom. */
     font-family: var(--mono); font-size: 16px; letter-spacing: 0.01em;
     background: var(--stone-2); color: var(--bone);
-    border: 1px solid rgba(201,162,75,0.25); border-radius: 3px;
+    border: 1px solid rgba(214,178,110,0.25); border-radius: 3px;
     padding: 0.55rem 0.6rem; -webkit-appearance: none; appearance: none;
     text-overflow: ellipsis;
   }
   .share-copy {
     font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.1em;
     text-transform: uppercase; background: none; color: var(--muted);
-    border: 1px solid rgba(201,162,75,0.25); border-radius: 3px;
+    border: 1px solid rgba(214,178,110,0.25); border-radius: 3px;
     padding: 0.55rem 0.7rem; cursor: pointer; flex: none;
     -webkit-appearance: none; appearance: none; touch-action: manipulation;
   }
   .share-copy:hover { border-color: var(--brass); color: var(--brass); }
-  .share-copy.done { color: var(--brass); border-color: rgba(201,162,75,0.5); }
+  .share-copy.done { color: var(--brass); border-color: rgba(214,178,110,0.5); }
   .share-note { line-height: 1.5; margin: 0; }
   /* ============ shared "hidden reveal" language — one convention,
      used by hero, Yantra, About and Rig alike ============ */
@@ -670,8 +670,8 @@
   .epigraph { border-top: 0; }
 
   /* ---------- double-ruled frames ---------- */
-  .player-card, .live-frame { position: relative; border-radius: 0; background: var(--basalt-2); border: 1px solid var(--kansa-deep); }
-  .player-card::after, .live-frame::after {
+  .player-card, .live-frame, .stage { position: relative; border-radius: 0; background: var(--basalt-2); border: 1px solid var(--kansa-deep); }
+  .player-card::after, .live-frame::after, .stage::after {
     content: ""; position: absolute; inset: 4px; border: 1px solid var(--rule-in); pointer-events: none; z-index: 2;
   }
   .player-card { padding: 1.5rem; }
@@ -692,6 +692,68 @@
       url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='360' height='360'%3E%3Cfilter id='m' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.012' numOctaves='4' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.55 0 0 0 0 0.47 0 0 0 0 0.36 0 0 0 0.22 -0.07'/%3E%3C/filter%3E%3Cfilter id='g' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.92 0 0 0 0 0.88 0 0 0 0 0.8 0 0 0 0.12 -0.03'/%3E%3C/filter%3E%3Cfilter id='f' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' seed='21' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.84 0 0 0 0 0.70 0 0 0 0 0.43 10 0 0 0 -7.4'/%3E%3C/filter%3E%3Crect width='360' height='360' filter='url(%23g)'/%3E%3Crect width='360' height='360' filter='url(%23f)' opacity='0.4'/%3E%3C/svg%3E");
     background-size: 100% 100%, 100% 100%, 360px 360px;
   }
+  /* the bindu: a burnished brass play disc */
+  .transport {
+    width: 44px; height: 44px; font-size: 12px;
+    background: radial-gradient(circle at 36% 30%, #f0d49a 0%, #d2a452 42%, #8e6a30 100%);
+    color: var(--basalt); border: 1px solid var(--kansa-deep);
+    box-shadow: 0 0 16px rgba(214,178,110,0.18);
+  }
+  /* the ▶ glyph sits left of its box; nudge it to the optical centre */
+  .transport[aria-label="Play"] #glyph { margin-left: 2px; }
+  .transport { transition: background 0.5s ease, box-shadow 0.5s ease, border-color 0.5s ease, color 0.5s ease; }
+  /* once it plays, the bindu steps back into the stone, as on the live site */
+  .transport[aria-label="Pause"] {
+    background: transparent; color: rgba(214,178,110,0.7);
+    border-color: rgba(214,178,110,0.3); box-shadow: none;
+  }
+  .transport[aria-label="Pause"]:hover { color: var(--kansa); border-color: rgba(214,178,110,0.6); }
+  .transport:focus { outline: none; }
+  .transport:focus-visible { outline: 1px solid var(--kansa); outline-offset: 2px; }
+  .hint, .grp { color: #9a9080; }
+  /* shape plaques: sharp, inlaid, the dot is solid when the shape is in play and a hollow ring when it isn't */
+  .row { gap: 0.4rem; }
+  /* shape plaques: sharp and quiet until selected, then they take their pigment */
+  .row button { border-radius: 0; color: var(--ivory-2); padding: 0.52rem 0.72rem; transition: color 0.2s, border-color 0.2s; }
+  .row button:hover { color: var(--ivory); }
+  /* the shape beside its name: a dim outline at rest, full pigment with a light wash when selected */
+  .row button .sw { width: 14px; height: 14px; border-radius: 0; margin-right: 0.55em; opacity: 0.6; }
+  .row button .sw svg { display: block; width: 100%; height: 100%; overflow: visible; }
+  .row button .sw polygon, .row button .sw circle { fill: currentColor; fill-opacity: 0; stroke: currentColor; stroke-width: 1.3; stroke-linejoin: round; }
+  .row button.on .sw polygon, .row button.on .sw circle { fill-opacity: 0.22; }
+  /* silenced: the shape stays in its pigment but goes hollow, like a silenced corner on the circle */
+  .row button.muted .sw { box-shadow: none; opacity: 0.9; }
+  .row button.muted .sw polygon, .row button.muted .sw circle { fill-opacity: 0; }
+  /* holding to remove: a pigment bar sweeps along the bottom edge */
+  .row button::after { height: 2px; }
+
+  /* Spark, the rhythm drawer (its base styles are injected later, so these carry extra weight) */
+  body .rd-body { border-radius: 0; border-color: var(--kansa-deep); background: var(--basalt-2); }
+  body .rd-tabs { border-bottom-color: var(--rule-in); }
+  body .rd-item { border-bottom-color: rgba(110,88,48,0.3); }
+  body .rd-item.on { background: rgba(214,178,110,0.07); box-shadow: inset 3px 0 0 var(--kansa); }
+  body .rd-list { scrollbar-color: var(--kansa-ox) transparent; }
+  /* pothi registers: a pigment bar down the left edge of each voice */
+  .layer { border-radius: 0; background: var(--basalt-2); border: 1px solid rgba(110,88,48,0.6); border-left: 3px solid var(--pig, var(--kansa)); }
+  .layer.off { opacity: 0.45; }
+  .layer.off .dot { background: none !important; box-shadow: inset 0 0 0 1.5px var(--pig, var(--kansa)); }
+  .layer .nudge { color: var(--kansa); }
+  .layer .rm { color: #9a9080; }
+  .layer .rm:hover { color: var(--ivory); }
+  /* manaka faders: pigment string up to the bead, dark brass hairline after it */
+  .vtrack { height: 2px; border-radius: 0; background: linear-gradient(to right, var(--pig, var(--kansa)) 0 var(--v, 100%), rgba(110,88,48,0.7) var(--v, 100%)); }
+  .vknob { width: 12px; height: 12px; top: -5px; margin-left: -6px; box-shadow: 0 0 0 3px var(--basalt-2); }
+  .vpct { font-variant-numeric: tabular-nums; }
+  input[type=range] { background: var(--kansa-ox); border-radius: 0; }
+  input[type=range]::-webkit-slider-thumb { background: var(--kansa); box-shadow: 0 0 0 3px var(--basalt); }
+  input[type=range]::-moz-range-thumb { background: var(--kansa); box-shadow: 0 0 0 3px var(--basalt); }
+  .chooser { border-radius: 0; background: var(--basalt-2); border-color: var(--kansa-deep); }
+  .share-btn, .share-link, .share-copy { border-radius: 0; }
+  /* the link row stays hidden until Share Scene is pressed (display:flex was overriding [hidden]) */
+  .share-out[hidden], .share-note[hidden] { display: none; }
+  .share-btn { border-color: var(--kansa-deep); }
+  .share-link { background: var(--basalt-2); border-color: var(--kansa-ox); }
+
   /* ---------- verses ---------- */
   .lore { color: var(--kansa); opacity: 1; }
   .reveal-mark { color: var(--kansa); opacity: 0.7; }
@@ -707,10 +769,6 @@
   footer { color: #9a9080; }
   ::selection { background: rgba(214,178,110,0.3); color: var(--ivory); }
   a:focus-visible { outline: 1px solid var(--kansa); outline-offset: 4px; }
-
-  /* the live Yantra keeps its own colours inside the Bidri page */
-  #yantra .grid, .chooser { --stone: #0d0b0a; --stone-2: #14100d; --brass: #c9a24b; --bone: #e8e0d2; --muted: #8a8074; color: var(--bone); }
-  #yantra .transport { background: #14130d url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='360' height='360'%3E%3Cfilter id='m' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.012' numOctaves='4' seed='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.55 0 0 0 0 0.47 0 0 0 0 0.36 0 0 0 0.22 -0.07'/%3E%3C/filter%3E%3Cfilter id='g' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.92 0 0 0 0 0.88 0 0 0 0 0.8 0 0 0 0.12 -0.03'/%3E%3C/filter%3E%3Cfilter id='f' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' seed='21' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.84 0 0 0 0 0.70 0 0 0 0 0.43 10 0 0 0 -7.4'/%3E%3C/filter%3E%3Crect width='360' height='360' filter='url(%23g)'/%3E%3Crect width='360' height='360' filter='url(%23f)' opacity='0.4'/%3E%3C/svg%3E") center / 360px 360px; }
 
 </style>
 </head>
@@ -979,9 +1037,22 @@
     { n: 0,  name: "Infinity", label: "\u221E", g: "inf" }
   ];
   var INSTS = ["kick", "hat", "snare", "clap", "tom hi", "tom lo", "na", "ge"];
-  var COLORS = ["#e2b23c","#3b6ea5","#d8452f","#4a9a6b","#d97ba0","#3fa3a3","#e07b39",
-                "#7a5aa3","#8fb03e","#a8324a","#5fa8d3","#8c4734","#4b5bab","#e8e0d2"];
-  var DRONE_COL = "#c9a24b";
+  var COLORS = ["#e0a640","#4f6fae","#cc5640","#3e9a63","#f07f8f","#3a9aa6","#d9792f",
+                "#8a68c8","#8fb03e","#c43f5c","#7fb4dc","#b0603f","#5b66c4","#b9bdc4"];
+  var DRONE_COL = "#c9973f";
+  /* the shape itself beside its name, vertex up as on the dial; Infinity is a plain ring */
+  function shapeIcon(n) {
+    var body = "<circle cx=\"8\" cy=\"8\" r=\"5.4\"/>";
+    if (n) {
+      var pts = [], cy = n === 3 ? 9.4 : 8, r = n === 3 ? 7.4 : 6.8, i, a;
+      for (i = 0; i < n; i++) {
+        a = -Math.PI / 2 + i * Math.PI * 2 / n;
+        pts.push((8 + r * Math.cos(a)).toFixed(2) + "," + (cy + r * Math.sin(a)).toFixed(2));
+      }
+      body = "<polygon points=\"" + pts.join(" ") + "\"/>";
+    }
+    return "<svg viewBox=\"0 0 16 16\" aria-hidden=\"true\">" + body + "</svg>";
+  }
   var shapes = [];
   var drone = false, droneNodes = null;
   var droneVol = 1;
@@ -1023,18 +1094,21 @@
   var pulseOn = false, pulseMutes = [];
   var pulseNext = -1, pulseT = 0, pulseFlash = [];
   var pulseSkips = [], pulseL = PULSE_N;
-  /* the pulse can be dialled to 3..16 packets a bar, like an own-time loop */
+  /* the pulse's shift round the circle, as a fraction of a turn. It stays off the grid
+     wherever it is dropped, with a slight pull as it passes each whole packet */
+  var pulseRot = 0, pulseUpTo = 0, pulseLast = -1, pulseResume = false, PULSE_PULL = 0.1;
+  /* the pulse can be dialled to 1..16 packets a bar, like an own-time loop */
   function pulseDivRaw(n) {
-    if (n === PULSE_N || n < 3 || n > 16) { return; }
+    if (n === PULSE_N || n < 1 || n > 16) { return; }
     PULSE_N = n;
     var keep = function (arr) { var o = [], i; for (i = 0; i < arr.length; i++) { if (arr[i] < n) { o.push(arr[i]); } } return o; };
     pulseMutes = keep(pulseMutes); pulseSkips = keep(pulseSkips);
     pulseNext = -1; pulseFlash = [];
   }
   function setPulseDiv(n) { pulseDivRaw(n); renderPanel(); }
-  /* one list for both drums: 0 is "bar" (or "hum"), then 3..16 steps a bar */
-  var DRUM_VALUES = [0, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
-  var COUNT_VALUES = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+  /* the pulse drum: 0 is "hum", then 1..16 steps a bar */
+  var DRUM_VALUES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+  var COUNT_VALUES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32];
   /* Tap a step label to open the chooser - a short drum of values, the
      current one centred between brass hairlines - then tap the one you want.
      Tapping the label again, or anywhere outside, closes it. */
@@ -1652,14 +1726,19 @@
      same t0 as the shapes, so the packets sit exactly on the grid */
   function schedulePulse(until) {
     if (!pulseOn) { pulseNext = -1; return; }
-    var step = T / PULSE_N, now = ac.currentTime, pact = pulseActive(), PL = pact.length;
+    var step = T / PULSE_N, now = ac.currentTime, pact = pulseActive(), PL = pact.length, off = pulseRot * T;
     if (pulseNext < 0 || pulseT !== T || pulseL !== PL) {
-      pulseNext = Math.ceil((now - t0) / step - 1e-6); pulseT = T; pulseL = PL;
+      /* during a shift, carry on from what the gate already has, so no packet plays twice */
+      var from = (pulseResume && pulseUpTo > now && pulseUpTo < now + 0.2) ? pulseUpTo : now;
+      pulseNext = Math.ceil((from - t0 - off) / step - 1e-6) + PULSE_N; pulseT = T; pulseL = PL;
+      if (pulseResume && pulseLast >= pulseNext && pulseLast - pulseNext < 3) { pulseNext = pulseLast + 1; }
+      pulseResume = false;
     }
     var guard = 0;
-    while (t0 + pulseNext * step < until && guard++ < 64) {
-      var t = t0 + pulseNext * step, idx = pact[((pulseNext % PL) + PL) % PL];
+    while (t0 + (pulseNext - PULSE_N) * step + off < until && guard++ < 64) {
+      var nn = pulseNext - PULSE_N, t = t0 + nn * step + off, idx = pact[((nn % PL) + PL) % PL];
       if (t >= now - 0.002 && droneNodes && droneNodes.gate && pulseMutes.indexOf(idx) === -1) {
+        pulseLast = pulseNext;
         var gg = droneNodes.gate.gain, open = step * PULSE_GATE;
         var fin = Math.min(0.004, step * 0.08), fout = Math.min(0.006, step * 0.1);
         gg.setValueAtTime(0, t);
@@ -1672,7 +1751,7 @@
         })(idx, t);
       }
       pulseNext++;
-    }
+    } pulseUpTo = until;
   }
   /* own-time loops: counted in steps from the same t0 as everything else,
      so a loop of L steps comes back to the bar's downbeat - sam - whenever
@@ -1764,9 +1843,15 @@
     return (window.performance && performance.now) ? performance.now() : Date.now();
   }
   /* ---------- geometry ---------- */
+  /* how far a shape or one of its nodes stands out while a finger is on it */
+  var POP = 5;
+  function popOf(s, k) {
+    var alone = s.nodePop && Math.abs(s.ang[k] - s.ang[s.popK]) < 1e-6;
+    return (s.pop || 0) + (alone ? s.nodePop : 0);
+  }
   function vpos(s, k) {
     var a = -Math.PI / 2 + (s.ang[k] + s.rot) * Math.PI * 2;
-    var R = geo.R * s.ring;
+    var R = geo.R * s.ring + popOf(s, k);
     return [geo.cx + R * Math.cos(a), geo.cy + R * Math.sin(a)];
   }
   function fit() {
@@ -1785,7 +1870,7 @@
      arc or tap a stop. It snaps to real notes, so the drone always lands
      on a playable Sa, and droneKey is what Share Scene already stores. */
   var PITCH_SPAN = Math.PI * 2 / 3;          /* 120 degrees of arc */
-  var PITCH_REST = 0.3;          /* how present the arcs are while the drone sleeps */
+  var PITCH_REST = 0.75;          /* how present the arcs are while the drone sleeps */
   var pitchShow = PITCH_REST;
   /* the free-voice arc above and the drone key arc below share one radius, in proportion to the rings,
      so the mirror holds at any size; 1.2 leaves a finger's room between the top nodes and the arc */
@@ -1835,7 +1920,7 @@
     ctx.globalAlpha = pitchShow;
     ctx.beginPath();
     ctx.arc(cx, cy, pr, pitchAngle(11), pitchAngle(0));
-    ctx.strokeStyle = "rgba(201,162,75,0.22)"; ctx.lineWidth = 1; ctx.stroke();
+    ctx.strokeStyle = "rgba(190,142,68,0.9)"; ctx.lineWidth = 3.2; ctx.stroke(); ctx.strokeStyle = "rgba(255,236,190,0.45)"; ctx.lineWidth = 1; ctx.stroke();
     for (k = 0; k < 12; k++) {
       a = pitchAngle(k);
       var on = k === droneKey, len = on ? 0 : (k % 12 === 0 ? 5 : 3);
@@ -1843,7 +1928,7 @@
         ctx.beginPath();
         ctx.moveTo(cx + (pr - len) * Math.cos(a), cy + (pr - len) * Math.sin(a));
         ctx.lineTo(cx + (pr + len) * Math.cos(a), cy + (pr + len) * Math.sin(a));
-        ctx.strokeStyle = "rgba(201,162,75,0.45)"; ctx.lineWidth = 1; ctx.stroke();
+        ctx.strokeStyle = "rgba(190,142,68,0.85)"; ctx.lineWidth = 1.2; ctx.stroke();
       }
     }
     /* marker: an open triangle on the arc, pointing in at the rings */
@@ -1856,14 +1941,14 @@
     ctx.beginPath();
     ctx.moveTo(0, -sz * 1.15); ctx.lineTo(sz * 0.62, sz * 0.75); ctx.lineTo(-sz * 0.62, sz * 0.75);
     ctx.closePath();
-    ctx.fillStyle = "rgba(13,11,10,0.95)"; ctx.fill();
-    ctx.strokeStyle = DRONE_COL; ctx.lineWidth = 1.6; ctx.stroke();
+    ctx.fillStyle = "rgba(18,16,13,0.95)"; ctx.fill();
+    ctx.strokeStyle = DRONE_COL; ctx.lineWidth = 2; ctx.stroke();
     ctx.restore();
     /* note name just outside the marker */
     var ks = uiScale(), lr = pr + 18 * ks;
     ctx.font = ((live ? 12 : 11) * ks).toFixed(1) + "px 'Space Mono', monospace";
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillStyle = live ? "#e8e0d2" : DRONE_COL;
+    ctx.fillStyle = live ? "#f5efe4" : DRONE_COL;
     ctx.fillText(NOTE_NAMES[droneKey], cx + lr * Math.cos(a), cy + lr * Math.sin(a));
     ctx.globalAlpha = 1;
   }
@@ -1910,8 +1995,8 @@
     freeGlow += ((sounding ? 1 : 0) - freeGlow) * 0.12;
     ctx.globalAlpha = pitchShow;
     ctx.beginPath(); ctx.arc(cx, cy, pr, freeAngle(0), freeAngle(1200));
-    ctx.strokeStyle = "rgba(232,224,210," + (0.16 + 0.12 * freeGlow).toFixed(3) + ")";
-    ctx.lineWidth = 1.2; ctx.stroke();
+    ctx.strokeStyle = "rgba(190,142,68," + (0.75 + 0.25 * freeGlow).toFixed(3) + ")";
+    ctx.lineWidth = 1.8; ctx.stroke();
     /* guide marks */
     var guides = [[0, "Sa"], [702, "Pa"], [1200, "\u1E60a"]];
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
@@ -1919,12 +2004,12 @@
     for (i = 0; i < guides.length; i++) {
       a = freeAngle(guides[i][0]);
       ctx.beginPath(); ctx.arc(cx + pr * Math.cos(a), cy + pr * Math.sin(a), 2, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(232,224,210,0.42)"; ctx.fill();
+      ctx.fillStyle = "rgba(245,239,228,0.85)"; ctx.fill();
       if (Math.abs(guides[i][0] - freeCents) > 90 || !sounding) {
-        ctx.fillStyle = "rgba(232,224,210,0.32)";
+        ctx.fillStyle = "rgba(245,239,228,0.78)";
         var gx = cx + (pr + 13) * Math.cos(a), gy = cy + (pr + 13) * Math.sin(a);
         ctx.fillText(guides[i][1], gx, gy);
-        saptakDot(gx, gy, 12, freeOct, "rgba(232,224,210,0.32)");
+        saptakDot(gx, gy, 12, freeOct, "rgba(245,239,228,0.78)");
       }
     }
     /* the dot */
@@ -1934,26 +2019,26 @@
        before in madhya, a wide bloom in tar - growing with the reverb, and
        breathing slower the higher it goes */
     freeRegVis += (freeOct - freeRegVis) * 0.1;
-    if (freeGlow > 0.02) {
+    if (true) {
       var rv = freeRegVis;
       var breathe = 0.85 + 0.15 * Math.sin(now_() / (340 + 180 * rv));
-      var gr = (live ? 22 : 18) * (0.7 + 0.3 * rv) * breathe;
+      var gr = (live ? 34 : 28) * (0.7 + 0.3 * rv) * breathe;
       var g = ctx.createRadialGradient(mx, my, 0, mx, my, gr);
-      g.addColorStop(0, "rgba(232,224,210," + ((0.24 + 0.14 * rv) * freeGlow).toFixed(3) + ")");
-      g.addColorStop(1, "rgba(232,224,210,0)");
+      g.addColorStop(0, "rgba(255,176,84," + ((0.55 + 0.2 * rv) * Math.max(freeGlow, 0.6)).toFixed(3) + ")"); g.addColorStop(0.45, "rgba(232,136,60," + ((0.2 + 0.08 * rv) * Math.max(freeGlow, 0.6)).toFixed(3) + ")");
+      g.addColorStop(1, "rgba(232,136,60,0)");
       ctx.fillStyle = g; ctx.beginPath(); ctx.arc(mx, my, gr, 0, Math.PI * 2); ctx.fill();
     }
     /* a ring that opens out when the saptak changes */
     var fo = freeOctFlash ? (now_() - freeOctFlash) / 520 : 1;
     if (fo < 1) {
       ctx.beginPath(); ctx.arc(mx, my, 8 + 26 * fo, 0, Math.PI * 2);
-      ctx.strokeStyle = "rgba(232,224,210," + (0.7 * (1 - fo)).toFixed(3) + ")";
+      ctx.strokeStyle = "rgba(245,239,228," + (0.7 * (1 - fo)).toFixed(3) + ")";
       ctx.lineWidth = 1.4; ctx.stroke();
     }
     /* while held: small marks inward and outward where another saptak waits */
     if (live) {
       var ux = Math.cos(a), uy = Math.sin(a), px = -uy, py = ux;
-      ctx.fillStyle = "rgba(201,162,75,0.75)";
+      ctx.fillStyle = "rgba(190,142,68,0.75)";
       if (freeOct < 2) {
         var ox = mx + ux * 15, oy = my + uy * 15;
         ctx.beginPath(); ctx.moveTo(ox + ux * 5, oy + uy * 5);
@@ -1966,8 +2051,8 @@
       }
     }
     ctx.beginPath(); ctx.arc(mx, my, live ? 7.5 : 6.5, 0, Math.PI * 2);
-    ctx.fillStyle = sounding ? "#e8e0d2" : "rgba(13,11,10,0.95)"; ctx.fill();
-    ctx.strokeStyle = sounding ? DRONE_COL : "rgba(232,224,210,0.55)";
+    ctx.fillStyle = sounding ? "#ffd99a" : "rgba(18,16,13,0.95)"; ctx.fill();
+    ctx.strokeStyle = sounding ? "#ffcf7a" : "rgba(232,150,70,0.9)";
     ctx.lineWidth = 1.4; ctx.stroke();
     /* readout: the nearest swara in italic serif, the offset in small mono */
     if (sounding) {
@@ -1981,19 +2066,19 @@
       var ow = ctx.measureText(offTxt).width, gap = 4, tw = nw + gap + ow;
       ctx.textAlign = "left";
       ctx.font = "italic 300 " + (live ? 17 : 15) + "px \'Spectral\', serif";
-      ctx.fillStyle = "#e8e0d2";
+      ctx.fillStyle = "#f5efe4";
       ctx.fillText(sw.name, lx - tw / 2, ly);
       var fs = live ? 17 : 15;
-      saptakDot(lx - tw / 2 + (sw.mark === 2 ? nw * 0.8 : nw * 0.5), ly, fs, freeOct, "#e8e0d2");
+      saptakDot(lx - tw / 2 + (sw.mark === 2 ? nw * 0.8 : nw * 0.5), ly, fs, freeOct, "#f5efe4");
       if (sw.mark === 1) {                         /* komal: line beneath */
         ctx.beginPath(); ctx.moveTo(lx - tw / 2, ly + fs * 0.55); ctx.lineTo(lx - tw / 2 + nw, ly + fs * 0.55);
-        ctx.strokeStyle = "#e8e0d2"; ctx.lineWidth = 1; ctx.stroke();
+        ctx.strokeStyle = "#f5efe4"; ctx.lineWidth = 1; ctx.stroke();
       } else if (sw.mark === 2) {                  /* tivra: stroke above */
         ctx.beginPath(); ctx.moveTo(lx - tw / 2 + nw * 0.5, ly - fs * 0.95); ctx.lineTo(lx - tw / 2 + nw * 0.5, ly - fs * 0.6);
-        ctx.strokeStyle = "#e8e0d2"; ctx.lineWidth = 1; ctx.stroke();
+        ctx.strokeStyle = "#f5efe4"; ctx.lineWidth = 1; ctx.stroke();
       }
       ctx.font = "9px 'Space Mono', monospace";
-      ctx.fillStyle = Math.abs(sw.off) <= 5 ? DRONE_COL : "rgba(232,224,210,0.55)";
+      ctx.fillStyle = Math.abs(sw.off) <= 5 ? DRONE_COL : "rgba(245,239,228,0.55)";
       ctx.fillText(offTxt, lx - tw / 2 + nw + gap, ly + 1);
       ctx.textAlign = "center";
     }
@@ -2002,9 +2087,10 @@
   /* each dash is drawn at the gate's open length, so the ring shows the
      actual shape of the chop; dim dashes are switched-off packets */
   function drawPulseRing(cx, cy, R) {
-    var w = Math.PI * 2 / PULSE_N, tn = now_(), i;
+    var w = Math.PI * 2 / PULSE_N, tn = now_(), i, lift = !!(drag && drag.lifted);
+    if (lift) { R += 5; }
     for (i = 0; i < PULSE_N; i++) {
-      var a0 = -Math.PI / 2 + i * w, a1 = a0 + w * PULSE_GATE;
+      var a0 = -Math.PI / 2 + (i + pulseRot * PULSE_N) * w, a1 = a0 + w * PULSE_GATE;
       if (pulseSkips.indexOf(i) !== -1) {
         var am = (a0 + a1) / 2;
         ctx.beginPath();
@@ -2017,9 +2103,9 @@
       var fl = pulseFlash[i] ? Math.max(0, 1 - (tn - pulseFlash[i]) / 180) : 0;
       ctx.beginPath(); ctx.arc(cx, cy, R, a0, a1);
       if (on) {
-        ctx.strokeStyle = fl > 0 ? "rgba(232,224,210," + (0.55 + 0.45 * fl).toFixed(3) + ")" : DRONE_COL;
+        ctx.strokeStyle = fl > 0 ? "rgba(245,239,228," + (0.55 + 0.45 * fl).toFixed(3) + ")" : DRONE_COL;
         ctx.globalAlpha = glowAmt * (0.75 + 0.25 * fl);
-        ctx.lineWidth = 2.6 + 1.6 * fl;
+        ctx.lineWidth = (lift ? 4.4 : 2.6) + 1.6 * fl;
       } else {
         ctx.strokeStyle = DRONE_COL; ctx.globalAlpha = glowAmt * 0.16; ctx.lineWidth = 1.4;
       }
@@ -2033,6 +2119,7 @@
     if (Math.abs(d - geo.R) > 11) { return -1; }
     var ph = (Math.atan2(dy, dx) + Math.PI / 2) / (Math.PI * 2);
     ph = ph - Math.floor(ph);
+    ph = ph - pulseRot; ph = ph - Math.floor(ph);
     return Math.floor(ph * PULSE_N) % PULSE_N;
   }
   function setPacket(i, on) {
@@ -2076,10 +2163,10 @@
   }
   /* a bead travels from step to step: it sits on a corner the instant that
      corner fires, and glides over skipped corners without stopping */
-  function beadPhase(phases, unit) {
+  function beadPhase(phases, unit, lag) {
     var L = phases.length;
     if (!playing || !ac) { return { ph: phases[0], live: false, span: 0 }; }
-    var step = T / unit, nf = (viewClock() - t0) / step;
+    var step = T / unit, nf = (viewClock() - t0 - (lag || 0)) / step;
     if (nf < 0) { nf = 0; }
     var n = Math.floor(nf), f = nf - n, j = ((n % L) + L) % L;
     var pa = phases[j], pb = L === 1 ? pa + 1 : phases[(j + 1) % L];
@@ -2120,9 +2207,9 @@
     }
     ctx.globalAlpha = 1;
     var g = ctx.createRadialGradient(bx, by, 0, bx, by, 11);
-    g.addColorStop(0, "rgba(232,224,210,0.5)"); g.addColorStop(1, "rgba(232,224,210,0)");
+    g.addColorStop(0, "rgba(245,239,228,0.5)"); g.addColorStop(1, "rgba(245,239,228,0)");
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(bx, by, 11, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(bx, by, 3.6, 0, Math.PI * 2); ctx.fillStyle = "#e8e0d2"; ctx.fill();
+    ctx.beginPath(); ctx.arc(bx, by, 3.6, 0, Math.PI * 2); ctx.fillStyle = "#f5efe4"; ctx.fill();
   }
   function drawOwnTime() {
     var i, j, s, tn = now_(), owns = 0, newest = 0, oldest = Infinity;
@@ -2137,20 +2224,21 @@
       var sg = s.samAt ? 1 - (tn - s.samAt) / 700 : 0;
       if (sg > 0) {
         ctx.beginPath(); ctx.arc(geo.cx, geo.cy, geo.R * s.ring, 0, Math.PI * 2);
-        ctx.strokeStyle = "rgba(232,224,210," + (0.7 * sg).toFixed(3) + ")"; ctx.lineWidth = 1 + 3.5 * sg; ctx.stroke();
+        ctx.strokeStyle = "rgba(245,239,228," + (0.7 * sg).toFixed(3) + ")"; ctx.lineWidth = 1 + 3.5 * sg; ctx.stroke();
       }
     }
     if (drone && pulseOn && pulseSkips.length) {
       var pa = pulseActive(), pp = [];
       for (j = 0; j < pa.length; j++) { pp.push(pa[j] / PULSE_N); }
-      drawBead(geo.R, beadPhase(pp, PULSE_N), DRONE_COL);
+      var pbd = beadPhase(pp, PULSE_N, pulseRot * T); pbd.ph += pulseRot;
+      drawBead(geo.R, pbd, DRONE_COL);
     }
     /* the word appears only when every drifting loop arrives together */
     if (owns && newest - oldest < 150) {
       var wg = 1 - (tn - newest) / 900;
       if (wg > 0) {
         ctx.font = "italic 300 18px 'Spectral', serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-        ctx.fillStyle = "rgba(232,224,210," + wg.toFixed(3) + ")";
+        ctx.fillStyle = "rgba(245,239,228," + wg.toFixed(3) + ")";
         ctx.fillText("sam", geo.cx, geo.cy + Math.max(44, geo.R * 0.3));
       }
     }
@@ -2161,13 +2249,33 @@
     var r = cv.getBoundingClientRect();
     return { x: r.width * 0.075, y: r.height * 0.085, rr: 9 };
   }
+  var undoStack = [], undoLast = null, UNDO_MAX = 50;
+  function undoGeo() {
+    var g = topGeo();
+    g.x = cv.getBoundingClientRect().width - g.x;
+    return g;
+  }
+  function undoIconAt(x, y) {
+    var g = undoGeo();
+    return Math.abs(y - g.y - 5) <= 22 && Math.abs(x - g.x) < 22;
+  }
+  function drawUndoIcon() {
+    var g = undoGeo(), r = g.rr + 0.6;
+    ctx.globalAlpha = undoStack.length ? 0.95 : 0.32;
+    ctx.beginPath(); ctx.arc(g.x, g.y, r, -Math.PI * 0.75, Math.PI);
+    ctx.strokeStyle = DRONE_COL; ctx.lineWidth = 2; ctx.lineCap = "round"; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(g.x - 5.4, g.y - 11.4); ctx.lineTo(g.x - 7, g.y - 6.4); ctx.lineTo(g.x - 1.8, g.y - 5.6);
+    ctx.lineJoin = "round"; ctx.stroke(); ctx.lineCap = "butt"; ctx.lineJoin = "miter";
+    ctx.fillStyle = "#f5efe4"; ctx.fillText("undo", g.x, g.y + g.rr + 10);
+  }
   function drawTopIcons() {
     var g = topGeo();
     ctx.save();
     ctx.globalAlpha = 0.95;
     ctx.beginPath(); ctx.arc(g.x, g.y, g.rr, 0, Math.PI * 2); ctx.strokeStyle = DRONE_COL; ctx.lineWidth = 2; ctx.stroke();
     ctx.font = "9px 'Space Mono', monospace"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillStyle = "#e8e0d2"; ctx.fillText("reset", g.x, g.y + g.rr + 10);
+    ctx.fillStyle = "#f5efe4"; ctx.fillText("reset", g.x, g.y + g.rr + 10);
+    drawUndoIcon();
     ctx.restore();
   }
   function topIconAt(x, y) {
@@ -2201,21 +2309,14 @@
     var live = drag && drag.mode === "oct";
     ctx.globalAlpha = pitchShow;
     ctx.beginPath(); ctx.moveTo(g.sx, g.sy0); ctx.lineTo(g.sx, g.sy1);
-    ctx.strokeStyle = "rgba(232,224,210,0.22)"; ctx.lineWidth = 1; ctx.stroke();
+    ctx.strokeStyle = "rgba(245,239,228,0.45)"; ctx.lineWidth = 1; ctx.stroke();
     for (i = 0; i < 3; i++) {
       var y = g.sy0 - i * (g.sy0 - g.sy1) / 2, on = i === droneOct;
       ctx.beginPath(); ctx.moveTo(g.sx - 4, y); ctx.lineTo(g.sx + 4, y);
-      ctx.strokeStyle = "rgba(232,224,210,0.4)"; ctx.lineWidth = 1; ctx.stroke();
-      var fsz = (on ? (live ? 15 : 14) : 12) * g.s, lcol = on ? "#e8e0d2" : "rgba(232,224,210,0.35)";
+      ctx.strokeStyle = "rgba(245,239,228,0.7)"; ctx.lineWidth = 1; ctx.stroke();
+      var fsz = (on ? (live ? 15 : 14) : 12) * g.s, lcol = on ? "#f5efe4" : "rgba(245,239,228,0.72)";
       var lf = "italic 300 " + fsz.toFixed(1) + "px 'Spectral', serif", x0 = g.sx + 14 * g.s;
       cText(SAPTAK[i], x0, y, lf, lcol, "left");
-      if (i !== 1) {          /* octave dot on the first letter: above tar, below mandra */
-        ctx.font = lf;
-        var fw = ctx.measureText(SAPTAK[i].charAt(0)).width;
-        ctx.beginPath();
-        ctx.arc(x0 + fw * 0.6, i === 2 ? y - fsz * 0.6 : y + fsz * 0.6, on ? 1.4 : 1.1, 0, Math.PI * 2);
-        ctx.fillStyle = on ? DRONE_COL : "rgba(201,162,75,0.45)"; ctx.fill();
-      }
       if (on) {
         ctx.save(); ctx.translate(g.sx, y); ctx.rotate(Math.PI / 2);
         var sz = live ? 7 : 6;
@@ -2224,15 +2325,16 @@
       }
     }
     ctx.beginPath(); ctx.arc(g.rxl, g.ry, g.rr, 0, Math.PI * 2);
-    ctx.strokeStyle = pulseOn ? "rgba(201,162,75,0.3)" : DRONE_COL; ctx.lineWidth = pulseOn ? 1.2 : 2; ctx.stroke();
+    ctx.strokeStyle = pulseOn ? "rgba(190,142,68,0.65)" : DRONE_COL; ctx.lineWidth = pulseOn ? 1.4 : 2; ctx.stroke();
+    if (!pulseOn) { var hg = ctx.createRadialGradient(g.rxl - g.rr * 0.35, g.ry - g.rr * 0.4, 0, g.rxl, g.ry, g.rr); hg.addColorStop(0, "#f0dcaa"); hg.addColorStop(0.5, DRONE_COL); hg.addColorStop(1, "#9a7740"); ctx.fillStyle = hg; ctx.fill(); }
     for (i = 0; i < PULSE_N; i++) {
       a0 = -Math.PI / 2 + i * Math.PI * 2 / PULSE_N;
       ctx.beginPath(); ctx.arc(g.rxr, g.ry, g.rr, a0, a0 + (Math.PI * 2 / PULSE_N) * PULSE_GATE);
-      ctx.strokeStyle = pulseOn ? DRONE_COL : "rgba(201,162,75,0.3)"; ctx.lineWidth = pulseOn ? 2 : 1.2; ctx.stroke();
+      ctx.strokeStyle = pulseOn ? DRONE_COL : "rgba(190,142,68,0.65)"; ctx.lineWidth = pulseOn ? 2.6 : 1.4; ctx.stroke();
     }
     var cf = (9 * g.s).toFixed(1) + "px 'Space Mono', monospace";
-    cText("hum", g.rxl, g.ry + g.rr + 10 * g.s, cf, pulseOn ? "rgba(232,224,210,0.3)" : "#e8e0d2");
-    cText("pulse", g.rxr, g.ry + g.rr + 10 * g.s, cf, pulseOn ? "#e8e0d2" : "rgba(232,224,210,0.3)");
+    cText("hum", g.rxl, g.ry + g.rr + 10 * g.s, cf, pulseOn ? "rgba(245,239,228,0.65)" : "#f5efe4");
+    cText("pulse", g.rxr, g.ry + g.rr + 10 * g.s, cf, pulseOn ? "#f5efe4" : "rgba(245,239,228,0.65)");
     ctx.globalAlpha = 1;
   }
   function octAt(y) {
@@ -2265,6 +2367,10 @@
     for (i = 0; i < shapes.length; i++) {
       s = shapes[i];
       s.ring += (s.ringT - s.ring) * 0.12;
+      var held = drag && drag.s === s ? drag.mode : "";
+      if (held === "vertex") { s.popK = drag.k; }
+      s.pop = (s.pop || 0) + ((held === "shape" ? POP : 0) - (s.pop || 0)) * 0.3;
+      s.nodePop = (s.nodePop || 0) + ((held === "vertex" ? POP : 0) - (s.nodePop || 0)) * 0.3;
     }
     /* infinity glow */
     glowAmt += ((drone ? (droneSilent ? 0.3 : 1) : 0) - glowAmt) * 0.04;
@@ -2272,16 +2378,16 @@
     else if (glowAmt > 0.01) {
       var pulse = 0.5 + 0.5 * Math.sin(now_() / 1400);
       ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2);
-      ctx.strokeStyle = "rgba(201,162,75," + ((0.25 + 0.35 * pulse) * glowAmt).toFixed(3) + ")";
-      ctx.lineWidth = 1.5 + 1.5 * glowAmt * pulse;
+      ctx.strokeStyle = "rgba(190,142,68," + ((0.55 + 0.35 * pulse) * glowAmt).toFixed(3) + ")";
+      ctx.lineWidth = 2.5 + 1.5 * glowAmt * pulse;
       ctx.stroke();
     }
     ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2);
-    ctx.strokeStyle = "rgba(201,162,75,0.14)"; ctx.lineWidth = 1; ctx.stroke();
+    ctx.strokeStyle = "rgba(190,142,68,0.2)"; ctx.lineWidth = 1; ctx.stroke();
     for (i = 0; i < shapes.length; i++) {
       s = shapes[i];
       ctx.beginPath(); ctx.arc(cx, cy, R * s.ring, 0, Math.PI * 2);
-      ctx.strokeStyle = s.color; ctx.globalAlpha = 0.10; ctx.lineWidth = 1; ctx.stroke();
+      ctx.strokeStyle = s.color; ctx.globalAlpha = 0.13; ctx.lineWidth = 1; ctx.stroke();
       ctx.globalAlpha = 1;
     }
     for (i = 0; i < shapes.length; i++) {
@@ -2293,16 +2399,17 @@
       }
       ctx.closePath();
       ctx.strokeStyle = s.color;
-      ctx.globalAlpha = s.silent ? 0.18 : 0.72;
-      ctx.lineWidth = 1.4; ctx.stroke();
+      var lit = (s.pop || 0) / POP;
+      ctx.globalAlpha = s.silent ? 0.22 + 0.5 * lit : 0.85 + 0.15 * lit;
+      ctx.lineWidth = 1.3 + 1.1 * lit; ctx.stroke();
       ctx.globalAlpha = 1;
       for (k = 0; k < s.n; k++) {
         if (s.own && s.skips.indexOf(k) !== -1) { drawSkipMark(vpos(s, k), s.color, s.silent); continue; }
         if (s.mutes.indexOf(k) !== -1) { continue; }
         pos = vpos(s, k);
-        ctx.beginPath(); ctx.arc(pos[0], pos[1], 4.5, 0, Math.PI * 2);
+        ctx.beginPath(); ctx.arc(pos[0], pos[1], 4.5 + 0.4 * popOf(s, k), 0, Math.PI * 2);
         ctx.fillStyle = s.color;
-        ctx.globalAlpha = s.silent ? 0.22 : 1;
+        ctx.globalAlpha = s.silent ? 0.22 + 0.6 * popOf(s, k) / POP : 1;
         ctx.fill(); ctx.globalAlpha = 1;
         if (stackedAt(s, k).length > 1) {          /* more than one hit here */
           ctx.beginPath(); ctx.arc(pos[0], pos[1], 7.5, 0, Math.PI * 2);
@@ -2317,9 +2424,9 @@
       for (var m = 0; m < s.mutes.length; m++) {
         if (s.own && s.skips.indexOf(s.mutes[m]) !== -1) { continue; }
         pos = vpos(s, s.mutes[m]);
-        ctx.beginPath(); ctx.arc(pos[0], pos[1], 4.6, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(13,11,10,0.95)"; ctx.fill();
-        ctx.strokeStyle = s.color; ctx.globalAlpha = 0.5; ctx.lineWidth = 1.2; ctx.stroke();
+        ctx.beginPath(); ctx.arc(pos[0], pos[1], 4.6 + 0.4 * popOf(s, s.mutes[m]), 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(18,16,13,0.95)"; ctx.fill();
+        ctx.strokeStyle = s.color; ctx.globalAlpha = 0.85; ctx.lineWidth = 1.1; ctx.stroke();
         if (stackedAt(s, s.mutes[m]).length > 1) {
           ctx.beginPath(); ctx.arc(pos[0], pos[1], 7.5, 0, Math.PI * 2);
           ctx.globalAlpha = 0.3; ctx.lineWidth = 1; ctx.stroke();
@@ -2353,7 +2460,7 @@
       ctx.beginPath();
       ctx.moveTo(cx + 34 * Math.cos(a), cy + 34 * Math.sin(a));
       ctx.lineTo(cx + (R + 10) * Math.cos(a), cy + (R + 10) * Math.sin(a));
-      ctx.strokeStyle = "rgba(232,224,210,0.5)"; ctx.lineWidth = 1; ctx.stroke();
+      ctx.strokeStyle = "rgba(245,239,228,0.5)"; ctx.lineWidth = 1; ctx.stroke();
     }
     requestAnimationFrame(draw);
   }
@@ -2425,6 +2532,11 @@
   }
   function angleAt(x, y) { return Math.atan2(y - geo.cy, x - geo.cx); }
   function down(x, y) {
+    if (undoIconAt(x, y)) {
+      undoStep();
+      drag = { mode: "ring", s: null, k: -1, moved: false, dist: 0 };
+      return true;
+    }
     var ti = topIconAt(x, y);
     if (ti) {
       drag = { mode: "ring", s: null, k: -1, moved: false, dist: 0 };
@@ -2468,10 +2580,13 @@
     var pi0 = v ? -1 : pulseIndexAt(x, y);
     if (pi0 !== -1) {
       drag = { mode: "pulse", s: null, k: -1, moved: false, dist: 0, start: pi0, last: pi0,
-               paint: pulseMutes.indexOf(pi0) !== -1, applied: false, longDone: false };
+               paint: pulseMutes.indexOf(pi0) !== -1, applied: false, longDone: false, px: x, py: y };
       var dp0 = drag;
       drag.lp = setTimeout(function () {
-        if (drag === dp0 && !dp0.applied) { togglePulseSkip(dp0.start); dp0.longDone = true; }
+        if (drag === dp0 && !dp0.applied) {
+          dp0.lifted = true; dp0.ang = angleAt(dp0.px, dp0.py); dp0.raw = pulseRot; dp0.rot0 = pulseRot;
+          try { if (navigator.vibrate) { navigator.vibrate(12); } } catch (e) {}
+        }
       }, LONG_PRESS);
       return true;
     }
@@ -2480,11 +2595,7 @@
                v0: v.s.ang[v.k], moved: false, dist: 0,
                gr: Math.max(30, Math.sqrt(Math.pow(x - geo.cx, 2) + Math.pow(y - geo.cy, 2))) };
       var dv0 = drag;
-      if (v.s.own) {
-        drag.lp = setTimeout(function () {
-          if (drag === dv0 && !dv0.moved) { toggleSkip(dv0.s, dv0.k); dv0.longDone = true; }
-        }, LONG_PRESS);
-      }
+      drag.lp = setTimeout(function () { if (drag === dv0) { dv0.longDone = true; } }, LONG_PRESS);
       return true;
     }
     var s = nearShape(x, y);
@@ -2494,11 +2605,25 @@
              gr: Math.max(30, Math.sqrt(Math.pow(x - geo.cx, 2) + Math.pow(y - geo.cy, 2))) };
     return true;
   }
+  function shiftPulse(x, y) {
+    var a = angleAt(x, y), da = a - drag.ang;
+    if (da > Math.PI) { da -= Math.PI * 2; }
+    if (da < -Math.PI) { da += Math.PI * 2; }
+    drag.ang = a; drag.raw += da / (Math.PI * 2);
+    if (Math.abs(drag.raw - drag.rot0) > 0.006) { drag.moved = true; }
+    if (!drag.moved) { return; }
+    var p = drag.raw * PULSE_N, near = Math.round(p);
+    var r = Math.abs(p - near) < PULSE_PULL ? near / PULSE_N : drag.raw;
+    pulseRot = r - Math.floor(r);
+    pulseResume = true; pulseNext = -1;
+  }
   function move(x, y) {
     if (!drag) { return; }
     if (drag.mode === "oct") { setOct(octAt(y)); return; }
     if (drag.mode === "ring") { return; }
     if (drag.mode === "pulse") {
+      drag.px = x; drag.py = y;
+      if (drag.lifted) { shiftPulse(x, y); return; }
       var pj = pulseIndexAt(x, y);
       if (pj !== -1 && pj !== drag.last) {
         if (!drag.applied) { setPacket(drag.start, drag.paint); drag.applied = true; }
@@ -2577,7 +2702,9 @@
   var LONG_PRESS = 480;
   function up() {
     if (drag && drag.lp) { clearTimeout(drag.lp); }
-    if (drag && drag.mode === "pulse" && !drag.applied && !drag.longDone) {
+    if (drag && drag.mode === "pulse" && drag.lifted) {
+      if (!drag.moved) { togglePulseSkip(drag.start); }
+    } else if (drag && drag.mode === "pulse" && !drag.applied && !drag.longDone) {
       if (pulseSkips.indexOf(drag.start) !== -1) { togglePulseSkip(drag.start); }
       else { setPacket(drag.start, drag.paint); }
     }
@@ -2817,7 +2944,7 @@
         var b = document.createElement("button");
         var col = def.n === 0 ? DRONE_COL : COLORS[SHAPES.indexOf(def) % COLORS.length];
         var sw = document.createElement("span");
-        sw.className = "sw"; sw.style.background = col;
+        sw.className = "sw"; sw.style.color = col; sw.innerHTML = shapeIcon(def.n);
         b.appendChild(sw);
         b.appendChild(document.createTextNode(def.name + " \u00B7 " + (def.n === 0 ? def.label : def.n)));
         b.setAttribute("data-n", String(def.n));
@@ -2836,7 +2963,7 @@
   function bindVolTrack(tr, knobEl, pctEl, getVol, setVol) {
     var dragging = false;
     function paint(v) {
-      knobEl.style.left = (v * 100) + "%";
+      knobEl.style.left = (v * 100) + "%"; tr.style.setProperty("--v", (v * 100) + "%");
       if (pctEl.firstChild) { pctEl.firstChild.nodeValue = Math.round(v * 100) + "%"; }
     }
     function setFrom(clientX) {
@@ -2881,7 +3008,7 @@
       layersEl.appendChild(e0);
     }
     if (drone) {
-      var dr = document.createElement("div"); dr.className = "layer";
+      var dr = document.createElement("div"); dr.className = "layer"; dr.style.setProperty("--pig", DRONE_COL);
       var drMain = document.createElement("div"); drMain.className = "layer-main";
       var dd = document.createElement("span"); dd.className = "dot"; dd.style.background = DRONE_COL;
       var dn = document.createElement("span"); dn.className = "nm";
@@ -2895,7 +3022,7 @@
       dx.addEventListener("click", function () { drone = false; droneSilent = false; stopDrone(); renderPanel(); }, false);
       var dp = document.createElement("button"); dp.className = "inst";
       dp.appendChild(document.createTextNode(pulseOn ? "pulse \u00B7 " + PULSE_N : "hum"));
-      dp.title = "Hum, or a pulse of 3 to 16 packets a bar \u2014 tap the dotted ring to switch packets";
+      dp.title = "Hum, or a pulse of 1 to 16 packets a bar \u2014 tap the dotted ring to switch packets";
       dp.addEventListener("click", function (e) {
         e.preventDefault();
         toggleChooser(dp, pulseOn ? PULSE_N : 0, function (v) { return v ? "pulse \u00B7 " + v : "hum"; },
@@ -2941,7 +3068,7 @@
     }
     for (var i = 0; i < shapes.length; i++) {
       (function (s) {
-        var row = document.createElement("div"); row.className = "layer";
+        var row = document.createElement("div"); row.className = "layer"; row.style.setProperty("--pig", s.color);
         var main = document.createElement("div"); main.className = "layer-main";
         var dot = document.createElement("span"); dot.className = "dot"; dot.style.background = s.color;
         var nm = document.createElement("span"); nm.className = "nm";
@@ -2987,7 +3114,7 @@
           function () { return s.vol; }, function (v) { setShapeVolume(s, v); });
         var gap = document.createElement("span"); gap.className = "gap";
         /* bar / own, and in own mode a dial for how many steps fill a bar:
-           3 to 16, so "own 7" makes every corner a seventh of a bar */
+           1 to 32, so "own 7" makes every corner a seventh of a bar */
         var ow = document.createElement("span"); ow.className = "own-wrap";
         var ob = document.createElement("button"); ob.className = "inst";
         ob.appendChild(document.createTextNode("m\u0101tr\u0101 \u00B7 " + s.own));
@@ -3000,10 +3127,10 @@
         if (s.own) {
           var odn = document.createElement("button"); odn.className = "nudge";
           odn.appendChild(document.createTextNode("\u25BE")); odn.title = "fewer m\u0101tr\u0101s to a turn";
-          odn.addEventListener("click", function (e) { e.preventDefault(); setOwnUnit(s, Math.max(3, s.own - 1)); }, false);
+          odn.addEventListener("click", function (e) { e.preventDefault(); setOwnUnit(s, Math.max(1, s.own - 1)); }, false);
           var oup = document.createElement("button"); oup.className = "nudge";
           oup.appendChild(document.createTextNode("\u25B4")); oup.title = "more m\u0101tr\u0101s to a turn";
-          oup.addEventListener("click", function (e) { e.preventDefault(); setOwnUnit(s, Math.min(16, s.own + 1)); }, false);
+          oup.addEventListener("click", function (e) { e.preventDefault(); setOwnUnit(s, Math.min(32, s.own + 1)); }, false);
           ow.appendChild(oup); ow.appendChild(ob); ow.appendChild(odn);
         } else { ow.appendChild(ob); }
         main.appendChild(dot); main.appendChild(nm); main.appendChild(ib); main.appendChild(ow);
@@ -3032,9 +3159,9 @@
       else { for (var q = 0; q < shapes.length; q++) { if (shapes[q].n === n) { on = true; break; } } }
       var sil = n === 0 ? (drone && droneSilent) : !!(shapeOf(n) && shapeOf(n).silent);
       btns[b].className = on ? ("row-on on" + (sil ? " muted" : "")) : "";
-      btns[b].style.borderColor = on ? btns[b].getAttribute("data-col") : "rgba(201,162,75,0.25)";
+      btns[b].style.borderColor = on ? btns[b].getAttribute("data-col") : "rgba(110,88,48,0.9)";
       btns[b].style.color = on ? btns[b].getAttribute("data-col") : "";
-      btns[b].style.background = on ? "rgba(255,255,255,0.04)" : "none";
+      btns[b].style.background = on ? "rgba(245,239,228,0.05)" : "#17140f";
     }
     var tip = document.getElementById("shapeTip");
     if (tip) { tip.hidden = !(shapes.length || drone); }
@@ -3205,7 +3332,7 @@
     st.free = freeOn ? freeCents : -1;
     st.pulse = pulseOn ? pulseMutes.slice() : null;
     st.pskips = pulseSkips.slice();
-    st.pdiv = PULSE_N;
+    st.pdiv = PULSE_N; st.prot = pulseRot;
     st.dmute = (drone && droneSilent) ? 1 : 0;
     st.foct = freeOct;
     st.oct = droneOct;
@@ -3258,7 +3385,7 @@
       }
     }
     parts.push(sk);
-    parts.push(String(st.pdiv || 16));
+    parts.push(String(st.pdiv || 16) + (st.prot ? "r" + Math.round(st.prot * 10000) : ""));
     /* drone muted from its layer row: only written when true, so every
        other link stays exactly as it was, and older links simply lack it */
     /* the free voice's own saptak: only written when it differs from the
@@ -3290,8 +3417,10 @@
     var pn = 16;
     if (parts[10] !== undefined) {
       var pnP = parseInt(parts[10], 10);
-      if (pnP >= 3 && pnP <= 16) { pn = pnP; }
+      if (pnP >= 1 && pnP <= 16) { pn = pnP; }
     }
+    var pr = 0, prM = parts[10] ? /r(\d+)$/.exec(parts[10]) : null;
+    if (prM) { pr = (parseInt(prM[1], 10) / 10000) % 1; }
     var pnd = Math.ceil(pn / 4);
     if (parts[7] && parts[7].length === pnd && /^[0-9a-f]+$/.test(parts[7])) {
       pz = [];
@@ -3312,7 +3441,7 @@
         for (var b4 = 0; b4 < 4; b4++) { if ((nb4 & (8 >> b4)) && w4 * 4 + b4 < pn) { psk.push(w4 * 4 + b4); } }
       }
     }
-    var out = { bpm: parseInt(parts[1], 10) || 96, free: fv, pulse: pz, oct: oc, pskips: psk, pdiv: pn,
+    var out = { bpm: parseInt(parts[1], 10) || 96, free: fv, pulse: pz, oct: oc, pskips: psk, pdiv: pn, prot: pr,
                 drone: parts[2] === "1",
                 droneKey: parseInt(parts[3], 10) || 0,
                 droneVol: dv, dmute: parts[11] === "1", shapes: [] };
@@ -3340,7 +3469,7 @@
           sh.silent = rest === "1";
         } else if (tag === "o") {
           var oP = parseInt(rest, 10);
-          sh.own = (oP >= 3 && oP <= 16) ? oP : 0;
+          sh.own = (oP >= 1 && oP <= 32) ? oP : 0;
         } else if (tag === "k") {
           sh.skips = [];
           var kv = rest.split("-");
@@ -3385,7 +3514,7 @@
     } else { freeOn = false; }
     droneOct = (typeof st.oct === "number") ? st.oct : 1;
     freeOct = (typeof st.foct === "number") ? st.foct : droneOct;
-    PULSE_N = st.pdiv || 16;
+    PULSE_N = st.pdiv || 16; pulseRot = st.prot || 0;
     pulseSkips = st.pskips ? st.pskips.slice() : [];
     if (st.pulse) { pulseOn = true; pulseMutes = st.pulse.slice(); }
     else { pulseOn = false; pulseMutes = []; }
@@ -3476,7 +3605,7 @@
   function resetScene() {
     for (var i = 0; i < shapes.length; i++) { if (shapes[i].gain) { shapes[i].gain.disconnect(); } }
     shapes = []; drone = false; droneSilent = false; stopDrone(); freeOn = false; freeOct = 1;
-    pulseOn = false; pulseMutes = []; pulseSkips = []; pulseNext = -1;
+    pulseOn = false; pulseMutes = []; pulseSkips = []; pulseNext = -1; pulseRot = 0;
     recomputeRings(); renderPanel();
   }
   /* ---------- opening pattern: shared scene if present, else 4-against-3 ---------- */
@@ -3500,6 +3629,50 @@
     ];
     recomputeRings();
     for (var i = 0; i < shapes.length; i++) { shapes[i].ring = shapes[i].ringT; }
+  })();
+  /* ---------- undo ---------- */
+  function undoNote() {
+    if (drag || undoLast === null) { return; }
+    var code = encodeState(captureState());
+    if (code === undoLast) { return; }
+    undoStack.push(undoLast);
+    if (undoStack.length > UNDO_MAX) { undoStack.shift(); }
+    undoLast = code;
+  }
+  /* Rebuilds the scene as a share link does, then brings the running sound into line with it.
+     The rhythm keeps its place: only a tempo change moves the clock, and that keeps the phase. */
+  function undoStep() {
+    undoNote();
+    if (!undoStack.length) { return; }
+    var live = playing && ac, oldT = T, ph = 0, code = undoStack.pop();
+    if (live) { ph = (ac.currentTime - t0) / T; ph -= Math.floor(ph); }
+    for (var i = 0; i < shapes.length; i++) { if (shapes[i].gain) { shapes[i].gain.disconnect(); } }
+    closeChooser();
+    applyState(decodeState(code));
+    if (live) {
+      if (T !== oldT) { t0 = ac.currentTime - ph * T; }
+      for (var j = 0; j < shapes.length; j++) { align(shapes[j]); }
+    }
+    pulseNext = -1;
+    if (droneNodes && droneNodes.gate && ac) {
+      droneNodes.gate.gain.cancelScheduledValues(ac.currentTime);
+      droneNodes.gate.gain.setTargetAtTime(pulseOn ? 0 : 1, ac.currentTime, 0.01);
+    }
+    if (!drone) { stopDrone(); } else if (playing) { audio(); startDrone(); }
+    retuneDrone(); applyFreePitch(0.07); applyFreeLevel(); applyFreeReverb(); applyDroneLevel();
+    renderPanel();
+    undoLast = encodeState(captureState());
+  }
+  undoLast = encodeState(captureState());
+  (function () {
+    var ends = ["pointerup", "pointercancel", "touchend", "mouseup", "click", "change", "keyup"];
+    function later() { setTimeout(undoNote, 0); }
+    for (var i = 0; i < ends.length; i++) { document.addEventListener(ends[i], later, true); }
+    document.addEventListener("keydown", function (e) {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && (e.key === "z" || e.key === "Z")) {
+        e.preventDefault(); undoStep();
+      }
+    }, false);
   })();
   /* ---------- beat-lab hook (added by build-yantra-beats.js) ---------- */
   /* Swaps in new shapes and tempo, keeps the drone, key, saptak, pulse and free voice as they are.
@@ -4156,36 +4329,36 @@
       'transition:transform .55s cubic-bezier(.2,.7,.2,1)}' +
     '.rd-toggle[aria-expanded="true"] .rd-chev{transform:rotate(180deg)}' +
     /* the drawer unfolds downward; visibility keeps it out of tab order while closed */
-    '.rd-body{margin-top:0;border:1px solid rgba(201,162,75,.2);border-radius:3px;background:var(--stone-2,#14100d);' +
+    '.rd-body{margin-top:0;border:1px solid rgba(214,178,110,.2);border-radius:3px;background:var(--stone-2,#17140f);' +
       'max-height:0;opacity:0;overflow:hidden;visibility:hidden;transform:translateY(-6px);' +
       'transition:max-height .55s cubic-bezier(.2,.7,.2,1),opacity .45s ease,transform .55s cubic-bezier(.2,.7,.2,1),margin-top .55s ease,visibility 0s linear .55s}' +
     '.rd-body.open{max-height:44rem;opacity:1;visibility:visible;transform:none;margin-top:.7rem;' +
       'transition:max-height .55s cubic-bezier(.2,.7,.2,1),opacity .45s ease .05s,transform .55s cubic-bezier(.2,.7,.2,1),margin-top .55s ease,visibility 0s}' +
     /* the tap streak: a bone-white bead, like the Yantra's own, runs once along the button's bottom edge */
     '.rd-run{position:absolute;left:0;height:1px;width:3.5rem;pointer-events:none;opacity:0;' +
-      'background:linear-gradient(90deg,rgba(232,224,210,0),rgba(232,224,210,.7));animation:rd-run .45s cubic-bezier(.4,0,.2,1) forwards}' +
+      'background:linear-gradient(90deg,rgba(245,239,228,0),rgba(245,239,228,.7));animation:rd-run .45s cubic-bezier(.4,0,.2,1) forwards}' +
     '.rd-run:after{content:"";position:absolute;right:-2px;top:-2px;width:5px;height:5px;border-radius:50%;' +
-      'background:#e8e0d2;box-shadow:0 0 6px 2px rgba(232,224,210,.6),0 0 14px 4px rgba(232,224,210,.2)}' +
+      'background:#f5efe4;box-shadow:0 0 6px 2px rgba(245,239,228,.6),0 0 14px 4px rgba(245,239,228,.2)}' +
     '@keyframes rd-run{0%{opacity:0;transform:translateX(0)}12%{opacity:1}80%{opacity:1}100%{opacity:0;transform:translateX(var(--rd-w,240px))}}' +
     '@media (prefers-reduced-motion:reduce){.rd-body,.rd-body.open{transition:none;transform:none}.rd-run{display:none}.rd-chev{transition:none}}' +
-    '.rd-tabs{display:flex;flex-wrap:wrap;border-bottom:1px solid rgba(201,162,75,.15)}' +
+    '.rd-tabs{display:flex;flex-wrap:wrap;border-bottom:1px solid rgba(214,178,110,.15)}' +
     '.rd-tab{flex:1 1 auto;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted,#8a8074);' +
       'font-family:var(--mono,monospace);font-size:.58rem;letter-spacing:.16em;text-transform:uppercase;padding:.75rem .6rem;cursor:pointer;' +
       '-webkit-appearance:none;appearance:none;touch-action:manipulation}' +
-    '.rd-tab.on{color:var(--brass,#c9a24b);border-bottom-color:var(--brass,#c9a24b)}' +
+    '.rd-tab.on{color:var(--brass,#d6b26e);border-bottom-color:var(--brass,#d6b26e)}' +
     '.rd-list{max-height:22rem;overflow-y:auto;-webkit-overflow-scrolling:touch}' +
-    '.rd-item{display:block;width:100%;text-align:left;background:none;border:none;border-bottom:1px solid rgba(232,224,210,.06);' +
-      'color:var(--bone,#e8e0d2);padding:.75rem .9rem;cursor:pointer;-webkit-appearance:none;appearance:none;touch-action:manipulation}' +
+    '.rd-item{display:block;width:100%;text-align:left;background:none;border:none;border-bottom:1px solid rgba(245,239,228,.06);' +
+      'color:var(--bone,#f5efe4);padding:.75rem .9rem;cursor:pointer;-webkit-appearance:none;appearance:none;touch-action:manipulation}' +
     '.rd-item:last-child{border-bottom:none}' +
-    '.rd-item:hover{background:rgba(201,162,75,.05)}' +
-    '.rd-item.on{background:rgba(201,162,75,.1)}' +
+    '.rd-item:hover{background:rgba(214,178,110,.05)}' +
+    '.rd-item.on{background:rgba(214,178,110,.1)}' +
     '.rd-top{display:flex;align-items:baseline;justify-content:space-between;gap:.8rem}' +
     '.rd-name{font-family:var(--display,serif);font-size:1.05rem;line-height:1.2}' +
-    '.rd-item.on .rd-name{color:var(--brass,#c9a24b)}' +
+    '.rd-item.on .rd-name{color:var(--brass,#d6b26e)}' +
     '.rd-meta{font-family:var(--mono,monospace);font-size:.56rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted,#8a8074);text-align:right}' +
     '.rd-line{display:block;margin-top:.3rem;font-family:var(--verse,var(--display,serif));font-style:italic;font-weight:300;' +
       'font-size:.92rem;line-height:1.4;color:var(--muted,#8a8074)}' +
-    '.rd-item.on .rd-line{color:var(--bone,#e8e0d2)}' +
+    '.rd-item.on .rd-line{color:var(--bone,#f5efe4)}' +
     '@media (max-width:600px){.rd-top{flex-direction:column;gap:.15rem}.rd-meta{text-align:left}.rd-list{max-height:55vh}}';
 
   var byId = {}, i;
