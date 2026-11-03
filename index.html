@@ -3531,12 +3531,25 @@
     var raw = h.substring(m + 2);
     var amp = raw.indexOf("&"); if (amp !== -1) { raw = raw.substring(0, amp); }
     try { raw = decodeURIComponent(raw); } catch (e) {}
-    return decodeState(raw);
+    return decodeState(unpackLink(raw));
+  }
+  function packLink(code) {
+    /* the scene travels as base64url: no long runs of digits and dashes, which chat apps such as
+       WhatsApp seem to read as phone numbers, cutting the link short. Old v1~ links still open. */
+    try { return btoa(code).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); } catch (e) { return code; }
+  }
+  function unpackLink(raw) {
+    if (!raw || raw.indexOf("v1~") === 0) { return raw; }
+    try {
+      var b = raw.replace(/-/g, "+").replace(/_/g, "/");
+      while (b.length % 4) { b += "="; }
+      return atob(b);
+    } catch (e) { return raw; }
   }
   function buildShareLink() {
     var s = encodeState(captureState());
     var base = window.location.origin + window.location.pathname;
-    return base + "#y=" + s;
+    return base + "#y=" + packLink(s);
   }
 
   /* ---------- Share Scene wiring ---------- */
@@ -3688,7 +3701,7 @@
         for (var j = 0; j < shapes.length; j++) { align(shapes[j]); }
       }
       renderPanel();
-      try { window.history.replaceState(null, "", window.location.pathname + "#y=" + code); } catch (e) {}
+      try { window.history.replaceState(null, "", window.location.pathname + "#y=" + packLink(code)); } catch (e) {}
       return code;
     },
     playing: function () { return playing; },
