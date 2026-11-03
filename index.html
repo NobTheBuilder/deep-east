@@ -3534,12 +3534,13 @@
     return decodeState(unpackLink(raw));
   }
   function packLink(code) {
-    /* the scene travels as base64url: no long runs of digits and dashes, which chat apps such as
-       WhatsApp seem to read as phone numbers, cutting the link short. Old v1~ links still open. */
-    try { return btoa(code).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, ""); } catch (e) { return code; }
+    /* a dash becomes x in the link: "111x222" is never read as a phone number, as "111-222" was by
+       WhatsApp, which cut links short there. The scene itself never uses x, so this reverses exactly. */
+    return code.replace(/-/g, "x");
   }
   function unpackLink(raw) {
-    if (!raw || raw.indexOf("v1~") === 0) { return raw; }
+    if (!raw) { return raw; }
+    if (raw.indexOf("v1~") === 0) { return raw.replace(/x/g, "-"); }
     try {
       var b = raw.replace(/-/g, "+").replace(/_/g, "/");
       while (b.length % 4) { b += "="; }
