@@ -19,7 +19,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-120 -120 240 240'%3E%3Crect x='-120' y='-120' width='240' height='240' rx='38' fill='%2312100d'/%3E%3Cg fill='none' stroke='%23c9a24b' stroke-width='9' stroke-linejoin='round'%3E%3Cpolygon points='0,-100 86.6,50 -86.6,50'/%3E%3Cpolygon points='0,-84.9 84.9,0 0,84.9 -84.9,0'/%3E%3Cpolygon points='0,-70 60.62,-35 60.62,35 0,70 -60.62,35 -60.62,-35'/%3E%3C/g%3E%3C/svg%3E" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Eczar:wght@400;500;600;700&family=Spectral:ital,wght@0,300;1,300&family=Space+Mono:wght@400&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Eczar:wght@400;500;600;700&family=Spectral:ital,wght@0,300;1,300&family=Space+Mono:wght@400&family=Rozha+One&family=Tiro+Devanagari+Sanskrit&display=swap" rel="stylesheet" />
 <style>
   :root {
     --stone: #12100d;
@@ -835,6 +835,23 @@
   ::selection { background: rgba(214,178,110,0.3); color: var(--ivory); }
   a:focus-visible { outline: 1px solid var(--kansa); outline-offset: 4px; }
 
+  /* ---------- from the sutra reimagining (2026-11-06): the parts the user kept ----------
+     Rozha One for the large words: the headline, section names, the sutras in the reveals, Write to, the closing words.
+     Small labels, controls, the About text and the story lines keep their voices.
+     Section numbers in Devanagari alone, in Tiro; the symbol again above the closing words. */
+  :root { --rozha: "Rozha One", "Eczar", serif; --deva: "Tiro Devanagari Sanskrit", serif; }
+  .hero h1 { font-family: var(--rozha); font-weight: 400; letter-spacing: 0; line-height: 1.04; }
+  .sec-head h2, .connect-wrap .big { font-family: var(--rozha); font-weight: 400; letter-spacing: 0; }
+  .reveal-panel .hidden-verse { font-family: var(--rozha); font-style: normal; font-weight: 400; line-height: 1.25; }
+  .reveal-panel .hidden-verse.story { font-family: var(--verse); font-style: italic; font-weight: 300; line-height: 1.5; }
+  .reveal-panel .hidden-verse + .hidden-verse { margin-top: 0.5rem; }
+  body .sec-head .mono-label.deva { font-family: var(--deva); font-weight: 400; font-size: 1.35rem; letter-spacing: 0; text-transform: none; line-height: 1; }
+  .epigraph { font-family: var(--rozha); font-style: normal; font-weight: 400; color: var(--bone); line-height: 1.3; }
+  .epigraph span { display: block; max-width: 22em; margin: 0 auto; }
+  .close-sym { width: 104px; margin: 0 auto 2.4rem; color: #c9a24b; }
+  .close-sym a { display: block; color: inherit; }
+  .close-sym svg { display: block; width: 100%; height: auto; overflow: visible; }
+
 </style>
 </head>
 <body>
@@ -870,8 +887,8 @@
     <p class="sub">said Kaal, the god of time, as he conjured devices from a future the demon couldn't comprehend<span class="reveal-mark" id="heroMark" role="button" tabindex="0" aria-expanded="false" aria-controls="heroPanel">&nbsp;&middot;&middot;&middot;</span></p>
     <div class="reveal-panel" id="heroPanel">
       <span class="hidden-mark top"></span>
-      <p class="hidden-verse">He had squandered his youth on battles, meaningless and aplenty&hellip;</p>
-      <p class="hidden-verse">Could there finally be some meaning beneath all that blinding glare?</p>
+      <p class="hidden-verse story">He had squandered his youth on battles, meaningless and aplenty&hellip;</p>
+      <p class="hidden-verse story">Could there finally be some meaning beneath all that blinding glare?</p>
       <span class="hidden-mark bottom"></span>
     </div>
   </div>
@@ -883,13 +900,13 @@
 <!-- SOUND -->
 <section class="block" id="sound">
   <div class="sec-head">
-    <span class="mono-label">01</span>
+    <span class="mono-label deva">१.१</span>
     <h2>Sound</h2>
   </div>
   <p class="lore" style="margin-bottom:0.4rem;">The sounds were strange, unworldly, but somehow familiar.<span class="reveal-mark" id="soundMark" role="button" tabindex="0" aria-expanded="false" aria-controls="soundPanel">&nbsp;&middot;&middot;&middot;</span></p>
   <div class="reveal-panel" id="soundPanel">
     <span class="hidden-mark top"></span>
-    <p class="hidden-verse">He inched closer to the demon, and whispered &mdash;</p>
+    <p class="hidden-verse story">He inched closer to the demon, and whispered &mdash;</p>
     <p class="hidden-verse">Absolute Human Capturing Time is Music.</p>
     <span class="hidden-mark bottom"></span>
   </div>
@@ -914,7 +931,7 @@
 <!-- LIVE -->
 <section class="block" id="live">
   <div class="sec-head">
-    <span class="mono-label">02</span>
+    <span class="mono-label deva">१.२</span>
     <h2>Live</h2>
   </div>
   <p class="lore" style="margin-bottom:0.4rem;">Each night, the demon returned to the devices.<span class="reveal-mark" id="liveMark" role="button" tabindex="0" aria-expanded="false" aria-controls="livePanel">&nbsp;&middot;&middot;&middot;</span></p>
@@ -940,7 +957,7 @@
 <!-- YANTRA -->
 <section class="block" id="yantra">
   <div class="sec-head">
-    <span class="mono-label">03</span>
+    <span class="mono-label deva">१.३</span>
     <h2>Yantra</h2>
   </div>
   <p class="lore">The more he did — the more he began to see.</p>
@@ -1001,7 +1018,7 @@
     </svg>
   </div>
   <div class="sec-head">
-    <span class="mono-label">04</span>
+    <span class="mono-label deva">१.४</span>
     <h2>About</h2>
   </div>
   <div class="about-wrap">
@@ -1021,7 +1038,7 @@
 <!-- RIG -->
 <section class="block" id="rig">
   <div class="sec-head">
-    <span class="mono-label">05</span>
+    <span class="mono-label deva">१.५</span>
     <h2>Deep East uses<span class="reveal-mark" id="rigMark" role="button" tabindex="0" aria-expanded="false" aria-controls="rigPanel">&nbsp;&middot;&middot;&middot;</span></h2>
   </div>
   <div class="reveal-panel" id="rigPanel">
@@ -1047,7 +1064,7 @@
 <!-- CONNECT -->
 <section class="block" id="connect">
   <div class="sec-head">
-    <span class="mono-label">06</span>
+    <span class="mono-label deva">१.६</span>
     <h2>Connect</h2>
   </div>
   <div class="connect-wrap">
@@ -1068,7 +1085,7 @@
       <path class="stroke" stroke-width="1.1" d="M 292 19 L 292 81"/>
     </svg>
   </div>
-  <div class="epigraph"><span>The Universe is changing… The Gods are pleased by the nature of its flux.</span></div>
+  <div class="epigraph"><div class="close-sym"><a href="#yantra" aria-label="Deep East: play the Yantra"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220.80 220.80" aria-hidden="true"><defs><mask id="de-holes-close" maskUnits="userSpaceOnUse" x="-120" y="-120" width="240" height="240"><rect x="-120" y="-120" width="240" height="240" fill="#fff"/><circle cx="0.00" cy="-70.00" r="3.10" fill="#000"/><circle cx="60.62" cy="35.00" r="3.10" fill="#000"/><circle cx="-60.62" cy="35.00" r="3.10" fill="#000"/></mask></defs><g mask="url(#de-holes-close)" transform="translate(110.40,110.40)"><circle r="100" fill="none" stroke="currentColor" stroke-opacity="0.35" stroke-width="0.99"/><circle r="84.9" fill="none" stroke="currentColor" stroke-opacity="0.35" stroke-width="0.99"/><circle r="70" fill="none" stroke="currentColor" stroke-opacity="0.35" stroke-width="0.99"/><polygon points="0.00,-100.00 86.60,50.00 -86.60,50.00" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><polygon points="0.00,-84.90 84.90,0.00 0.00,84.90 -84.90,0.00" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><polygon points="0.00,-70.00 60.62,-35.00 60.62,35.00 0.00,70.00 -60.62,35.00 -60.62,-35.00" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><circle cx="0.00" cy="-100.00" r="4.2" fill="currentColor"/><circle cx="86.60" cy="50.00" r="4.2" fill="currentColor"/><circle cx="-86.60" cy="50.00" r="4.2" fill="currentColor"/><circle cx="0.00" cy="-84.90" r="4.2" fill="currentColor"/><circle cx="84.90" cy="0.00" r="4.2" fill="currentColor"/><circle cx="0.00" cy="84.90" r="4.2" fill="currentColor"/><circle cx="-84.90" cy="0.00" r="4.2" fill="currentColor"/><circle cx="0.00" cy="-70.00" r="4.2" fill="none" stroke="currentColor" stroke-width="2.2"/><circle cx="60.62" cy="-35.00" r="4.2" fill="currentColor"/><circle cx="60.62" cy="35.00" r="4.2" fill="none" stroke="currentColor" stroke-width="2.2"/><circle cx="0.00" cy="70.00" r="4.2" fill="currentColor"/><circle cx="-60.62" cy="35.00" r="4.2" fill="none" stroke="currentColor" stroke-width="2.2"/><circle cx="-60.62" cy="-35.00" r="4.2" fill="currentColor"/></g></svg></a></div><span>The Universe is changing… The Gods are pleased by the nature of its flux.</span></div>
   <footer>
     <span>Deep East © 2026</span>
     <span>New Age Indian Electronica</span>
@@ -1097,8 +1114,8 @@
     { n: 0,  name: "Infinity", label: "\u221E", g: "inf" }
   ];
   var INSTS = ["kick", "hat", "snare", "clap", "tom hi", "tom lo", "na", "ge"];
-  var COLORS = ["#bd9858","#5e7195","#ad6355","#4d8262","#c96775","#4c848b","#b3784a",
-                "#8973b0","#809351","#a45566","#749dbb","#936552","#6970ab","#92969d"];
+  var COLORS = ["#d8a959","#617cae","#c76957","#4ba06d","#e26a7b","#47a1ac","#d08449",
+                "#957ac5","#96b44c","#bf566d","#7aacd1","#b46b4e","#6f78c1","#9fa3a9"];
   var DRONE_COL = "#c9973f";
   /* the shape itself beside its name, vertex up as on the dial; Infinity is a plain ring */
   function shapeIcon(n) {
