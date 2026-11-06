@@ -1480,7 +1480,9 @@
   function shapeAttack(s) { var a = s.ea || 0; return a * a * 0.3; }
   function shapeLength(s) { return logMap(typeof s.ed === "number" ? s.ed : 0.5, 0.25, 1, 3); }
   function envDefault(s) { return !s.ea && (typeof s.ed !== "number" || Math.abs(s.ed - 0.5) < 0.005); }
-  function humSwell() { return logMap(droneEA, 0.02, 2.2, 8); }
+  /* the drone comes on at once (40 ms, only so it does not click; it used to swell for 2.2 s, silent for the first
+     second): a slow swell is there to shape on the hum ring */
+  function humSwell() { return logMap(droneEA, 0.01, 0.04, 8); }
   function humFade() { return logMap(droneER, 0.05, 1.6, 8); }
   /* past the middle, a longer fade also opens the drone into the temple space the free voice uses, up to
      ROOM_MAX of send at the longest: the tail is heard on every packet in pulse, and as a bloom round the hum.
@@ -1738,7 +1740,7 @@
     var now = ac.currentTime;
     var out = ac.createGain();
     out.gain.setValueAtTime(0.0001, now);
-    out.gain.exponentialRampToValueAtTime(DRONE_GAIN, now + humSwell());   /* 2.2 s unless shaped */
+    out.gain.exponentialRampToValueAtTime(DRONE_GAIN, now + humSwell());   /* 40 ms unless shaped */
     /* separate from the envelope above — this is the user-facing volume
        fader, so raising/lowering it never fights the fade-in ramp */
     var userGain = ac.createGain();
@@ -1800,11 +1802,15 @@
        vibrato, silent until switched on from its arc */
     var fg = ac.createGain();
     fg.gain.value = freeOn ? FREE_LEVEL : 0;
-    fg.connect(out);
+    /* the free voice's own gate: open, unless it has joined the pulse, when it is chopped with the drone.
+       Its reverb comes after the gate, so the chop rings into the space */
+    var fgate = ac.createGain();
+    fgate.gain.value = freeGated() ? 0 : 1;
+    fg.connect(fgate); fgate.connect(out);
     var rsend = ac.createGain();
     rsend.gain.value = FREE_REV[freeOct + 1];
     var conv = makeReverb();
-    if (conv) { fg.connect(rsend); rsend.connect(conv); conv.connect(out); }
+    if (conv) { fgate.connect(rsend); rsend.connect(conv); conv.connect(out); }
     var fparts = [["sine", 0.62, 0], ["triangle", 0.22, 5]];
     var vlfo = ac.createOscillator(), vg = ac.createGain();
     vlfo.frequency.value = 4.6; vg.gain.value = 7;      /* +/- 7 cents */
@@ -1820,7 +1826,7 @@
       fo.__ratio = freeRatio(); fo.__free = true;
       oscs.push(fo);
     }
-    droneNodes = { out: out, userGain: userGain, oscs: oscs, lfo: lfo, vlfo: vlfo, freeGain: fg, gate: gate, revSend: rsend, duck: duck };
+    droneNodes = { out: out, userGain: userGain, oscs: oscs, lfo: lfo, vlfo: vlfo, freeGain: fg, gate: gate, revSend: rsend, duck: duck, freeGate: fgate };
     applyDroneRoom();
   }
   function retuneDrone() {
@@ -1921,6 +1927,31 @@
              fout: logMap(droneER, 0.002, Math.min(0.006, step * 0.1), step * 2.5),
              shaped: Math.abs(droneEA - 0.5) > 0.005 || Math.abs(droneER - 0.5) > 0.005 };
   }
+  /* one packet on a gate: the drone's, and the free voice's too once it has joined the pulse */
+  function gatePacket(gg, t, open, pe) {
+    if (!pe.shaped) {                    /* the crisp chop it always had */
+      gg.setValueAtTime(0, t);
+      gg.linearRampToValueAtTime(1, t + pe.fin);
+      gg.setValueAtTime(1, t + open);
+      gg.linearRampToValueAtTime(0, t + open + pe.fout);
+    } else {
+      /* shaped: each packet glides from wherever the last one left the gate, so a long release runs on into
+         the next packets and the chop turns into a breathing, throbbing drone */
+      gg.setTargetAtTime(1, t, pe.fin / 3);
+      gg.setTargetAtTime(0, t + open, pe.fout / 3);
+    }
+  }
+  /* The free voice can join the pulse: in pulse mode, tap the pulse ring again (it has no gesture of its own
+     left). Tap once more, or go back to hum, and it holds steady again. */
+  var freePulse = false;
+  function freeGated() { return pulseOn && freePulse; }
+  function applyFreeGate() {
+    if (!droneNodes || !droneNodes.freeGate || !ac) { return; }
+    var g = droneNodes.freeGate.gain, now = ac.currentTime;
+    g.cancelScheduledValues(now);
+    g.setTargetAtTime(freeGated() ? 0 : 1, now, 0.01);
+    pulseNext = -1;          /* the next packets are scheduled afresh, for both gates */
+  }
   /* schedule the gate a few steps ahead, on the same audio clock and the
      same t0 as the shapes, so the packets sit exactly on the grid */
   function schedulePulse(until) {
@@ -1938,19 +1969,9 @@
       var nn = pulseNext - PULSE_N, t = t0 + nn * step + off, idx = pact[((nn % PL) + PL) % PL];
       if (t >= now - 0.002 && droneNodes && droneNodes.gate && pulseMutes.indexOf(idx) === -1) {
         pulseLast = pulseNext;
-        var gg = droneNodes.gate.gain, open = step * PULSE_GATE;
-        var pe = pulseEnv(step);
-        if (!pe.shaped) {                    /* the crisp chop it always had */
-          gg.setValueAtTime(0, t);
-          gg.linearRampToValueAtTime(1, t + pe.fin);
-          gg.setValueAtTime(1, t + open);
-          gg.linearRampToValueAtTime(0, t + open + pe.fout);
-        } else {
-          /* shaped: each packet glides from wherever the last one left the gate, so a long release runs on into
-             the next packets and the chop turns into a breathing, throbbing drone */
-          gg.setTargetAtTime(1, t, pe.fin / 3);
-          gg.setTargetAtTime(0, t + open, pe.fout / 3);
-        }
+        var open = step * PULSE_GATE, pe = pulseEnv(step);
+        gatePacket(droneNodes.gate.gain, t, open, pe);
+        if (freeGated() && droneNodes.freeGate) { gatePacket(droneNodes.freeGate.gain, t, open, pe); }
         (function (k, at) {
           setTimeout(function () { if (playing && drone && pulseOn) { pulseFlash[k] = now_(); } },
                      Math.max(0, (at - ac.currentTime + heardLag()) * 1000));
@@ -2016,11 +2037,13 @@
   function pulseModeRaw(on) {
     if (!!on === pulseOn) { return; }
     pulseOn = !!on; pulseNext = -1;
+    if (!pulseOn) { freePulse = false; }    /* back to hum: the free voice holds steady again */
     if (droneNodes && droneNodes.gate && ac) {
       var gg = droneNodes.gate.gain, now = ac.currentTime;
       gg.cancelScheduledValues(now);
       gg.setTargetAtTime(pulseOn ? 0 : 1, now, 0.01);
     }
+    applyFreeGate();
   }
   function setPulseMode(on) { pulseModeRaw(on); renderPanel(); }
   function schedule() {
@@ -2319,9 +2342,15 @@
         ctx.strokeStyle = DRONE_COL; ctx.globalAlpha = glowAmt * 0.16; ctx.lineWidth = 1.4;
       }
       ctx.stroke();
+      if (on && freeGated() && freeOn) {         /* the free voice, chopped with it, just inside */
+        ctx.beginPath(); ctx.arc(cx, cy, R - 7, a0, a1);
+        ctx.strokeStyle = fl > 0 ? "rgba(255,226,184," + (0.6 + 0.4 * fl).toFixed(3) + ")" : FREE_PULSE_COL;
+        ctx.globalAlpha = glowAmt * 0.9; ctx.lineWidth = 1.8 + 1.2 * fl; ctx.stroke();
+      }
     }
     ctx.globalAlpha = 1;
   }
+  var FREE_PULSE_COL = "rgba(255,158,74,0.9)";
   function pulseIndexAt(x, y) {
     if (!drone || !pulseOn) { return -1; }
     var dx = x - geo.cx, dy = y - geo.cy, d = Math.sqrt(dx * dx + dy * dy);
@@ -2561,6 +2590,10 @@
       a0 = -Math.PI / 2 + i * Math.PI * 2 / PULSE_N;
       ctx.beginPath(); ctx.arc(g.rxr, g.ry, g.rr, a0, a0 + (Math.PI * 2 / PULSE_N) * PULSE_GATE);
       ctx.strokeStyle = pulseOn ? DRONE_COL : "rgba(190,142,68,0.65)"; ctx.lineWidth = pulseOn ? 2.6 : 1.4; ctx.stroke();
+      if (freeGated()) {                          /* the free voice has joined: its colour inside */
+        ctx.beginPath(); ctx.arc(g.rxr, g.ry, g.rr * 0.55, a0, a0 + (Math.PI * 2 / PULSE_N) * PULSE_GATE);
+        ctx.strokeStyle = FREE_PULSE_COL; ctx.lineWidth = 1.8; ctx.stroke();
+      }
     }
     var cf = "italic 300 " + (12 * g.s).toFixed(1) + "px 'Spectral', serif";
     cText("hum", g.rxl, g.ry + g.rr + 10 * g.s, cf, pulseOn ? "rgba(245,239,228,0.65)" : "#f5efe4");
@@ -2828,7 +2861,8 @@
     var mr = modeRingAt(x, y);
     if (mr) {
       drag = { mode: "ring", s: null, k: -1, moved: false, dist: 0 };
-      setPulseMode(mr === 2);
+      if (mr === 2 && pulseOn) { freePulse = !freePulse; applyFreeGate(); renderPanel(); }   /* pulse, tapped again */
+      else { setPulseMode(mr === 2); }
       return true;
     }
     if (onOctSlider(x, y)) {
@@ -3693,7 +3727,7 @@
     st.free = freeOn ? freeCents : -1;
     st.pulse = pulseOn ? pulseMutes.slice() : null;
     st.pskips = pulseSkips.slice();
-    st.pdiv = PULSE_N; st.prot = pulseRot;
+    st.pdiv = PULSE_N; st.prot = pulseRot; st.fpulse = freeGated() ? 1 : 0;
     st.dmute = (drone && droneSilent) ? 1 : 0;
     st.foct = freeOct;
     st.oct = droneOct;
@@ -3751,7 +3785,9 @@
       }
     }
     parts.push(sk);
-    parts.push(String(st.pdiv || 16) + (st.prot ? "r" + Math.round(st.prot * 10000) : ""));
+    /* "f" (free voice joined the pulse) sits between the count and the shift: an older decoder reads the count
+       with parseInt and the shift from the end, so it skips over it */
+    parts.push(String(st.pdiv || 16) + (st.fpulse ? "f" : "") + (st.prot ? "r" + Math.round(st.prot * 10000) : ""));
     /* drone muted from its layer row: only written when true, so every
        other link stays exactly as it was, and older links simply lack it */
     /* the free voice's own saptak: only written when it differs from the
@@ -3812,7 +3848,8 @@
     var out = { bpm: parseInt(parts[1], 10) || 96, free: fv, pulse: pz, oct: oc, pskips: psk, pdiv: pn, prot: pr,
                 drone: parts[2] === "1",
                 droneKey: parseInt(parts[3], 10) || 0,
-                droneVol: dv, dmute: parts[11] === "1", shapes: [], denv: denv };
+                droneVol: dv, dmute: parts[11] === "1", shapes: [], denv: denv,
+                fpulse: !!(parts[10] && /^\d+f/.test(parts[10])) };
     var foP = parts[12] !== undefined ? parseInt(parts[12], 10) : NaN;
     out.foct = (!isNaN(foP) && foP >= OCT_LO && foP <= OCT_HI) ? foP : oc;
     var shp = parts[4] ? parts[4].split("_") : [], i, j;
@@ -3891,6 +3928,7 @@
     pulseSkips = st.pskips ? st.pskips.slice() : [];
     if (st.pulse) { pulseOn = true; pulseMutes = st.pulse.slice(); }
     else { pulseOn = false; pulseMutes = []; }
+    freePulse = !!(st.pulse && st.fpulse);
     drone = false;            /* start from silence; only turn on if requested */
     if (st.drone) { drone = true; }   /* startDrone() fires when playback begins */
     droneSilent = !!(st.drone && st.dmute);
@@ -3992,7 +4030,7 @@
   function resetScene() {
     for (var i = 0; i < shapes.length; i++) { if (shapes[i].gain) { shapes[i].gain.disconnect(); } }
     shapes = []; drone = false; droneSilent = false; stopDrone(); freeOn = false; freeOct = 1;
-    droneEA = 0.5; droneER = 0.5;
+    droneEA = 0.5; droneER = 0.5; freePulse = false;
     pulseOn = false; pulseMutes = []; pulseSkips = []; pulseNext = -1; pulseRot = 0;
     recomputeRings(); renderPanel();
   }
@@ -4015,6 +4053,7 @@
       makeShape(defByN(3), "clap", []),
       makeShape(defByN(6), "hat", [0, 2, 4])
     ];
+    pulseDivRaw(12);          /* the opening beat counts in 12 (4, 3 and 6 all land on it), so its pulse does too */
     recomputeRings();
     for (var i = 0; i < shapes.length; i++) { shapes[i].ring = shapes[i].ringT; }
   })();
@@ -4048,6 +4087,7 @@
     }
     if (!drone) { stopDrone(); } else if (playing) { audio(); startDrone(); }
     retuneDrone(); applyFreePitch(0.07); applyFreeLevel(); applyFreeReverb(); applyDroneLevel(); applyDroneRoom();
+    applyFreeGate();
     renderPanel();
     undoLast = encodeState(captureState());
   }
