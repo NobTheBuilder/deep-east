@@ -2892,6 +2892,13 @@
       return true;
     }
     var v = nearVertex(x, y) || (nodeFirst ? vOut : null);
+    /* the second tap of a double tap stays on the corner the first one chose, where two shapes' corners
+       nearly meet and the finger lands a little differently the second time */
+    if (nodeTap && Date.now() - nodeTap.t < NODE_DBL && shapes.indexOf(nodeTap.s) !== -1 &&
+        !(v && v.s === nodeTap.s && v.k === nodeTap.k)) {
+      var pt = vpos(nodeTap.s, nodeTap.k);
+      if (Math.sqrt(Math.pow(x - pt[0], 2) + Math.pow(y - pt[1], 2)) < 26) { v = { s: nodeTap.s, k: nodeTap.k }; }
+    }
     var pi0 = v ? -1 : pulseIndexAt(x, y);
     if (pi0 !== -1) {
       drag = { mode: "pulse", s: null, k: -1, moved: false, dist: 0, start: pi0,
@@ -3116,7 +3123,18 @@
       drag.longDone = true;
     }
     if (drag && !drag.moved && drag.mode === "vertex" && !drag.longDone) {
-      var s = drag.s, group = stackedAt(s, drag.k), i, audible = false;
+      var s = drag.s, group = stackedAt(s, drag.k), i, audible = false, tn = Date.now();
+      /* a second tap on the same corner, quickly: undo the first tap's mute and skip the corner instead */
+      if (nodeTap && nodeTap.s === s && nodeTap.k === drag.k && tn - nodeTap.t < NODE_DBL) {
+        s.mutes = nodeTap.mutes;
+        /* one undo step for the double tap: drop the first tap's passing mute from the history */
+        if (undoStack.length === nodeTap.depth + 1) { undoLast = undoStack.pop(); }
+        nodeTap = null;
+        toggleSkip(s, drag.k);
+        if (playing && ac) { align(s); }
+        drag = null; return;
+      }
+      nodeTap = { s: s, k: drag.k, t: tn, mutes: s.mutes.slice(), depth: undoStack.length };
       for (i = 0; i < group.length; i++) {
         if (s.mutes.indexOf(group[i]) === -1) { audible = true; break; }
       }
@@ -3245,6 +3263,8 @@
     if (playing && ac) { align(s); }
     renderPanel();
   }
+  /* double tap a corner to skip it (the loop runs one step shorter); a tap on a skipped corner brings it back */
+  var nodeTap = null, NODE_DBL = 320;
   function toggleSkip(s, k) {
     var at = s.skips.indexOf(k);
     if (at === -1) {
