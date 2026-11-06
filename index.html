@@ -4123,11 +4123,16 @@
     }, false);
   })();
   /* ---------- beat-lab hook (added by build-yantra-beats.js) ---------- */
-  /* Swaps in new shapes and tempo, keeps the drone, key, saptak, pulse and free voice as they are.
+  /* Swaps in new shapes and tempo, keeps the drone, key, saptak, hum or pulse and free voice as they are.
+     Given the rhythm's cycle (its mātrās or steps), the pulse is counted in it too, so a pulse switched on lands
+     on the rhythm; the old pulse's dark packets and shift belonged to the old rhythm and go with it.
      Goes through encode/decode so it takes exactly the path a share link does. */
   window.YantraBeat = {
-    load: function (newBpm, segs) {
+    load: function (newBpm, segs, cycle) {
       for (var i = 0; i < shapes.length; i++) { if (shapes[i].gain) { shapes[i].gain.disconnect(); } }
+      if (cycle >= 1 && cycle <= 32) {   /* before the capture: the link writes the packets in the live count */
+        pulseDivRaw(cycle); pulseRot = 0; pulseSkips = []; pulseMutes = [];
+      }
       var st = captureState(); st.bpm = newBpm; st.shapes = segs;
       var code = encodeState(st);
       applyState(decodeState(code));
@@ -4723,7 +4728,6 @@
       ['tresillo', 'Cuba, from Africa', '3+3+2', 'A three-stroke cell from Africa, now under reggaeton and pop.'],
       ['habanera', 'Cuba', '4/4', 'The dance that sailed to Europe: Carmen’s famous aria, and tango’s ancestor.'],
       ['dembow', 'Jamaica · Puerto Rico', '4/4', 'Named after Shabba Ranks’ “Dem Bow”; the engine of reggaeton.'],
-      ['blues', 'USA', 'shuffle', 'The triplet swing of the blues, and of early rock and roll.'],
       ['rock', 'USA', '4/4', 'Snare on 2 and 4: the backbeat behind rock and pop.'],
       ['house', 'USA', '4/4', 'A kick on every beat: disco in the ’70s, then Chicago house.'],
       ['boombap', 'USA', '4/4', 'The kick and snare of ’90s New York hip hop.'],
@@ -4896,7 +4900,7 @@
 
   function choose(b) {
     var sc = B.toScene(b, {});
-    Y.load(sc.bpm, sc.shapes);
+    Y.load(sc.bpm, sc.shapes, sc.cycle);
     if (!Y.playing()) { Y.play(); }   /* inside the tap, so the browser allows sound */
     current = b.id;
     var items = list.querySelectorAll('.rd-item');
