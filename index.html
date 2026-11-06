@@ -1113,7 +1113,9 @@
     { n: 15, name: "Pentadecagon", g: "odd" },
     { n: 0,  name: "Infinity", label: "\u221E", g: "inf" }
   ];
-  var INSTS = ["kick", "hat", "snare", "clap", "tom hi", "tom lo", "na", "ge"];
+  /* manjira and ghatam took the places of tom hi and tom lo, so links that used a tom play them now */
+  var INSTS = ["kick", "hat", "snare", "clap", "manjira", "ghatam", "na", "ge"];
+  var MANJIRA_LEVEL = 0.11, GHATAM_LEVEL = 0.4;
   var COLORS = ["#d8a959","#617cae","#c76957","#4ba06d","#e26a7b","#47a1ac","#d08449",
                 "#957ac5","#96b44c","#bf566d","#7aacd1","#b46b4e","#6f78c1","#9fa3a9"];
   var DRONE_COL = "#c9973f";
@@ -1137,8 +1139,16 @@
      the fader keeps its value so unmuting returns to the same level */
   var droneSilent = false;
   function droneLevel() { return droneSilent ? 0 : droneVol; }
-  function applyDroneLevel() {
-    if (droneNodes && ac) { droneNodes.userGain.gain.setTargetAtTime(droneLevel(), ac.currentTime, 0.012); }
+  /* a fader move follows at once; once the drone's envelope has been shaped, muting and unmuting it fade and
+     swell with that envelope (unshaped, a mute stays as quick as it always was) */
+  var droneSilentWas = false;
+  function applyDroneLevel(useEnv) {
+    var tc = 0.012, shaped = useEnv || Math.abs(droneEA - 0.5) > 0.005 || Math.abs(droneER - 0.5) > 0.005;
+    if (droneSilent !== droneSilentWas) {
+      if (shaped) { tc = Math.max(0.012, (droneSilent ? humFade() : humSwell()) / 4); }
+      droneSilentWas = droneSilent;
+    }
+    if (droneNodes && ac) { droneNodes.userGain.gain.setTargetAtTime(droneLevel(), ac.currentTime, tc); }
   }
   function setDroneVolume(v) {
     if (v < 0) { v = 0; } if (v > 1) { v = 1; }
@@ -1147,10 +1157,11 @@
   }
   var droneKey = 0;   /* semitones above A2 (110 Hz) */
   var NOTE_NAMES = ["A","A\u266F","B","C","C\u266F","D","D\u266F","E","F","F\u266F","G","G\u266F"];
-  /* saptak: 0 mandra, 1 madhya, 2 tara. Shifts the drone by whole octaves;
-     the free voice rides on the drone's root, so it moves with it. */
-  var droneOct = 1;
-  var SAPTAK = ["mandra", "madhya", "t\u0101r"];
+  /* saptak: -1 ati-mandra, 0 mandra, 1 madhya, 2 tar, 3 ati-tar. Shifts the drone by whole octaves;
+     the free voice rides on the drone's root, so it moves with it. SAPTAK is indexed by saptak + 1. */
+  var droneOct = 1, OCT_LO = -1, OCT_HI = 3;
+  var SAPTAK = ["ati-mandra", "mandra", "madhya", "t\u0101r", "ati-t\u0101r"];
+  function saptakName(o) { return SAPTAK[o + 1]; }
   function droneRoot() { return 110 * Math.pow(2, droneKey / 12) * Math.pow(2, droneOct - 1); }
   /* Free voice: a second oscillator with no fixed notes. Its pitch is held
      as cents above the drone's Sa (0 = Sa, 1200 = upper Sa), one octave up
@@ -1163,7 +1174,7 @@
   var freeRegVis = 1;     /* the saptak, smoothed, so the glow swells between them */
   /* reverb on the free voice rises with its register: a dry mandra, a little
      air in madhya, a long bloom in tar */
-  var FREE_REV = [0.10, 0.30, 0.62];
+  var FREE_REV = [0.06, 0.10, 0.30, 0.62, 0.78];   /* indexed by saptak + 1 */
   /* Pulse mode: the one hum divided into 16 packets per turn of the Yantra,
      a trance gate on the drone (never on the free voice). Each packet can
      be switched off from the dotted ring. Hum is the default. */
@@ -1414,7 +1425,8 @@
     var s = ac.createBufferSource(); s.buffer = noiseBuf; s.loop = true;
     var f = ac.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;
     var g = ac.createGain();
-    g.gain.setValueAtTime(peak, t);
+    dur = dk(dur);
+    g.gain.setValueAtTime(peak, t); holdAt(g.gain, peak, t);
     if (curve === "linear") { g.gain.linearRampToValueAtTime(0.0001, t + dur); }
     else { g.gain.exponentialRampToValueAtTime(0.0001, t + dur); }
     s.connect(f); f.connect(g); g.connect(dest || master);
@@ -1423,10 +1435,11 @@
   /* a struck, pitched body: sine with a falling pitch envelope */
   function body(t, f0, f1, dropT, dur, peak, type, dest) {
     var o = ac.createOscillator(), g = ac.createGain();
+    dur = dk(dur);
     o.type = type || "sine";
     o.frequency.setValueAtTime(f0, t);
     o.frequency.exponentialRampToValueAtTime(Math.max(f1, 0.001), t + dropT);
-    g.gain.setValueAtTime(peak, t);
+    g.gain.setValueAtTime(peak, t); holdAt(g.gain, peak, t);
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     o.connect(g); g.connect(dest || master);
     o.start(t); o.stop(t + dur + 0.02);
@@ -1439,7 +1452,8 @@
   function duckDrone(t, dest) {
     if (!droneNodes || !droneNodes.duck) { return; }
     var kv = (dest && dest.gain) ? Math.min(1, dest.gain.value) : 1;
-    var low = 1 - (droneOct === 0 ? DUCK_MANDRA : DUCK_DEPTH) * Math.sqrt(kv);
+    if (dest && typeof dest.__kv === "number") { kv = Math.min(1, dest.__kv); }   /* behind a soft-attack wrapper */
+    var low = 1 - (droneOct <= 0 ? DUCK_MANDRA : DUCK_DEPTH) * Math.sqrt(kv);
     var g = droneNodes.duck.gain;
     g.setTargetAtTime(low, t, 0.004);
     g.setTargetAtTime(1, t + 0.035, 0.08);
@@ -1448,6 +1462,53 @@
   function saNear(f) {
     var s = 110 * Math.pow(2, droneKey / 12);
     return s * Math.pow(2, Math.round(Math.log(f / s) / Math.LN2));
+  }
+  /* ---------- envelopes ---------- */
+  /* Each shape keeps an attack (ea, 0 = struck as now) and a length (ed, 0.5 = as now); the drone keeps a swell and
+     a fade (droneEA, droneER, 0.5 = as now). All are 0..1 positions, so the middle of every range is the sound as
+     it was; logMap spreads them over seconds. A drum's length scales every one of its decays through ENV_DEC, which
+     is set only while that hit is being built. */
+  /* A soft attack (ENV_HOLD, also set only while a hit is built) holds every part of the voice at its peak while
+     the hit fades in, and only then lets it decay, so the drum swells first and rings out after, rather than
+     dying away inside its own fade-in. */
+  var ENV_DEC = 1, ENV_HOLD = 0, droneEA = 0.5, droneER = 0.5;
+  function logMap(x, lo, mid, hi) {
+    return x < 0.5 ? mid * Math.pow(lo / mid, (0.5 - x) / 0.5) : mid * Math.pow(hi / mid, (x - 0.5) / 0.5);
+  }
+  function dk(t) { return t * ENV_DEC + ENV_HOLD; }
+  function holdAt(p, v, at) { if (ENV_HOLD > 0) { p.setValueAtTime(v, at + ENV_HOLD); } }
+  function shapeAttack(s) { var a = s.ea || 0; return a * a * 0.3; }
+  function shapeLength(s) { return logMap(typeof s.ed === "number" ? s.ed : 0.5, 0.25, 1, 3); }
+  function envDefault(s) { return !s.ea && (typeof s.ed !== "number" || Math.abs(s.ed - 0.5) < 0.005); }
+  function humSwell() { return logMap(droneEA, 0.02, 2.2, 8); }
+  function humFade() { return logMap(droneER, 0.05, 1.6, 8); }
+  /* past the middle, a longer fade also opens the drone into the temple space the free voice uses, up to
+     ROOM_MAX of send at the longest: the tail is heard on every packet in pulse, and as a bloom round the hum.
+     Unshaped there is no send and no reverb node at all, so it costs nothing. */
+  var ROOM_MAX = 0.9;
+  function droneRoom() { return droneER > 0.5 ? (droneER - 0.5) * 2 * ROOM_MAX : 0; }
+  function applyDroneRoom() {
+    if (!droneNodes || !ac) { return; }
+    var amt = droneRoom();
+    if (!droneNodes.room) {
+      if (amt < 0.005) { return; }
+      var conv = makeReverb(); if (!conv) { return; }
+      var send = ac.createGain(); send.gain.value = 0;
+      droneNodes.duck.connect(send); send.connect(conv); conv.connect(droneNodes.out);
+      droneNodes.room = send;
+    }
+    droneNodes.room.gain.setTargetAtTime(amt, ac.currentTime, 0.08);
+  }
+  /* one hit of a shape: its length while the voice is built, and a soft attack in front of it when it has one */
+  function playHit(s, t) {
+    var dest = getShapeGain(s), A = shapeAttack(s);
+    if (A > 0.0005) {
+      var ag = ac.createGain();
+      ag.gain.setValueAtTime(0, t); ag.gain.linearRampToValueAtTime(1, t + A);
+      ag.connect(dest); ag.__kv = dest.gain.value; dest = ag;
+    }
+    ENV_DEC = shapeLength(s); ENV_HOLD = A > 0.0005 ? A : 0;
+    try { SYNTH[s.inst](t, dest); } finally { ENV_DEC = 1; ENV_HOLD = 0; }
   }
   var SYNTH = {
     /* 808 lineage: long sine, deep pitch drop, plus a click transient */
@@ -1473,12 +1534,12 @@
       var hp = ac.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 8200; hp.Q.value = 0.7;
       var bp = ac.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 10500; bp.Q.value = 0.6;
       var g = ac.createGain();
-      g.gain.setValueAtTime(0.34, t);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.055);
+      g.gain.setValueAtTime(0.34, t); holdAt(g.gain, 0.34, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dk(0.055));
       for (var i = 0; i < ratios.length; i++) {
         var o = ac.createOscillator();
         o.type = "square"; o.frequency.value = base * ratios[i];
-        o.connect(hp); o.start(t); o.stop(t + 0.07);
+        o.connect(hp); o.start(t); o.stop(t + dk(0.055) + 0.015);
       }
       hp.connect(bp); bp.connect(g); g.connect(dest || master);
     },
@@ -1491,22 +1552,61 @@
     },
     /* three fast taps then a short diffuse tail */
     clap: function (t, dest) {
-      var offs = [0, 0.011, 0.021];
+      var offs = [0, 0.011, 0.021], hold = ENV_HOLD;
+      ENV_HOLD = 0;              /* held, the three taps would pile up: under a soft attack only the tail swells */
       for (var i = 0; i < offs.length; i++) {
         noiseHit(t + offs[i], 0.032, "bandpass", 1150, 1.1, 1.0, "linear", dest);
       }
+      ENV_HOLD = hold;
       noiseHit(t + 0.03, 0.26, "bandpass", 1350, 0.9, 0.68, undefined, dest);
       noiseHit(t, 0.01, "highpass", 3000, 0.6, 0.44, "linear", dest);
     },
-    "tom hi": function (t, dest) {
-      var th = saNear(170) / 170;   /* tail on Sa (120-240 Hz), not a fixed 170 Hz */
-      body(t, 300 * th, 170 * th, 0.11, 0.36, 0.46, undefined, dest);
-      noiseHit(t, 0.02, "bandpass", 900, 0.9, 0.16, "linear", dest);
+    /* manjira: two small bronze cymbals struck together. Bright inharmonic partials ring for about a second, the
+       pair a few cents apart so they shimmer against each other; a short bright tick starts it. (Took tom hi's place.) */
+    manjira: function (t, dest) {
+      var base = 1480, parts = [[1, 0.9, 1.1], [1.507, 0.55, 0.85], [2.34, 0.4, 0.6], [2.98, 0.3, 0.45], [3.72, 0.22, 0.35]];
+      var out = ac.createGain(); out.gain.value = MANJIRA_LEVEL;
+      var hp = ac.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 900; hp.Q.value = 0.7;
+      out.connect(hp); hp.connect(dest || master);
+      for (var c = 0; c < 2; c++) {                       /* the two cymbals of the pair */
+        var f0 = base * (c ? 1.006 : 1);
+        for (var i = 0; i < parts.length; i++) {
+          var o = ac.createOscillator(), g = ac.createGain();
+          o.type = "sine"; o.frequency.value = f0 * parts[i][0];
+          g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(parts[i][1], t + 0.002);
+          holdAt(g.gain, parts[i][1], t + 0.002);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + dk(parts[i][2]));
+          o.connect(g); g.connect(out); o.start(t); o.stop(t + dk(parts[i][2]) + 0.02);
+        }
+      }
+      noiseHit(t, 0.006, "highpass", 6000, 0.7, 0.18, "linear", dest);
     },
-    "tom lo": function (t, dest) {
-      var tl = saNear(88) / 88;     /* tail on Sa (62-124 Hz), not a fixed 88 Hz */
-      body(t, 168 * tl, 88 * tl, 0.14, 0.48, 0.5, undefined, dest);
-      noiseHit(t, 0.02, "bandpass", 620, 0.9, 0.16, "linear", dest);
+    /* ghatam: fingers on a fired clay pot. Two things make it a ghatam rather than a wooden drum:
+       the clay itself rings high and glassy (short inharmonic partials, the crisp "ta" on the shell), and the air
+       inside the pot answers with a short hollow tone that bends a little upward, a hint of the gumki. The air tone
+       sits on Sa, as a ghatam is chosen to match the sruti. (Took tom lo's place.) */
+    ghatam: function (t, dest) {
+      var out = ac.createGain(); out.gain.value = GHATAM_LEVEL; out.connect(dest || master);
+      /* the clay: four glassy partials, each a little shorter than the last */
+      var clay = [[1, 0.5, 0.11], [1.53, 0.36, 0.08], [2.06, 0.26, 0.06], [2.81, 0.16, 0.04]], base = 1720, i;
+      for (i = 0; i < clay.length; i++) {
+        var o = ac.createOscillator(), g = ac.createGain();
+        o.type = "sine"; o.frequency.value = base * clay[i][0];
+        g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(clay[i][1], t + 0.0015);
+        holdAt(g.gain, clay[i][1], t + 0.0015);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + dk(clay[i][2]));
+        o.connect(g); g.connect(out); o.start(t); o.stop(t + dk(clay[i][2]) + 0.02);
+      }
+      /* the air in the pot: hollow, short, bending up as the mouth opens */
+      var sa = saNear(250), air = ac.createOscillator(), ag = ac.createGain();
+      air.type = "sine";
+      air.frequency.setValueAtTime(sa * 0.94, t); air.frequency.exponentialRampToValueAtTime(sa * 1.04, t + 0.07);
+      ag.gain.setValueAtTime(0.0001, t); ag.gain.linearRampToValueAtTime(0.55, t + 0.004);
+      holdAt(ag.gain, 0.55, t + 0.004);
+      ag.gain.exponentialRampToValueAtTime(0.0001, t + dk(0.13));
+      air.connect(ag); ag.connect(out); air.start(t); air.stop(t + dk(0.13) + 0.02);
+      noiseHit(t, 0.045, "bandpass", sa, 2.2, 0.18, undefined, out);           /* the breath of the air, hollow */
+      noiseHit(t, 0.006, "highpass", 3200, 0.7, 0.3, "linear", out);           /* fingertip on clay */
     },
     /* bright rimmed stroke — sharp attack, fast metallic ring */
     /* na rings on Sa, the way a tabla player tunes the dayan before a note
@@ -1521,12 +1621,12 @@
       o.type = "triangle";
       o.frequency.setValueAtTime(sa * (880 / 760), t);
       o.frequency.exponentialRampToValueAtTime(sa, t + 0.05);
-      g.gain.setValueAtTime(0.4, t);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
+      g.gain.setValueAtTime(0.4, t); holdAt(g.gain, 0.4, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dk(0.16));
       var bp = ac.createBiquadFilter(); bp.type = "bandpass";
       bp.frequency.value = 1750 * k; bp.Q.value = 5.5;
       o.connect(bp); bp.connect(g); g.connect(dest || master);
-      o.start(t); o.stop(t + 0.18);
+      o.start(t); o.stop(t + dk(0.16) + 0.02);
       /* a real dayan rings with harmonic overtones and a strong 2nd (Raman); the triangle has only odd ones,
          so a quiet sine at 2x Sa follows the same falling strike. The click (70% of the energy) comes down. */
       body(t, 2 * sa * (880 / 760), 2 * sa, 0.05, 0.14, 0.016, "sine", dest);   /* about level with the Sa ring */
@@ -1541,8 +1641,8 @@
          harmonic carry the same bend at 140-540 Hz, where a phone can play it (the pure sine was 97% below
          320 Hz); the fundamental comes down a touch so the stroke keeps its level. */
       var gr = 130.81 / 96;   /* fixed on C, whatever the key: from C# up, the Sa it used to follow sat an octave down and got lost */
-      g.gain.setValueAtTime(0.4, t);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.46);
+      g.gain.setValueAtTime(0.4, t); holdAt(g.gain, 0.4, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dk(0.46));
       var lp = ac.createBiquadFilter(); lp.type = "lowpass";
       lp.frequency.value = 900; lp.Q.value = 1.4;
       lp.connect(g); g.connect(dest || master);
@@ -1554,7 +1654,7 @@
         ho.frequency.exponentialRampToValueAtTime(180 * gr * hs[hi][0], t + 0.10);
         ho.frequency.exponentialRampToValueAtTime(96 * gr * hs[hi][0], t + 0.34);
         ho.connect(hg); hg.connect(lp);
-        ho.start(t); ho.stop(t + 0.48);
+        ho.start(t); ho.stop(t + dk(0.46) + 0.02);
       }
       body(t, 210, 150, 0.05, 0.10, 0.16, "triangle", dest);
       noiseHit(t, 0.016, "lowpass", 1400, 0.7, 0.2, "linear", dest);
@@ -1601,10 +1701,10 @@
   }
   function applyFreeReverb() {
     if (!droneNodes || !ac || !droneNodes.revSend) { return; }
-    droneNodes.revSend.gain.setTargetAtTime(FREE_REV[freeOct], ac.currentTime, 0.25);
+    droneNodes.revSend.gain.setTargetAtTime(FREE_REV[freeOct + 1], ac.currentTime, 0.25);
   }
   function setFreeOct(o) {
-    if (o < 0) { o = 0; } if (o > 2) { o = 2; }
+    if (o < OCT_LO) { o = OCT_LO; } if (o > OCT_HI) { o = OCT_HI; }
     if (o === freeOct) { return; }
     freeOct = o; freeOctFlash = now_();
     applyFreePitch(0.07);        /* a short slide between saptaks, not a jump */
@@ -1614,9 +1714,11 @@
      right under the kick, and it smothered the drone's own harmonics. So in mandra that voice becomes a quiet
      saw an octave ABOVE the tonic instead, which gives the drive stage upper partials to work with (so the
      drone carries on phones, a little like a tanpura's jawari); in madhya and tar it is the sub sine again. */
-  var SUB_PRESENCE = 0.18;
+  var SUB_PRESENCE = 0.18, MADHYA_PRESENCE = 0.3;
+  /* the drone's own level (was 0.16): about 3 dB more, so it holds its place against the drums */
+  var DRONE_GAIN = 0.226;
   function subMode(o, now, instant) {
-    var mandra = droneOct === 0, lvl = mandra ? SUB_PRESENCE : o.__lvl;
+    var mandra = droneOct <= 0, lvl = mandra ? SUB_PRESENCE : o.__lvl;
     function apply() {
       o.__ratio = mandra ? 2 : 0.5; o.type = mandra ? "sawtooth" : "sine"; o.__mandra = mandra;
       o.frequency.cancelScheduledValues(ac.currentTime);
@@ -1636,11 +1738,11 @@
     var now = ac.currentTime;
     var out = ac.createGain();
     out.gain.setValueAtTime(0.0001, now);
-    out.gain.exponentialRampToValueAtTime(0.16, now + 2.2);
+    out.gain.exponentialRampToValueAtTime(DRONE_GAIN, now + humSwell());   /* 2.2 s unless shaped */
     /* separate from the envelope above — this is the user-facing volume
        fader, so raising/lowering it never fights the fade-in ramp */
     var userGain = ac.createGain();
-    userGain.gain.value = droneLevel();
+    userGain.gain.value = droneLevel(); droneSilentWas = droneSilent;
     var lp = ac.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 1400; lp.Q.value = 0.6;
     out.connect(userGain); userGain.connect(lp); lp.connect(master);
     var base = droneRoot();
@@ -1681,6 +1783,16 @@
       if (ratios[i] === 0.5) { o.__sub = true; subMode(o, now, true); }
       oscs.push(o);
     }
+    /* madhya presence: madhya's drone (about 110-210 Hz) sits right where the kick's knock, the snare shell, the ge
+       and the toms play, so it was masked by them and sounded quiet. A quiet saw an octave up, in madhya only, puts
+       overtones at 400-1200 Hz, above the drums, where the ear finds the drone again. Mandra and tar sit clear of
+       the drums already, so there it is silent; it fades in and out with the saptak. */
+    var po = ac.createOscillator(), pg = ac.createGain();
+    po.type = "sawtooth"; po.frequency.value = base * 2; po.detune.value = 4;
+    pg.gain.value = droneOct === 1 ? MADHYA_PRESENCE : 0;
+    po.connect(pg); pg.connect(gate); po.start(now);
+    po.__ratio = 2; po.__pres = true; po.__g = pg;
+    oscs.push(po);
     var lfo = ac.createOscillator(), lg = ac.createGain();
     lfo.frequency.value = 0.07; lg.gain.value = 380;
     lfo.connect(lg); lg.connect(lp.frequency); lfo.start(now);
@@ -1690,7 +1802,7 @@
     fg.gain.value = freeOn ? FREE_LEVEL : 0;
     fg.connect(out);
     var rsend = ac.createGain();
-    rsend.gain.value = FREE_REV[freeOct];
+    rsend.gain.value = FREE_REV[freeOct + 1];
     var conv = makeReverb();
     if (conv) { fg.connect(rsend); rsend.connect(conv); conv.connect(out); }
     var fparts = [["sine", 0.62, 0], ["triangle", 0.22, 5]];
@@ -1709,6 +1821,7 @@
       oscs.push(fo);
     }
     droneNodes = { out: out, userGain: userGain, oscs: oscs, lfo: lfo, vlfo: vlfo, freeGain: fg, gate: gate, revSend: rsend, duck: duck };
+    applyDroneRoom();
   }
   function retuneDrone() {
     if (!droneNodes || !ac) { return; }
@@ -1721,6 +1834,7 @@
       o.frequency.setValueAtTime(Math.max(o.frequency.value, 0.0001), now);
       o.frequency.exponentialRampToValueAtTime(target, now + 0.18);
       if (o.__sub) { subMode(o, now, false); }
+      if (o.__pres) { o.__g.gain.setTargetAtTime(droneOct === 1 ? MADHYA_PRESENCE : 0, now, 0.08); }
     }
   }
   /* glide the free voice to its new pitch: short enough to follow a finger,
@@ -1750,13 +1864,13 @@
   }
   function stopDrone() {
     if (!droneNodes || !ac) { return; }
-    var now = ac.currentTime, o = droneNodes.out;
+    var now = ac.currentTime, o = droneNodes.out, rel = humFade();   /* 1.6 s unless shaped */
     o.gain.cancelScheduledValues(now);
     o.gain.setValueAtTime(Math.max(o.gain.value, 0.0001), now);
-    o.gain.exponentialRampToValueAtTime(0.0001, now + 1.6);
-    for (var i = 0; i < droneNodes.oscs.length; i++) { droneNodes.oscs[i].stop(now + 1.7); }
-    droneNodes.lfo.stop(now + 1.7);
-    if (droneNodes.vlfo) { droneNodes.vlfo.stop(now + 1.7); }
+    o.gain.exponentialRampToValueAtTime(0.0001, now + rel);
+    for (var i = 0; i < droneNodes.oscs.length; i++) { droneNodes.oscs[i].stop(now + rel + 0.1); }
+    droneNodes.lfo.stop(now + rel + 0.1);
+    if (droneNodes.vlfo) { droneNodes.vlfo.stop(now + rel + 0.1); }
     droneNodes = null;
   }
   /* ---------- rings ---------- */
@@ -1799,6 +1913,14 @@
     s.nk = s.order[s.oi];
     s.nt += d * T;
   }
+  /* the drone's swell and fade on each packet: the middle is the crisp chop; full swell takes the whole open
+     gate to rise, full fade lets each packet ring on across about two and a half more */
+  function pulseEnv(step) {
+    var open = step * PULSE_GATE;
+    return { fin: logMap(droneEA, 0.001, Math.min(0.004, step * 0.08), open),
+             fout: logMap(droneER, 0.002, Math.min(0.006, step * 0.1), step * 2.5),
+             shaped: Math.abs(droneEA - 0.5) > 0.005 || Math.abs(droneER - 0.5) > 0.005 };
+  }
   /* schedule the gate a few steps ahead, on the same audio clock and the
      same t0 as the shapes, so the packets sit exactly on the grid */
   function schedulePulse(until) {
@@ -1817,11 +1939,18 @@
       if (t >= now - 0.002 && droneNodes && droneNodes.gate && pulseMutes.indexOf(idx) === -1) {
         pulseLast = pulseNext;
         var gg = droneNodes.gate.gain, open = step * PULSE_GATE;
-        var fin = Math.min(0.004, step * 0.08), fout = Math.min(0.006, step * 0.1);
-        gg.setValueAtTime(0, t);
-        gg.linearRampToValueAtTime(1, t + fin);
-        gg.setValueAtTime(1, t + open);
-        gg.linearRampToValueAtTime(0, t + open + fout);
+        var pe = pulseEnv(step);
+        if (!pe.shaped) {                    /* the crisp chop it always had */
+          gg.setValueAtTime(0, t);
+          gg.linearRampToValueAtTime(1, t + pe.fin);
+          gg.setValueAtTime(1, t + open);
+          gg.linearRampToValueAtTime(0, t + open + pe.fout);
+        } else {
+          /* shaped: each packet glides from wherever the last one left the gate, so a long release runs on into
+             the next packets and the chop turns into a breathing, throbbing drone */
+          gg.setTargetAtTime(1, t, pe.fin / 3);
+          gg.setTargetAtTime(0, t + open, pe.fout / 3);
+        }
         (function (k, at) {
           setTimeout(function () { if (playing && drone && pulseOn) { pulseFlash[k] = now_(); } },
                      Math.max(0, (at - ac.currentTime + heardLag()) * 1000));
@@ -1873,7 +2002,7 @@
       for (h = 0; h < L; h++) {
         u = m * L + hits[h].pos;
         if (u > u0 + 1e-9 && u <= u1 && !s.silent && s.mutes.indexOf(hits[h].k) === -1) {
-          SYNTH[s.inst](t0 + u * step, getShapeGain(s));
+          playHit(s, t0 + u * step);
           queueFlash(s, hits[h].k, t0 + u * step);
         }
       }
@@ -1902,7 +2031,7 @@
       if (ownTime(s)) { scheduleOwn(s, until); continue; }
       while (s.nt < until && guard++ < 96) {
         if (!s.silent && s.mutes.indexOf(s.nk) === -1) {
-          SYNTH[s.inst](s.nt, getShapeGain(s));
+          playHit(s, s.nt);
           queueFlash(s, s.nk, s.nt);
         }
         advance(s);
@@ -2059,11 +2188,14 @@
   }
   var freeGlow = 0;
   /* saptak marks in the usual way: a dot below for mandra, above for tar */
+  /* two dots for ati-mandra and ati-tar */
   function saptakDot(x, y, fs, oct, col) {
-    if (oct === 1) { return; }
-    var dy = oct === 0 ? fs * 0.62 : -fs * 0.78;
-    ctx.beginPath(); ctx.arc(x, y + dy, 1.5, 0, Math.PI * 2);
-    ctx.fillStyle = col; ctx.fill();
+    var n = Math.abs(oct - 1), dir = oct < 1 ? 1 : -1, j;
+    for (j = 0; j < n; j++) {
+      var dy = (oct < 1 ? fs * 0.62 : -fs * 0.78) + dir * j * 4;
+      ctx.beginPath(); ctx.arc(x, y + dy, 1.5, 0, Math.PI * 2);
+      ctx.fillStyle = col; ctx.fill();
+    }
   }
   function drawFreeArc() {
     var cx = geo.cx, cy = geo.cy, pr = pitchR(), a, i;
@@ -2116,12 +2248,12 @@
     if (live) {
       var ux = Math.cos(a), uy = Math.sin(a), px = -uy, py = ux;
       ctx.fillStyle = "rgba(190,142,68,0.75)";
-      if (freeOct < 2) {
+      if (freeOct < OCT_HI) {
         var ox = mx + ux * 15, oy = my + uy * 15;
         ctx.beginPath(); ctx.moveTo(ox + ux * 5, oy + uy * 5);
         ctx.lineTo(ox + px * 4, oy + py * 4); ctx.lineTo(ox - px * 4, oy - py * 4); ctx.closePath(); ctx.fill();
       }
-      if (freeOct > 0) {
+      if (freeOct > OCT_LO) {
         var ix = mx - ux * 15, iy = my - uy * 15;
         ctx.beginPath(); ctx.moveTo(ix - ux * 5, iy - uy * 5);
         ctx.lineTo(ix + px * 4, iy + py * 4); ctx.lineTo(ix - px * 4, iy - py * 4); ctx.closePath(); ctx.fill();
@@ -2164,7 +2296,7 @@
   /* each dash is drawn at the gate's open length, so the ring shows the
      actual shape of the chop; dim dashes are switched-off packets */
   function drawPulseRing(cx, cy, R) {
-    var w = Math.PI * 2 / PULSE_N, tn = now_(), i, lift = !!(drag && drag.lifted);
+    var w = Math.PI * 2 / PULSE_N, tn = now_(), i, lift = !!(drag && drag.mode === "pulse");   /* lifts on touch, as a shape does */
     if (lift) { R += 5; }
     for (i = 0; i < PULSE_N; i++) {
       var a0 = -Math.PI / 2 + (i + pulseRot * PULSE_N) * w, a1 = a0 + w * PULSE_GATE;
@@ -2360,8 +2492,7 @@
     return (Math.abs(y - g.y - 5) <= 22 && Math.abs(x - g.x) < 22) ? "reset" : null;
   }
   /* ---------- corner controls ---------- */
-  /* Bottom-left: the saptak slider, its knob a filled brass triangle like the
-     drone marker. Bottom-right: hum and pulse as a solid and a dashed ring.
+  /* Bottom-left: the saptak knob (drawKnob). Bottom-right: hum and pulse as a solid and a dashed ring.
      Both rest translucent with the arcs while the drone sleeps. */
   /* the circle scales with the screen but text does not, so on small screens the key arc ran into the corner
      labels; the corner controls and the key letter scale with the canvas below 400 px (never under 0.78) */
@@ -2381,26 +2512,48 @@
     ctx.font = font; ctx.fillStyle = col; ctx.textAlign = align || "center";
     ctx.textBaseline = "middle"; ctx.fillText(t, x, y);
   }
+  /* Bottom-left: the saptak knob. Five stops, ati-mandra to ati-tar; swipe up (or right) to turn it up. Its hand
+     turns to the stop, and while a finger is on it the saptaks either side fade in above and below the name. */
+  var knobVis = 1;
+  /* on the same line as the hum and pulse rings, its name beneath like theirs, clear of the key letters */
+  function knobGeo() {
+    var g = cornerGeo();
+    return { x: g.sx, y: g.ry, r: 10 * g.s, s: g.s };
+  }
+  function knobAngle(o) { return -Math.PI / 2 + (o - 1) * 0.55; }
+  function drawKnob() {
+    var k = knobGeo(), live = drag && drag.mode === "oct", i, a;
+    knobVis += (droneOct - knobVis) * 0.25;
+    for (i = OCT_LO; i <= OCT_HI; i++) {                 /* the five stops round the top */
+      a = knobAngle(i);
+      ctx.beginPath(); ctx.moveTo(k.x + (k.r + 3) * Math.cos(a), k.y + (k.r + 3) * Math.sin(a));
+      ctx.lineTo(k.x + (k.r + (i === droneOct ? 7 : 5.5)) * Math.cos(a), k.y + (k.r + (i === droneOct ? 7 : 5.5)) * Math.sin(a));
+      ctx.strokeStyle = i === droneOct ? "#f5efe4" : "rgba(245,239,228,0.5)"; ctx.lineWidth = 1; ctx.stroke();
+    }
+    var kg = ctx.createRadialGradient(k.x - k.r * 0.35, k.y - k.r * 0.4, 0, k.x, k.y, k.r);
+    kg.addColorStop(0, "#f0dcaa"); kg.addColorStop(0.5, DRONE_COL); kg.addColorStop(1, "#9a7740");
+    ctx.beginPath(); ctx.arc(k.x, k.y, k.r + (live ? 1 : 0), 0, Math.PI * 2); ctx.fillStyle = kg; ctx.fill();
+    a = knobAngle(knobVis);
+    ctx.beginPath(); ctx.moveTo(k.x + k.r * 0.15 * Math.cos(a), k.y + k.r * 0.15 * Math.sin(a));
+    ctx.lineTo(k.x + k.r * 0.85 * Math.cos(a), k.y + k.r * 0.85 * Math.sin(a));
+    ctx.strokeStyle = "rgba(18,16,13,0.9)"; ctx.lineWidth = 2; ctx.lineCap = "round"; ctx.stroke(); ctx.lineCap = "butt";
+    /* names centred on the knob, but never past the canvas edge */
+    function label(t, y, font, col) {
+      ctx.font = font;
+      cText(t, Math.max(k.x, 5 + ctx.measureText(t).width / 2), y, font, col, "center");
+    }
+    var ly = k.y + k.r + 10 * k.s, cf = "italic 300 " + (12 * k.s).toFixed(1) + "px 'Spectral', serif";
+    label(saptakName(droneOct), ly, cf, "#f5efe4");
+    if (live) {
+      var nf = "italic 300 " + (11 * k.s).toFixed(1) + "px 'Spectral', serif", dim = "rgba(245,239,228,0.45)";
+      if (droneOct < OCT_HI) { label(saptakName(droneOct + 1), k.y - k.r - 17 * k.s, nf, dim); }
+      if (droneOct > OCT_LO) { label(saptakName(droneOct - 1), ly + 13 * k.s, nf, dim); }
+    }
+  }
   function drawCorners() {
     var g = cornerGeo(), i, a0;
-    var live = drag && drag.mode === "oct";
     ctx.globalAlpha = pitchShow;
-    ctx.beginPath(); ctx.moveTo(g.sx, g.sy0); ctx.lineTo(g.sx, g.sy1);
-    ctx.strokeStyle = "rgba(245,239,228,0.45)"; ctx.lineWidth = 1; ctx.stroke();
-    for (i = 0; i < 3; i++) {
-      var y = g.sy0 - i * (g.sy0 - g.sy1) / 2, on = i === droneOct;
-      ctx.beginPath(); ctx.moveTo(g.sx - 4, y); ctx.lineTo(g.sx + 4, y);
-      ctx.strokeStyle = "rgba(245,239,228,0.7)"; ctx.lineWidth = 1; ctx.stroke();
-      var fsz = (on ? (live ? 15 : 14) : 12) * g.s, lcol = on ? "#f5efe4" : "rgba(245,239,228,0.72)";
-      var lf = "italic 300 " + fsz.toFixed(1) + "px 'Spectral', serif", x0 = g.sx + 14 * g.s;
-      cText(SAPTAK[i], x0, y, lf, lcol, "left");
-      if (on) {
-        ctx.save(); ctx.translate(g.sx, y); ctx.rotate(Math.PI / 2);
-        var sz = live ? 7 : 6;
-        ctx.beginPath(); ctx.moveTo(0, -sz * 1.15); ctx.lineTo(sz * 0.62, sz * 0.75); ctx.lineTo(-sz * 0.62, sz * 0.75);
-        ctx.closePath(); ctx.fillStyle = DRONE_COL; ctx.fill(); ctx.restore();
-      }
-    }
+    drawKnob();
     ctx.beginPath(); ctx.arc(g.rxl, g.ry, g.rr, 0, Math.PI * 2);
     ctx.strokeStyle = pulseOn ? "rgba(190,142,68,0.65)" : DRONE_COL; ctx.lineWidth = pulseOn ? 1.4 : 2; ctx.stroke();
     if (!pulseOn) { var hg = ctx.createRadialGradient(g.rxl - g.rr * 0.35, g.ry - g.rr * 0.4, 0, g.rxl, g.ry, g.rr); hg.addColorStop(0, "#f0dcaa"); hg.addColorStop(0.5, DRONE_COL); hg.addColorStop(1, "#9a7740"); ctx.fillStyle = hg; ctx.fill(); }
@@ -2414,14 +2567,16 @@
     cText("pulse", g.rxr, g.ry + g.rr + 10 * g.s, cf, pulseOn ? "#f5efe4" : "rgba(245,239,228,0.65)");
     ctx.globalAlpha = 1;
   }
-  function octAt(y) {
-    var g = cornerGeo(), f = (g.sy0 - y) / (g.sy0 - g.sy1);
-    var o = Math.round(f * 2); if (o < 0) { o = 0; } if (o > 2) { o = 2; }
-    return o;
+  /* a swipe of KNOB_STEP px moves the knob one saptak: up or right is higher */
+  var KNOB_STEP = 22;
+  function octFromSwipe(x, y) {
+    var dx = x - drag.x0, dy = drag.y0 - y, d = Math.abs(dy) >= Math.abs(dx) ? dy : dx;
+    var o = drag.o0 + Math.round(d / KNOB_STEP);
+    return Math.max(OCT_LO, Math.min(OCT_HI, o));
   }
   function onOctSlider(x, y) {
-    var g = cornerGeo();
-    return x < g.sx + 64 * g.s && x > g.sx - 18 && y > g.sy1 - 9 && y < g.sy0 + 14;
+    var k = knobGeo();
+    return x < k.x + 34 * k.s && x > k.x - 22 && y > k.y - k.r - 14 && y < k.y + k.r + 20 * k.s;
   }
   function modeRingAt(x, y) {
     var g = cornerGeo(), r = 17;
@@ -2433,6 +2588,54 @@
   function setOct(o) {
     if (o === droneOct) { return; }
     droneOct = o; retuneDrone(); renderPanel();
+  }
+  /* ---------- the envelope ghost ----------
+     A translucent copy of the shape (or of the drone's ring) shows its envelope: bigger is longer, a soft blurred
+     edge is a soft attack. Clear while a finger shapes it, with a small readout; afterwards a faint trace stays on
+     a shape that has been shaped, so its sound can be seen. */
+  function fmtSecs(t) { return t < 1 ? Math.round(t * 1000) + " ms" : t.toFixed(1) + " s"; }
+  function ghostPath(s, sc) {
+    ctx.beginPath();
+    for (var k = 0; k < s.n; k++) {
+      var p = vpos(s, k), gx = geo.cx + (p[0] - geo.cx) * sc, gy = geo.cy + (p[1] - geo.cy) * sc;
+      if (k === 0) { ctx.moveTo(gx, gy); } else { ctx.lineTo(gx, gy); }
+    }
+    ctx.closePath();
+  }
+  function ghostStroke(col, alpha, soft) {
+    ctx.save();
+    ctx.strokeStyle = col;
+    if (soft > 0.01) {
+      ctx.globalAlpha = alpha * 0.5; ctx.lineWidth = 2 + 14 * soft; ctx.stroke();
+      ctx.globalAlpha = alpha * 0.4; ctx.lineWidth = 2 + 6 * soft; ctx.stroke();
+    }
+    ctx.globalAlpha = alpha; ctx.lineWidth = 1.4 * (1 - 0.6 * soft); ctx.stroke();
+    ctx.restore();
+  }
+  function drawGhosts() {
+    var i, s, live, txt = null;
+    for (i = 0; i < shapes.length; i++) {
+      s = shapes[i];
+      live = drag && drag.shaping && drag.s === s;
+      if (!live && envDefault(s)) { continue; }
+      ghostPath(s, 1 + ((typeof s.ed === "number" ? s.ed : 0.5) - 0.5) * 0.36);
+      ghostStroke(s.color, live ? 0.42 : 0.1, s.ea || 0);
+      if (live) { txt = "attack " + fmtSecs(shapeAttack(s)) + "  ·  length ×" + shapeLength(s).toFixed(1); }
+    }
+    live = drag && drag.shaping && !drag.s;
+    var dShaped = Math.abs(droneEA - 0.5) > 0.005 || Math.abs(droneER - 0.5) > 0.005;
+    if (drone && (live || dShaped)) {
+      ctx.beginPath(); ctx.arc(geo.cx, geo.cy, geo.R * (1 + (droneER - 0.5) * 0.24), 0, Math.PI * 2);
+      ghostStroke(DRONE_COL, live ? 0.5 : 0.1, droneEA);
+      if (live && pulseOn) {
+        var pe = pulseEnv(T / PULSE_N);
+        txt = "attack " + fmtSecs(pe.fin) + "  ·  release " + fmtSecs(pe.fout);
+      } else if (live) { txt = "swell " + fmtSecs(humSwell()) + "  ·  fade " + fmtSecs(humFade()); }
+      if (live && droneRoom() > 0.005) { txt += "  ·  room " + Math.round(droneRoom() / ROOM_MAX * 100) + "%"; }
+    }
+    if (txt) {
+      cText(txt, geo.cx, geo.cy - Math.max(44, geo.R * 0.3), "italic 300 13px 'Spectral', serif", "rgba(245,239,228,0.85)", "center");
+    }
   }
   /* ---------- draw ---------- */
   function draw() {
@@ -2446,7 +2649,8 @@
       s.ring += (s.ringT - s.ring) * 0.12;
       var held = drag && drag.s === s ? drag.mode : "";
       if (held === "vertex") { s.popK = drag.k; }
-      s.pop = (s.pop || 0) + ((held === "shape" ? POP : 0) - (s.pop || 0)) * 0.3;
+      var lifts = held === "shape" || (held && drag.shaping);
+      s.pop = (s.pop || 0) + ((lifts ? POP : 0) - (s.pop || 0)) * 0.3;
       s.nodePop = (s.nodePop || 0) + ((held === "vertex" ? POP : 0) - (s.nodePop || 0)) * 0.3;
     }
     /* infinity glow */
@@ -2511,6 +2715,7 @@
         ctx.globalAlpha = 1;
       }
     }
+    drawGhosts();
     var tnow = now_();
     for (i = flashes.length - 1; i >= 0; i--) {
       var f = flashes[i], age = (tnow - f.t) / 320;
@@ -2627,8 +2832,7 @@
       return true;
     }
     if (onOctSlider(x, y)) {
-      drag = { mode: "oct", s: null, k: -1, moved: false, dist: 0 };
-      setOct(octAt(y));
+      drag = { mode: "oct", s: null, k: -1, moved: false, dist: 0, x0: x, y0: y, o0: droneOct };
       return true;
     }
     /* a finger near a node means the node, unless it is right on the pitch dot or key marker. Between rings
@@ -2656,31 +2860,96 @@
     var v = nearVertex(x, y) || (nodeFirst ? vOut : null);
     var pi0 = v ? -1 : pulseIndexAt(x, y);
     if (pi0 !== -1) {
-      drag = { mode: "pulse", s: null, k: -1, moved: false, dist: 0, start: pi0, last: pi0,
-               paint: pulseMutes.indexOf(pi0) !== -1, applied: false, longDone: false, px: x, py: y };
-      var dp0 = drag;
-      drag.lp = setTimeout(function () {
-        if (drag === dp0 && !dp0.applied) {
-          dp0.lifted = true; dp0.ang = angleAt(dp0.px, dp0.py); dp0.raw = pulseRot; dp0.rot0 = pulseRot;
-          try { if (navigator.vibrate) { navigator.vibrate(12); } } catch (e) {}
-        }
-      }, LONG_PRESS);
+      drag = { mode: "pulse", s: null, k: -1, moved: false, dist: 0, start: pi0,
+               paint: pulseMutes.indexOf(pi0) !== -1, longDone: false, lockPx: MOVE_LOCK };
+      armHold(envStart(drag, x, y), MOVE_HOLD);
       return true;
     }
     if (v) {
       drag = { mode: "vertex", s: v.s, k: v.k, a0: angleAt(x, y),
                v0: v.s.ang[v.k], moved: false, dist: 0,
                gr: Math.max(30, Math.sqrt(Math.pow(x - geo.cx, 2) + Math.pow(y - geo.cy, 2))) };
-      var dv0 = drag;
-      drag.lp = setTimeout(function () { if (drag === dv0) { dv0.longDone = true; } }, LONG_PRESS);
+      drag.lockPx = MOVE_LOCK;
+      armHold(envStart(drag, x, y), MOVE_HOLD);
+      return true;
+    }
+    if (!v && humRingAt(x, y)) {
+      drag = envStart({ mode: "hum", s: null, k: -1, moved: false, dist: 0 }, x, y);
+      armHold(drag);
       return true;
     }
     var s = nearShape(x, y);
     if (!s) { return false; }
     drag = { mode: "shape", s: s, k: -1, a0: angleAt(x, y), r0: s.rot,
              moved: false, dist: 0,
-             gr: Math.max(30, Math.sqrt(Math.pow(x - geo.cx, 2) + Math.pow(y - geo.cy, 2))) };
+             gr: Math.max(30, Math.sqrt(Math.pow(x - geo.cx, 2) + Math.pow(y - geo.cy, 2))), lockPx: MOVE_LOCK };
+    armHold(envStart(drag, x, y), MOVE_HOLD);
     return true;
+  }
+  /* ---------- shaping the sound on the shape itself ----------
+     The same rule on a shape, a node, the hum ring and the pulse ring. Move at once round the circle and it moves as
+     it always has: the shape turns, the node drags, the pulse slides. Hold it still for a moment (LONG_PRESS) and it
+     stays put, ready to shape its sound; moving straight out or in shapes it at once as well. While shaping, out is
+     longer and in is shorter (a drum's decay, the drone's fade); round the circle softens the attack clockwise and
+     sharpens it anticlockwise (a drum's strike, the drone's swell). */
+  /* anything that also moves (a node, an edge, the pulse) gives the finger a moment to settle before shaping:
+     a longer hold and a firmer pull. The hum ring does not move, so it keeps the quick ENV_LOCK and LONG_PRESS. */
+  var ENV_LOCK = 10, ENV_SPAN = 150, MOVE_HOLD = 900, MOVE_LOCK = 18;
+  function distC(x, y) { return Math.sqrt(Math.pow(x - geo.cx, 2) + Math.pow(y - geo.cy, 2)); }
+  function wrapA(a) { while (a > Math.PI) { a -= Math.PI * 2; } while (a < -Math.PI) { a += Math.PI * 2; } return a; }
+  function envStart(d, x, y) {
+    d.rr0 = distC(x, y); d.ea0 = angleAt(x, y); d.axis = ""; d.px = x; d.py = y;
+    d.e0 = d.s ? [d.s.ea || 0, typeof d.s.ed === "number" ? d.s.ed : 0.5] : [droneEA, droneER];
+    return d;
+  }
+  /* held still: ready to shape, measured from where the finger is now */
+  function armHold(d, ms) {
+    d.lp = setTimeout(function () {
+      if (drag !== d || d.axis) { return; }
+      d.longDone = true; d.ready = true; d.axis = "env"; d.shaping = true;
+      d.rr0 = distC(d.px, d.py); d.aLock = angleAt(d.px, d.py);
+      d.e0 = d.s ? [d.s.ea || 0, typeof d.s.ed === "number" ? d.s.ed : 0.5] : [droneEA, droneER];
+      try { if (navigator.vibrate) { navigator.vibrate(12); } } catch (e) {}
+    }, ms || LONG_PRESS);
+    return d;
+  }
+  /* "env" once the finger has gone mostly straight out or in, "turn" once it has gone mostly round, "" until then */
+  function envAxis(x, y) {
+    if (drag.axis) { return drag.axis; }
+    var dr = Math.abs(distC(x, y) - drag.rr0), tang = Math.abs(wrapA(angleAt(x, y) - drag.ea0)) * Math.max(30, drag.rr0);
+    if (dr >= (drag.lockPx || ENV_LOCK) && dr > tang * 1.2) {
+      drag.axis = "env"; drag.shaping = true; drag.moved = true; drag.aLock = angleAt(x, y);
+      if (drag.lp) { clearTimeout(drag.lp); drag.lp = null; }
+      try { if (navigator.vibrate) { navigator.vibrate(8); } } catch (e) {}
+    } else if (tang >= 6 && tang >= dr) {
+      drag.axis = "turn";
+      if (drag.lp) { clearTimeout(drag.lp); drag.lp = null; }   /* moving at once: it moves, no hold */
+    }
+    return drag.axis;
+  }
+  function clamp01(v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
+  function shapeEnv(x, y) {
+    var len = clamp01(drag.e0[1] + (distC(x, y) - drag.rr0) / ENV_SPAN);
+    var att = clamp01(drag.e0[0] + wrapA(angleAt(x, y) - drag.aLock) * Math.max(30, drag.rr0) / ENV_SPAN);
+    /* once held ready, a resting finger's wobble (under 6 px) changes nothing */
+    var dz = drag.ready ? 6 : 3;
+    if (Math.abs(distC(x, y) - drag.rr0) > dz || Math.abs(wrapA(angleAt(x, y) - drag.aLock)) * drag.rr0 > dz) { drag.moved = true; }
+    if (!drag.moved) { return; }
+    if (drag.s) { drag.s.ea = att; drag.s.ed = len; } else { droneEA = att; droneER = len; applyDroneRoom(); }
+  }
+  function nearEdge(x, y, lim) {
+    for (var i = 0; i < shapes.length; i++) {
+      var s = shapes[i];
+      for (var k = 0; k < s.n; k++) {
+        var a = vpos(s, k), b = vpos(s, (k + 1) % s.n);
+        if (segDist(x, y, a[0], a[1], b[0], b[1]) < lim) { return true; }
+      }
+    }
+    return false;
+  }
+  /* the drone's ring in hum, away from any shape's edge */
+  function humRingAt(x, y) {
+    return drone && !pulseOn && Math.abs(distC(x, y) - geo.R) <= 11 && !nearEdge(x, y, 12);
   }
   function shiftPulse(x, y) {
     var a = angleAt(x, y), da = a - drag.ang;
@@ -2696,15 +2965,20 @@
   }
   function move(x, y) {
     if (!drag) { return; }
-    if (drag.mode === "oct") { setOct(octAt(y)); return; }
+    if (drag.mode === "oct") { setOct(octFromSwipe(x, y)); return; }
     if (drag.mode === "ring") { return; }
+    drag.px = x; drag.py = y;
+    if (drag.mode === "hum") {
+      if (envAxis(x, y) === "env") { shapeEnv(x, y); }
+      return;
+    }
     if (drag.mode === "pulse") {
-      drag.px = x; drag.py = y;
-      if (drag.lifted) { shiftPulse(x, y); return; }
-      var pj = pulseIndexAt(x, y);
-      if (pj !== -1 && pj !== drag.last) {
-        if (!drag.applied) { setPacket(drag.start, drag.paint); drag.applied = true; }
-        setPacket(pj, drag.paint); drag.last = pj; drag.moved = true;
+      var pax = envAxis(x, y);
+      if (pax === "env") { shapeEnv(x, y); return; }
+      if (pax === "turn") {
+        /* moved at once round the ring: the whole pulse slides, as a shape turns */
+        if (!drag.lifted) { drag.lifted = true; drag.ang = drag.ea0; drag.raw = pulseRot; drag.rot0 = pulseRot; }
+        shiftPulse(x, y);
       }
       return;
     }
@@ -2728,6 +3002,9 @@
       applyFreePitch();
       return;
     }
+    var ax = envAxis(x, y);
+    if (ax === "env") { shapeEnv(x, y); return; }
+    if (ax === "") { return; }
     var da = angleAt(x, y) - drag.a0;
     while (da > Math.PI) { da -= Math.PI * 2; }
     while (da < -Math.PI) { da += Math.PI * 2; }
@@ -2779,11 +3056,16 @@
   var LONG_PRESS = 480;
   function up() {
     if (drag && drag.lp) { clearTimeout(drag.lp); }
-    if (drag && drag.mode === "pulse" && drag.lifted) {
-      if (!drag.moved) { togglePulseSkip(drag.start); }
-    } else if (drag && drag.mode === "pulse" && !drag.applied && !drag.longDone) {
+    if (drag && drag.mode === "pulse" && drag.ready && !drag.moved) {
+      togglePulseSkip(drag.start);         /* held and let go without shaping: skip the packet, as before */
+    } else if (drag && drag.mode === "pulse" && !drag.lifted && !drag.shaping) {
       if (pulseSkips.indexOf(drag.start) !== -1) { togglePulseSkip(drag.start); }
       else { setPacket(drag.start, drag.paint); }
+    }
+    if (drag && drag.mode === "hum" && !drag.shaping && drag.axis !== "turn") {
+      /* a tap on the hum ring silences the drone, the way a tap silences a node: it fades and swells back
+         with its own envelope, so the envelope can be heard without stopping */
+      droneSilent = !droneSilent; applyDroneLevel(true); renderPanel();
     }
     if (drag && drag.mode === "free" && !drag.moved && drag.onDot) {
       freeOn = !drag.wasOn;          /* a tap on the dot turns the voice on or off */
@@ -2796,6 +3078,7 @@
     if (drag && !drag.moved && drag.mode === "vertex" && !drag.longDone &&
         drag.s.own && drag.s.skips.indexOf(drag.k) !== -1) {
       toggleSkip(drag.s, drag.k);          /* a tap on a skipped corner brings it back */
+      if (playing && ac) { align(drag.s); }
       drag.longDone = true;
     }
     if (drag && !drag.moved && drag.mode === "vertex" && !drag.longDone) {
@@ -2890,7 +3173,7 @@
               ring: 1, ringT: 1, rot: 0, ang: ang, order: [], oi: 0,
               silent: false, vol: 1, gain: null,
               mutes: mutes ? mutes.slice() : [], nk: 0, nt: 0,
-              own: def.n, skips: [], ownN: -1, samAt: 0 };
+              own: def.n, skips: [], ownN: -1, samAt: 0, ea: 0, ed: 0.5 };
     rebuildOrder(s);
     return s;
   }
@@ -3398,7 +3681,8 @@
       var seg = { n: s.n, instIdx: instIdx, rot: Math.round(s.rot * 1000),
                   mutes: s.mutes.slice(), ang: null, silent: s.silent ? 1 : 0,
                   vol: Math.round((typeof s.vol === "number" ? s.vol : 1) * 1000),
-                  own: (s.own && s.own !== s.n) ? s.own : 0, skips: (s.skips || []).slice() };
+                  own: (s.own && s.own !== s.n) ? s.own : 0, skips: (s.skips || []).slice(),
+                  env: envDefault(s) ? null : [Math.round((s.ea || 0) * 100), Math.round((typeof s.ed === "number" ? s.ed : 0.5) * 100)] };
       if (!isEven(s)) {
         var am = [], k;
         for (k = 0; k < s.ang.length; k++) { am.push(Math.round(s.ang[k] * 1000)); }
@@ -3413,6 +3697,7 @@
     st.dmute = (drone && droneSilent) ? 1 : 0;
     st.foct = freeOct;
     st.oct = droneOct;
+    st.denv = [Math.round(droneEA * 100), Math.round(droneER * 100)];
     return st;
   }
   function encodeState(st) {
@@ -3427,6 +3712,7 @@
       if (typeof s.vol === "number" && s.vol !== 1000) { seg += ".v" + s.vol; }
       if (s.own) { seg += ".o" + s.own; }
       if (s.skips && s.skips.length) { seg += ".k" + s.skips.join("-"); }
+      if (s.env) { seg += ".e" + s.env.join("-"); }     /* attack-length, 0..100; only when shaped */
       shp.push(seg);
     }
     parts.push(shp.join("_"));
@@ -3434,7 +3720,10 @@
        field) never moves, so links made before per-instrument volume
        existed still parse correctly; they simply lack this field and
        default to full volume on decode. */
-    parts.push(String(typeof st.droneVol === "number" ? st.droneVol : 1000));
+    /* the drone's swell and fade ride on the end of this field, "e<swell>-<fade>", only when shaped: an older
+       decoder reads the field with parseInt, which stops at the "e", so it still gets the volume */
+    var dEnv = (st.denv && (st.denv[0] !== 50 || st.denv[1] !== 50)) ? "e" + st.denv.join("-") : "";
+    parts.push(String(typeof st.droneVol === "number" ? st.droneVol : 1000) + dEnv);
     /* free voice, appended last for the same reason as droneVol above;
        then the pulse pattern: "-" for hum, else one hex digit per 4 packets */
     parts.push(String(typeof st.free === "number" ? st.free : -1));
@@ -3485,6 +3774,8 @@
       var dvParsed = parseInt(parts[5], 10);
       if (!isNaN(dvParsed)) { dv = dvParsed / 1000; }
     }
+    var denv = [50, 50], deM = parts[5] ? /e(\d+)-(\d+)$/.exec(parts[5]) : null;
+    if (deM) { denv = [Math.min(100, parseInt(deM[1], 10)), Math.min(100, parseInt(deM[2], 10))]; }
     var fv = -1;
     if (parts[6] !== undefined) {
       var fvParsed = parseInt(parts[6], 10);
@@ -3509,7 +3800,7 @@
     var oc = 1;
     if (parts[8] !== undefined) {
       var ocP = parseInt(parts[8], 10);
-      if (!isNaN(ocP) && ocP >= 0 && ocP <= 2) { oc = ocP; }
+      if (!isNaN(ocP) && ocP >= OCT_LO && ocP <= OCT_HI) { oc = ocP; }
     }
     var psk = [];
     if (parts[9] && parts[9].length === pnd && /^[0-9a-f]+$/.test(parts[9])) {
@@ -3521,9 +3812,9 @@
     var out = { bpm: parseInt(parts[1], 10) || 96, free: fv, pulse: pz, oct: oc, pskips: psk, pdiv: pn, prot: pr,
                 drone: parts[2] === "1",
                 droneKey: parseInt(parts[3], 10) || 0,
-                droneVol: dv, dmute: parts[11] === "1", shapes: [] };
+                droneVol: dv, dmute: parts[11] === "1", shapes: [], denv: denv };
     var foP = parts[12] !== undefined ? parseInt(parts[12], 10) : NaN;
-    out.foct = (!isNaN(foP) && foP >= 0 && foP <= 2) ? foP : oc;
+    out.foct = (!isNaN(foP) && foP >= OCT_LO && foP <= OCT_HI) ? foP : oc;
     var shp = parts[4] ? parts[4].split("_") : [], i, j;
     for (i = 0; i < shp.length; i++) {
       if (!shp[i]) { continue; }
@@ -3554,6 +3845,9 @@
         } else if (tag === "v") {
           var vParsed = parseInt(rest, 10);
           if (!isNaN(vParsed)) { sh.vol = vParsed / 1000; }
+        } else if (tag === "e") {
+          var ev = rest.split("-"), eA = parseInt(ev[0], 10), eD = parseInt(ev[1], 10);
+          if (!isNaN(eA) && !isNaN(eD)) { sh.env = [Math.max(0, Math.min(100, eA)), Math.max(0, Math.min(100, eD))]; }
         }
       }
       if (sh.n > 0 && !isNaN(sh.n)) { out.shapes.push(sh); }
@@ -3579,6 +3873,7 @@
       s.vol = (typeof sh.vol === "number") ? Math.max(0, Math.min(1, sh.vol)) : 1;
       if (sh.ang && sh.ang.length === sh.n) { s.ang = sh.ang.slice(); }
       s.own = sh.own || s.n;
+      if (sh.env) { s.ea = sh.env[0] / 100; s.ed = sh.env[1] / 100; }
       s.skips = [];
       if (sh.skips) { for (var q2 = 0; q2 < sh.skips.length; q2++) { if (sh.skips[q2] >= 0 && sh.skips[q2] < sh.n) { s.skips.push(sh.skips[q2]); } } }
       rebuildOrder(s);
@@ -3590,6 +3885,7 @@
       freeOn = true; freeCents = Math.max(0, Math.min(1200, st.free));
     } else { freeOn = false; }
     droneOct = (typeof st.oct === "number") ? st.oct : 1;
+    droneEA = st.denv ? st.denv[0] / 100 : 0.5; droneER = st.denv ? st.denv[1] / 100 : 0.5;
     freeOct = (typeof st.foct === "number") ? st.foct : droneOct;
     PULSE_N = st.pdiv || 16; pulseRot = st.prot || 0;
     pulseSkips = st.pskips ? st.pskips.slice() : [];
@@ -3696,6 +3992,7 @@
   function resetScene() {
     for (var i = 0; i < shapes.length; i++) { if (shapes[i].gain) { shapes[i].gain.disconnect(); } }
     shapes = []; drone = false; droneSilent = false; stopDrone(); freeOn = false; freeOct = 1;
+    droneEA = 0.5; droneER = 0.5;
     pulseOn = false; pulseMutes = []; pulseSkips = []; pulseNext = -1; pulseRot = 0;
     recomputeRings(); renderPanel();
   }
@@ -3750,7 +4047,7 @@
       droneNodes.gate.gain.setTargetAtTime(pulseOn ? 0 : 1, ac.currentTime, 0.01);
     }
     if (!drone) { stopDrone(); } else if (playing) { audio(); startDrone(); }
-    retuneDrone(); applyFreePitch(0.07); applyFreeLevel(); applyFreeReverb(); applyDroneLevel();
+    retuneDrone(); applyFreePitch(0.07); applyFreeLevel(); applyFreeReverb(); applyDroneLevel(); applyDroneRoom();
     renderPanel();
     undoLast = encodeState(captureState());
   }
@@ -3901,7 +4198,7 @@
 (function (root) {
   'use strict';
 
-  var INSTS = ['kick', 'hat', 'snare', 'clap', 'tom hi', 'tom lo', 'na', 'ge'];
+  var INSTS = ['kick', 'hat', 'snare', 'clap', 'manjira', 'ghatam', 'na', 'ge'];
   var SHAPE_NAMES = { 3: 'Triangle', 4: 'Square', 5: 'Pentagon', 6: 'Hexagon', 7: 'Heptagon', 8: 'Octagon',
                       9: 'Nonagon', 10: 'Decagon', 11: 'Hendecagon', 12: 'Dodecagon', 13: 'Tridecagon',
                       14: 'Tetradecagon', 15: 'Pentadecagon', 16: 'Hexadecagon' };
@@ -3909,7 +4206,7 @@
 
   /* ---------- bols → voices ----------
      dāyāñ (right drum) → na, bāyāñ open → ge, both → na + ge,
-     bāyāñ closed (Ke, Ka, Kat, Ki) → tom lo, a quiet stand-in: the Yantra has no closed-bāyāñ voice. */
+     bāyāñ closed (Ke, Ka, Kat, Ki) → ghatam, a short closed clay stroke in their place. */
   var BOTH = ['dha', 'dhin', 'dhi', 'din', 'di', 'dhe', 'dhit'];
   var DAYAN = ['na', 'ta', 'tin', 'ti', 'tu', 'tun', 'ra', 'te', 'tit', 'tra'];
   var BAYAN = ['ge', 'ga', 'ghe', 'gi'];
@@ -3957,8 +4254,8 @@
       kind: 'kriya', steps: 8, rate: 80,
       lines: [{ inst: 'clap', hits: 'x...x.x.', vol: 1 },
               { inst: 'hat', hits: '.xxx....', vol: 0.6 },
-              { inst: 'tom hi', hits: '.....x.x', vol: 0.7 }],
-      note: 'Carnatic, 8 beats: laghu (clap + three finger counts) then two drutams (clap, wave). Clap = clap, finger counts = hat, waves = tom hi. This is the hand count, not a mridangam part.' },
+              { inst: 'manjira', hits: '.....x.x', vol: 0.7 }],
+      note: 'Carnatic, 8 beats: laghu (clap + three finger counts) then two drutams (clap, wave). Clap = clap, finger counts = hat, waves = manjira. This is the hand count, not a mridangam part.' },
 
     { id: 'bossa', name: 'Bossa nova', aka: ['bossa', 'bossanova', 'bosa nova', 'bossa nova'],
       kind: 'groove', steps: 16, bpm: 130,
@@ -4021,7 +4318,7 @@
       note: 'One common boom-bap kick; there are many.' },
     { id: 'bell', name: '12/8 bell', aka: ['bell', 'bembe', 'bembé', 'afro 12/8', 'standard bell', 'agbekor', '12/8', 'afro'],
       kind: 'groove', steps: 12, bpm: 100,
-      lines: [{ inst: 'tom hi', hits: 'x.x.xx.x.x.x', vol: 0.8 },
+      lines: [{ inst: 'manjira', hits: 'x.x.xx.x.x.x', vol: 0.8 },
               { inst: 'kick', hits: 'x..x..x..x..', vol: 0.9 }],
       note: 'The West African standard bell over four dotted beats. Here BPM counts the dotted beats.' },
 
@@ -4031,7 +4328,7 @@
       kind: 'groove', steps: 16, bpm: 124,
       lines: [{ inst: 'kick', hits: 'x...x...x...x...', vol: 1, role: 'four on the floor' },
               { inst: 'hat', hits: '..x...x...x...x.', vol: 0.4, role: 'offbeats' }],
-      cross: [{ inst: 'tom hi', corners: 'x..', own: 16, vol: 0.7, role: 'a hit every 3 sixteenths' }],
+      cross: [{ inst: 'manjira', corners: 'x..', own: 16, vol: 0.7, role: 'a hit every 3 sixteenths' }],
       note: 'A techno and house staple: a figure every 3 sixteenths over a straight four. It drifts across the bar and meets the downbeat again every 3 loops.' },
     { id: 'oddriff', name: '13 over 4', group: 'cross', aka: ['13 over 4', 'odd riff', 'metal', 'prog', 'djent', 'meshuggah'],
       kind: 'groove', steps: 16, bpm: 120,
@@ -4060,7 +4357,7 @@
       lines: [{ inst: 'na', hits: 'xxxxxxx', vol: 0.4, role: 'akṣara pulse' },
               { inst: 'clap', hits: 'x..x.x.', vol: 0.7, role: 'Miśra sections (3+2+2)' },
               { inst: 'ge', hits: 'x......', vol: 0.9, role: 'Miśra sam' }],
-      cross: [{ inst: 'tom hi', corners: 'x.x..', own: 7, vol: 0.8, role: 'Khaṇḍa sections (2+3), one akṣara per corner' }],
+      cross: [{ inst: 'manjira', corners: 'x.x..', own: 7, vol: 0.8, role: 'Khaṇḍa sections (2+3), one akṣara per corner' }],
       note: 'An exercise built from two real Carnatic tāḷas, not a repertoire form. Both run on the same akṣara; the 5-cycle drifts across the 7-cycle and the two sams meet every 5 loops (35 akṣaras).' }
   ], [
 
@@ -4068,25 +4365,25 @@
        kick and hat are a plain support layer of mine, not the traditional ensemble parts. */
     { id: 'gahu', name: 'Gahu', aka: ['gahu', 'gahoo', 'ewe', 'ghana'],
       kind: 'groove', steps: 16, bpm: 120,
-      lines: [{ inst: 'tom hi', hits: 'x..x..x...x...x.', vol: 0.8, role: 'timeline (bell)' },
+      lines: [{ inst: 'manjira', hits: 'x..x..x...x...x.', vol: 0.8, role: 'timeline (bell)' },
               { inst: 'kick', hits: 'x...x...x...x...', vol: 0.8, role: 'the four beats' },
               { inst: 'hat', hits: '..x...x...x...x.', vol: 0.35, role: 'offbeats' }],
       note: 'Ewe, Ghana. The timeline starts like a clave, then its last stroke lands just before the downbeat, pulling into the next cycle. Kick and hat are a simple support layer, not the ensemble parts.' },
     { id: 'shiko', name: 'Shiko', aka: ['shiko', 'nigeria'],
       kind: 'groove', steps: 16, bpm: 110,
-      lines: [{ inst: 'tom hi', hits: 'x...x.x...x.x...', vol: 0.8, role: 'timeline (bell)' },
+      lines: [{ inst: 'manjira', hits: 'x...x.x...x.x...', vol: 0.8, role: 'timeline (bell)' },
               { inst: 'kick', hits: 'x...x...x...x...', vol: 0.8, role: 'the four beats' },
               { inst: 'hat', hits: '..x...x...x...x.', vol: 0.35, role: 'offbeats' }],
       note: 'Nigeria. The plainest of the five-stroke timelines: two pairs of close strokes. Kick and hat are a simple support layer.' },
     { id: 'soukous', name: 'Soukous', aka: ['soukous', 'congo', 'rumba congolaise', 'lingala'],
       kind: 'groove', steps: 16, bpm: 130,
-      lines: [{ inst: 'tom hi', hits: 'x..x..x...xx....', vol: 0.8, role: 'timeline (bell)' },
+      lines: [{ inst: 'manjira', hits: 'x..x..x...xx....', vol: 0.8, role: 'timeline (bell)' },
               { inst: 'kick', hits: 'x...x...x...x...', vol: 0.8, role: 'the four beats' },
               { inst: 'hat', hits: '..x...x...x...x.', vol: 0.35, role: 'offbeats' }],
       note: 'Congo. Like son clave, but the last stroke comes early and doubles. Kick and hat are a simple support layer; real soukous is driven by guitars.' },
     { id: 'fumefume', name: 'Fume-fume', aka: ['fume fume', 'fumefume', 'fume-fume'],
       kind: 'groove', steps: 12, bpm: 100,
-      lines: [{ inst: 'tom hi', hits: 'x.x.x..x.x..', vol: 0.8, role: 'timeline (bell)' },
+      lines: [{ inst: 'manjira', hits: 'x.x.x..x.x..', vol: 0.8, role: 'timeline (bell)' },
               { inst: 'kick', hits: 'x..x..x..x..', vol: 0.8, role: 'the four dotted beats' }],
       note: 'Ghana, in 12/8. A five-stroke bell, the short sister of the 12/8 standard bell. BPM counts the dotted beats.' }
   ]);
@@ -4101,7 +4398,7 @@
       lines: [{ inst: 'na', hits: 'xxxxxxxxxxxxxxxx', vol: 0.3, role: 'the pulse, 2 per beat' },
               { inst: 'clap', hits: 'x.......x...x...', vol: 0.7, role: 'claps: beats 1, 5, 7' },
               { inst: 'hat', hits: '..x.x.x.........', vol: 0.4, role: 'finger counts: beats 2, 3, 4' },
-              { inst: 'tom lo', hits: '..........x...x.', vol: 0.5, role: 'waves: beats 6, 8' }],
+              { inst: 'ghatam', hits: '..........x...x.', vol: 0.5, role: 'waves: beats 6, 8' }],
       cross: [{ inst: 'ge', corners: corners, own: 16, vol: 0.9, role: 'the first pulse of each ' + syl + ' group' }],
       note: 'Groups of ' + g + ' (' + syl + ') laid across Ādi, as in korvais and moras. The ge marks where each group starts; it lands back on sam every ' +
             g + ' cycles. At 2 pulses a beat this is Ādi in its second speed.' };
@@ -4206,7 +4503,7 @@
       lines: [
         { inst: 'na', pos: na, vol: 0.9, role: 'dāyāñ: Na, Ta, Tin, and the right hand of Dha/Dhin' },
         { inst: 'ge', pos: ge, vol: 0.9, role: 'bāyāñ: Ge, and the left hand of Dha/Dhin' },
-        { inst: 'tom lo', pos: closed, vol: 0.55, role: 'closed bāyāñ (Ke, Ka, Kat), a stand-in' },
+        { inst: 'ghatam', pos: closed, vol: 0.55, role: 'closed bāyāñ (Ke, Ka, Kat), a stand-in' },
         { inst: 'clap', pos: tali, vol: 0.5, role: 'tālī (clap)' },
         { inst: 'hat', pos: khali, vol: 0.35, role: 'khālī (wave)' }
       ]
