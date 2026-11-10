@@ -937,6 +937,48 @@
   .bg-cap:empty { display: none; }
   @media (max-width: 480px) { .bg-switch .bg-lab { display: none; } .bg-switch button:first-of-type { border-left: 0; } }
 </style>
+
+<style>
+  /* ================= demo, stage 4 ================= */
+  .rim-bar { margin-top: 0.9rem; display: grid; gap: 0.55rem; }
+  body:not(.demo-brass) .rim-bar { display: none; }
+  .rim-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: stretch; }
+  .rim-seg { display: flex; flex: 1 1 15rem; border: 1px solid var(--kansa-deep); background: var(--basalt-2); }
+  .rim-seg .rim-lab, .rim-seg button, .rim-tools button {
+    font-family: var(--mono); font-size: 0.64rem; letter-spacing: 0.14em; text-transform: uppercase;
+  }
+  .rim-seg .rim-lab { color: #9a9080; padding: 0.75rem 0.7rem; }
+  .rim-seg button {
+    flex: 1; color: var(--ivory-2); background: none; border: 0; border-left: 1px solid rgba(110,88,48,0.6); border-radius: 0;
+    padding: 0.75rem 0.4rem; cursor: pointer; -webkit-appearance: none; appearance: none; touch-action: manipulation;
+  }
+  .rim-seg button[aria-pressed="true"] { color: var(--basalt); background: var(--kansa); }
+  .rim-seg button#rimKeep[aria-pressed="true"] { color: var(--ivory); background: #b83a26; }
+  .rim-seg button#rimKeep::before {
+    content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 0.55em; vertical-align: 0.02em;
+    background: #d64a30;
+  }
+  .rim-seg button#rimKeep[aria-pressed="true"]::before { background: var(--ivory); animation: rim-rec 1.3s ease-in-out infinite; }
+  @keyframes rim-rec { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+  @media (prefers-reduced-motion: reduce) { .rim-seg button#rimKeep[aria-pressed="true"]::before { animation: none; } }
+  .rim-tools { display: flex; gap: 0.5rem; flex: 1 1 12rem; }
+  .rim-tools button {
+    flex: 1; color: var(--kansa); background: none; border: 1px solid var(--kansa-deep); border-radius: 0; white-space: nowrap;
+    padding: 0.75rem 0.6rem; cursor: pointer; -webkit-appearance: none; appearance: none; touch-action: manipulation;
+  }
+  .rim-tools button:hover { border-color: var(--kansa); }
+  .rim-seg button:focus-visible, .rim-tools button:focus-visible { outline: 1px solid var(--ivory); outline-offset: -3px; }
+  .rim-status { font-family: var(--verse); font-style: italic; font-weight: 300; font-size: 0.92rem; color: var(--ivory-2); min-height: 1.5em; }
+  .rim-status.keeping { color: #ee8a72; }
+
+  /* more room: on a phone the box runs to the screen edges and stands taller than it is wide */
+  @media (max-width: 760px) {
+    body.demo-room .stage {
+      aspect-ratio: 1 / 1.1;
+      margin-left: calc(-1 * clamp(1.2rem, 5vw, 4rem)); margin-right: calc(-1 * clamp(1.2rem, 5vw, 4rem));
+    }
+  }
+</style>
 </head>
 <body>
 <canvas id="skyCv" aria-hidden="true"></canvas>
@@ -1071,17 +1113,18 @@
       <div class="demo-opt">
         <button class="demo-sw" id="demoBrass" type="button" aria-pressed="true" aria-label="Engraved brass rim"></button>
         <div class="demo-name">Brass rim, played like a handpan</div>
-        <p>Strike the rim and it rings. Twelve tone fields, inlaid with their swaras, run from low at the bottom to high at the top, alternating sides. While the Yantra plays, each strike is kept as a stud on the 60-gha&#7789;ik&#257; scale and returns every turn. Stopped, the rim just sounds. The dial's undo takes strikes back one at a time.</p>
-        <div class="demo-ctl">
-          <button type="button" id="rimScale">Scale</button>
-          <button type="button" id="rimClear">Clear rim</button>
-          <span class="rim-count" id="rimCount"></span>
-        </div>
+        <p>Strike the rim and it rings. Twelve tone fields, inlaid with their swaras, run from low at the bottom to high at the top, alternating sides. The switch under the dial sets the rim to Locked, Free or Keep. Locked ignores touches, so the dial's own gestures are safe. Free just plays. Keep records each strike as a stud that returns every turn, and the dial's undo takes them back one at a time.</p>
+
       </div>
       <div class="demo-opt">
         <button class="demo-sw" id="demoPig" type="button" aria-pressed="true" aria-label="Pigment rule"></button>
         <div class="demo-name">Pigment rule</div>
         <p>Colour follows the voice. Skins take reds, metals the blues and greens of brass's own patina, clay ochre, the hand shell white. A second shape on the same voice takes a paler wash of that pigment, a third a deeper one, and a quieter shape is drawn fainter.</p>
+      </div>
+      <div class="demo-opt">
+        <button class="demo-sw" id="demoRoom" type="button" aria-pressed="true" aria-label="More room"></button>
+        <div class="demo-name">More room in the box</div>
+        <p>The dial is drawn slightly smaller inside its box, the rim is wider, and the gaps between the pulse ring, the rim and the pitch arcs are wider. On a phone the box runs to the screen edges and is taller than it is wide.</p>
       </div>
     </div>
   </div>
@@ -1090,6 +1133,21 @@
       <div class="stage">
         <canvas id="cv"></canvas>
         <button id="playBtn" class="transport" aria-label="Play"><span id="glyph">&#9654;</span></button>
+      </div>
+      <div class="rim-bar">
+        <div class="rim-row">
+          <div class="rim-seg" role="group" aria-label="Brass rim">
+            <span class="rim-lab">Rim</span>
+            <button type="button" id="rimLocked" aria-pressed="true">Locked</button>
+            <button type="button" id="rimFree" aria-pressed="false">Free</button>
+            <button type="button" id="rimKeep" aria-pressed="false">Keep</button>
+          </div>
+          <div class="rim-tools">
+            <button type="button" id="rimScale">Scale</button>
+            <button type="button" id="rimClear">Clear rim</button>
+          </div>
+        </div>
+        <div class="rim-status" id="rimCount" aria-live="polite"></div>
       </div>
       <p class="hint stage-hint">Tap a node to silence &middot; Drag a node to syncopate</p>
       <p class="hint stage-hint" id="astat" style="margin-top:0.4rem;color:#8c4734;display:none;"></p>
@@ -1240,7 +1298,7 @@
                 "#957ac5","#96b44c","#bf566d","#7aacd1","#b46b4e","#6f78c1","#9fa3a9"];
   var DRONE_COL = "#c9973f";
   /* ===== demo ===== */
-  var DEMO = { brass: true, pig: true };
+  var DEMO = { brass: true, pig: true, room: true };
   /* hue is the material that sounds; within the skins, the lower the voice the darker the pigment */
   var PIGMENTS = {
     kick:    { col: "#b23a56", name: "lākh",     en: "lac",          fam: "skin" },
@@ -2279,12 +2337,13 @@
   /* the free-voice arc above and the drone key arc below share one radius, in proportion to the rings,
      so the mirror holds at any size; 1.2 leaves a finger's room between the top nodes and the arc */
   var ARC_RATIO = 1.2;
-  function pitchR() { return geo.R * (DEMO.brass ? 1.275 : ARC_RATIO); }
+  function pitchR() { return geo.R * (DEMO.brass ? (DEMO.room ? 1.34 : 1.275) : ARC_RATIO); }
   /* ===== demo: the limb =====
      A brass ring outside the shapes, graduated like the rim of an astrolabe: 60 ghatikas to one turn
      (one day on the Jantar Mantar instruments), a long stroke every 5, Devanagari numerals every 5.
      Drawn once into its own canvas and reused, so the frame loop only blits it. */
-  var LIMB_IN = 1.05, LIMB_OUT = 1.175;
+  var LIMB_IN = 1.085, LIMB_OUT = 1.225;
+  function applyRoom() { LIMB_IN = DEMO.room ? 1.085 : 1.05; LIMB_OUT = DEMO.room ? 1.225 : 1.175; }
   var limbCv = null, limbKey = "", limbM = 0, limbFont = 0;
   var DEVA_DIGITS = "०१२३४५६७८९";
   function devaNum(n) {
@@ -2398,9 +2457,11 @@
     limbCv = c; limbM = m;
   }
   function drawLimb(cx, cy, R) {
-    var dpr = window.devicePixelRatio || 1, key = R.toFixed(1) + "/" + dpr + "/" + limbFont + "/" + rimScale;
+    var dpr = window.devicePixelRatio || 1, key = R.toFixed(1) + "/" + dpr + "/" + limbFont + "/" + rimScale + "/" + LIMB_OUT;
     if (key !== limbKey) { buildLimb(R, dpr); limbKey = key; }
+    ctx.globalAlpha = rimMode === 0 ? 0.6 : 1;   /* a locked rim sits back */
     ctx.drawImage(limbCv, cx - limbM, cy - limbM, limbM * 2, limbM * 2);
+    ctx.globalAlpha = 1;
   }
   if (document.fonts && document.fonts.load) {
     document.fonts.load("12px \"Tiro Devanagari Sanskrit\"", DEVA_DIGITS).then(function () { limbFont++; }, function () {});
@@ -2999,6 +3060,7 @@
                    "प", "ध॒", "ध", "नि॒", "नि"];
   /* fields in rising pitch: lowest at the bottom, then side to side up to the top, as on a handpan */
   var RIM_ORDER = [5, 6, 4, 7, 3, 8, 2, 9, 1, 10, 0, 11];
+  var rimMode = 0;   /* 0 locked, 1 free, 2 keep */
   var rimScale = 0, rimNotes = [], rimNext = 0, rimGlow = [], rimBus = null, rimAc = null;
   function rimDegree(field) { return RIM_ORDER.indexOf(field); }
   function rimOct(field) { return Math.floor(rimDegree(field) / RIM_SCALES[rimScale].semis.length); }
@@ -3043,6 +3105,21 @@
     return Math.floor(a / (RIM_TAU / 12)) % 12;
   }
   function rimUi() {
+    var ids = ["rimLocked", "rimFree", "rimKeep"], i, b = document.getElementById("rimScale"), c = document.getElementById("rimCount");
+    for (i = 0; i < 3; i++) {
+      var sb = document.getElementById(ids[i]);
+      if (sb) { sb.setAttribute("aria-pressed", rimMode === i ? "true" : "false"); }
+    }
+    if (b) { b.textContent = "Scale · " + RIM_SCALES[rimScale].name; }
+    if (!c) { return; }
+    var n = rimNotes.length, kept = n ? " · " + n + (n === 1 ? " strike kept" : " strikes kept") : "";
+    c.className = "rim-status" + (rimMode === 2 && playing ? " keeping" : "");
+    c.textContent = rimMode === 0 ? "Locked: touches on the rim do nothing" + kept
+                  : rimMode === 1 ? "Free: strike the rim, nothing is kept" + kept
+                  : playing ? "Keeping: each strike returns every turn" + kept
+                  : "Keep is ready: press play, then strike" + kept;
+  }
+  function rimUiOld() {
     var b = document.getElementById("rimScale"), c = document.getElementById("rimCount");
     if (b) { b.textContent = "Scale · " + RIM_SCALES[rimScale].name; }
     if (c) { c.textContent = rimNotes.length ? rimNotes.length + (rimNotes.length === 1 ? " strike kept" : " strikes kept") : "No strikes kept yet"; }
@@ -3053,7 +3130,7 @@
     var now = ac.currentTime, i;
     rimVoice(rimFreq(field), now + 0.004, 0.9);
     rimGlow.push({ f: field, t: now_(), step: -1 });
-    if (playing) {
+    if (playing && rimMode === 2) {
       var turns = (viewClock() - t0) / T, step = Math.round((turns - Math.floor(turns)) * 60) % 60;
       for (i = 0; i < rimNotes.length; i++) { if (rimNotes[i].step === step && rimNotes[i].field === field) { return; } }
       rimNotes.push({ step: step, field: field, hold: now + T / 60 * 1.5 });
@@ -3097,6 +3174,14 @@
   }
   function drawRimPlay(cx, cy, R) {
     var rIn = R * LIMB_IN, rOut = R * LIMB_OUT, bw = rOut - rIn, tn = now_(), i, a, lit = {};
+    if (rimMode === 2) {
+      /* keeping: two cinnabar lines frame the rim and breathe while the Yantra turns */
+      var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      var kp = (playing && !still) ? 0.5 + 0.5 * Math.sin(tn / 420) : 0.6;
+      ctx.strokeStyle = "rgba(226,84,56," + (playing ? 0.4 + 0.5 * kp : 0.38).toFixed(3) + ")"; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.arc(cx, cy, rIn - 3, 0, RIM_TAU); ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx, cy, rOut + 3, 0, RIM_TAU); ctx.stroke();
+    }
     for (i = rimGlow.length - 1; i >= 0; i--) {
       var gl = rimGlow[i], age = (tn - gl.t) / 900;
       if (age > 1) { rimGlow.splice(i, 1); continue; }
@@ -3124,7 +3209,7 @@
     var r = cv.getBoundingClientRect();
     var w = r.width, h = r.height;
     ctx.clearRect(0, 0, w, h);
-    geo.cx = w / 2; geo.cy = h / 2; geo.R = Math.min(w, h) * 0.35;
+    geo.cx = w / 2; geo.cy = h / 2; geo.R = Math.min(w, h) * (DEMO.room ? 0.328 : 0.35);
     var cx = geo.cx, cy = geo.cy, R = geo.R, i, k, s, pos;
     for (i = 0; i < shapes.length; i++) {
       s = shapes[i];
@@ -3322,7 +3407,7 @@
       drag = { mode: "oct", s: null, k: -1, moved: false, dist: 0, x0: x, y0: y, o0: droneOct };
       return true;
     }
-    if (DEMO.brass) {
+    if (DEMO.brass && rimMode > 0) {
       var rf = rimFieldAt(x, y), rv = rf >= 0 ? nearOuterVertex(x, y) : null, rnear = false;
       if (rv) { var rp = vpos(rv.s, rv.k); rnear = Math.sqrt(Math.pow(x - rp[0], 2) + Math.pow(y - rp[1], 2)) < 11; }
       if (rf >= 0 && !rnear && !nearPitchMarker(x, y) && !nearFreeDot(x, y)) {
@@ -3910,6 +3995,7 @@
     fam("brass", [chip(DRONE_COL, "kāṃsa · the metal itself", "drone", drone)]);
   }
   function renderPanel() {
+    rimUi();
     for (var ci = 0; ci < shapes.length; ci++) { shapes[ci].color = shapeCol(shapes[ci]); }
     renderLegend();
     while (layersEl.firstChild) { layersEl.removeChild(layersEl.firstChild); }
@@ -4606,6 +4692,19 @@
     press("rimScale", function () { rimScale = (rimScale + 1) % RIM_SCALES.length; rimUi(); });
     press("rimUndo", function () { rimNotes.pop(); rimUi(); });
     press("rimClear", function () { rimNotes = []; rimUi(); });
+    press("rimLocked", function () { rimMode = 0; rimUi(); });
+    press("rimFree", function () { rimMode = 1; rimUi(); });
+    press("rimKeep", function () { rimMode = 2; rimUi(); });
+    document.body.classList.add("demo-room");
+    var roomBtn = document.getElementById("demoRoom");
+    if (roomBtn) {
+      roomBtn.addEventListener("click", function () {
+        DEMO.room = !DEMO.room; applyRoom();
+        roomBtn.setAttribute("aria-pressed", DEMO.room ? "true" : "false");
+        document.body.classList.toggle("demo-room", DEMO.room);
+        fit();
+      }, false);
+    }
     rimUi();
   })();
   /* ---------- undo ---------- */
