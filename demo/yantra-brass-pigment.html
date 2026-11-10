@@ -1071,10 +1071,9 @@
       <div class="demo-opt">
         <button class="demo-sw" id="demoBrass" type="button" aria-pressed="true" aria-label="Engraved brass rim"></button>
         <div class="demo-name">Brass rim, played like a handpan</div>
-        <p>Strike the rim and it rings. Twelve tone fields, inlaid with their swaras, run from low at the bottom to high at the top, alternating sides. While the Yantra plays, each strike is kept as a stud on the 60-gha&#7789;ik&#257; scale and returns every turn. Stopped, the rim just sounds.</p>
+        <p>Strike the rim and it rings. Twelve tone fields, inlaid with their swaras, run from low at the bottom to high at the top, alternating sides. While the Yantra plays, each strike is kept as a stud on the 60-gha&#7789;ik&#257; scale and returns every turn. Stopped, the rim just sounds. The dial's undo takes strikes back one at a time.</p>
         <div class="demo-ctl">
           <button type="button" id="rimScale">Scale</button>
-          <button type="button" id="rimUndo">Undo strike</button>
           <button type="button" id="rimClear">Clear rim</button>
           <span class="rim-count" id="rimCount"></span>
         </div>
@@ -1937,7 +1936,8 @@
     /* sidechain: every kick briefly dips the drone body (not the free
        voice), so the two share the low end instead of fighting for it */
     var duck = ac.createGain(); duck.gain.value = 1;
-    gate.connect(drive); drive.connect(shelf); shelf.connect(hp); hp.connect(duck); duck.connect(out);
+    gate.connect(drive); drive.connect(shelf); shelf.connect(hp); var hum = ac.createGain(); hum.gain.value = drone ? 1 : 0;
+    hp.connect(hum); hum.connect(duck); duck.connect(out);
     for (var i = 0; i < parts.length; i++) {
       var o = ac.createOscillator(), g = ac.createGain();
       o.type = parts[i][0];
@@ -1971,11 +1971,15 @@
        Its reverb comes after the gate, so the chop rings into the space */
     var fgate = ac.createGain();
     fgate.gain.value = freeGated() ? 0 : 1;
-    fg.connect(fgate); fgate.connect(out);
+    var fout = ac.createGain();
+    fout.gain.setValueAtTime(0.0001, now);
+    fout.gain.exponentialRampToValueAtTime(DRONE_GAIN, now + 0.04);
+    fout.connect(lp);
+    fg.connect(fgate); fgate.connect(fout);
     var rsend = ac.createGain();
     rsend.gain.value = FREE_REV[freeOct + 1];
     var conv = makeReverb();
-    if (conv) { fgate.connect(rsend); rsend.connect(conv); conv.connect(out); }
+    if (conv) { fgate.connect(rsend); rsend.connect(conv); conv.connect(fout); }
     var fparts = [["sine", 0.62, 0], ["triangle", 0.22, 5]];
     var vlfo = ac.createOscillator(), vg = ac.createGain();
     vlfo.frequency.value = 4.6; vg.gain.value = 7;      /* +/- 7 cents */
@@ -1991,7 +1995,7 @@
       fo.__ratio = freeRatio(); fo.__free = true;
       oscs.push(fo);
     }
-    droneNodes = { out: out, userGain: userGain, oscs: oscs, lfo: lfo, vlfo: vlfo, freeGain: fg, gate: gate, revSend: rsend, duck: duck, freeGate: fgate };
+    droneNodes = { out: out, userGain: userGain, oscs: oscs, lfo: lfo, vlfo: vlfo, freeGain: fg, gate: gate, revSend: rsend, duck: duck, freeGate: fgate, hum: hum, freeOut: fout };
     applyDroneRoom();
   }
   function retuneDrone() {
@@ -2039,6 +2043,11 @@
     o.gain.cancelScheduledValues(now);
     o.gain.setValueAtTime(Math.max(o.gain.value, 0.0001), now);
     o.gain.exponentialRampToValueAtTime(0.0001, now + rel);
+    if (droneNodes.freeOut) {
+      var fo2 = droneNodes.freeOut.gain;
+      fo2.cancelScheduledValues(now); fo2.setValueAtTime(Math.max(fo2.value, 0.0001), now);
+      fo2.exponentialRampToValueAtTime(0.0001, now + Math.min(rel, 0.4));
+    }
     for (var i = 0; i < droneNodes.oscs.length; i++) { droneNodes.oscs[i].stop(now + rel + 0.1); }
     droneNodes.lfo.stop(now + rel + 0.1);
     if (droneNodes.vlfo) { droneNodes.vlfo.stop(now + rel + 0.1); }
@@ -2109,7 +2118,7 @@
   /* The free voice can join the pulse: in pulse mode, tap the pulse ring again (it has no gesture of its own
      left). Tap once more, or go back to hum, and it holds steady again. */
   var freePulse = false;
-  function freeGated() { return pulseOn && freePulse; }
+  function freeGated() { return pulseOn && freePulse && drone; }
   function applyFreeGate() {
     if (!droneNodes || !droneNodes.freeGate || !ac) { return; }
     var g = droneNodes.freeGate.gain, now = ac.currentTime;
@@ -2413,15 +2422,29 @@
     return Math.abs(a - Math.PI / 2) <= PITCH_SPAN / 2 + 0.12;
   }
   /* the arcs are always on the instrument; touching them can wake the drone */
+  function engineSync() {
+    if ((drone || freeOn) && playing) {
+      audio(); startDrone();
+      if (droneNodes && droneNodes.hum) {
+        droneNodes.hum.gain.setTargetAtTime(drone ? 1 : 0, ac.currentTime,
+          Math.max(0.012, (drone ? humSwell() : humFade()) / 4));
+      }
+      applyFreeGate();
+    } else { stopDrone(); }
+  }
+  window.__yantraDemo = function () {
+    return { drone: drone, free: freeOn, engine: !!droneNodes,
+             hum: droneNodes && droneNodes.hum ? droneNodes.hum.gain.value : null, rim: rimNotes.length };
+  };
   function droneOn() {
     if (drone) { return; }
     drone = true;
-    if (playing) { audio(); startDrone(); }
+    engineSync();
     renderPanel();
   }
   function droneOff() {
     if (!drone) { return; }
-    drone = false; stopDrone(); renderPanel();
+    drone = false; engineSync(); renderPanel();
   }
   function nearPitchMarker(x, y) {
     var a = pitchAngle(droneKey), pr = pitchR();
@@ -2514,7 +2537,7 @@
   function drawFreeArc() {
     var cx = geo.cx, cy = geo.cy, pr = pitchR(), a, i;
     var live = drag && drag.mode === "free" && drag.moved;
-    var sounding = freeOn && drone;
+    var sounding = freeOn;
     freeGlow += ((sounding ? 1 : 0) - freeGlow) * 0.12;
     ctx.globalAlpha = pitchShow;
     ctx.beginPath(); ctx.arc(cx, cy, pr, freeAngle(0), freeAngle(1200));
@@ -3316,11 +3339,11 @@
     if (!nodeFirst && onFreeArc(x, y)) {
       var onDot = nearFreeDot(x, y);
       drag = { mode: "free", s: null, k: -1, moved: false, dist: 0, onDot: onDot,
-               wasOn: freeOn && drone, oct0: freeOct,
+               wasOn: freeOn, oct0: freeOct,
                r0: Math.sqrt(Math.pow(x - geo.cx, 2) + Math.pow(y - geo.cy, 2)) };
       if (!onDot) {
         freeCents = freeCentsAt(x, y); freeOn = true;
-        droneOn(); applyFreePitch(); applyFreeLevel();
+        engineSync(); applyFreePitch(); applyFreeLevel();
       }
       return true;
     }
@@ -3477,8 +3500,8 @@
       steps = steps > 0 ? Math.floor(steps) : Math.ceil(steps);
       setFreeOct(drag.oct0 + steps);
       freeCents = freeCentsAt(x, y);
-      droneOn();
-      if (!freeOn) { freeOn = true; applyFreeLevel(); }
+      if (!freeOn) { freeOn = true; }
+      engineSync(); applyFreeLevel();
       applyFreePitch();
       return;
     }
@@ -3549,8 +3572,9 @@
     }
     if (drag && drag.mode === "free" && !drag.moved && drag.onDot) {
       freeOn = !drag.wasOn;          /* a tap on the dot turns the voice on or off */
-      if (freeOn) { droneOn(); }
+      if (freeOn) { engineSync(); }
       applyFreeLevel();
+      if (!freeOn) { engineSync(); }
     }
     if (drag && drag.mode === "pitch" && !drag.moved && drag.onMarker) {
       if (drag.wasOn) { droneOff(); } else { droneOn(); }   /* the triangle is the drone's switch */
@@ -3723,7 +3747,7 @@
   function toggleShape(def) {
     if (def.n === 0) {
       drone = !drone; droneSilent = false;
-      if (!drone) { stopDrone(); } else if (playing) { audio(); startDrone(); }
+      engineSync();
       renderPanel(); return;
     }
     var found = -1, i;
@@ -3907,7 +3931,7 @@
       di.addEventListener("click", function (e) { e.preventDefault(); cycleDroneKey(); }, false);
       var dx = document.createElement("button"); dx.className = "rm rm-corner"; dr.className = "layer layer-drone";
       dx.appendChild(document.createTextNode("\u00D7"));
-      dx.addEventListener("click", function () { drone = false; droneSilent = false; stopDrone(); renderPanel(); }, false);
+      dx.addEventListener("click", function () { drone = false; droneSilent = false; engineSync(); renderPanel(); }, false);
       var dp = document.createElement("button"); dp.className = "inst";
       dp.appendChild(document.createTextNode(pulseOn ? "pulse \u00B7 " + PULSE_N : "hum"));
       dp.title = "Hum, or a pulse of 1 to 32 packets a bar \u2014 tap the dotted ring to switch packets";
@@ -4083,12 +4107,12 @@
         hushSoundEmbeds();
         /* sam is 25 ms out (was 60) and handed to the audio engine at once, not on the next 16 ms tick; the slow
            one-off work (building the drone, which fades in over 2 s anyway) comes after, so it cannot delay it */
-        if (!shapes.length && !drone) { toggleShape(defByN(0)); }   /* an empty yantra wakes the drone */
+        if (!shapes.length && !drone && !freeOn) { toggleShape(defByN(0)); }   /* an empty yantra wakes the drone */
         t0 = ac.currentTime + 0.025; pulseNext = -1;
         for (var i = 0; i < shapes.length; i++) { align(shapes[i]); }
         schedule();
         timer = setInterval(schedule, 16);
-        if (drone) { startDrone(); pulseNext = -1; schedule(); }   /* the pulse gate needs the drone: queue it now */
+        if (drone || freeOn) { engineSync(); pulseNext = -1; schedule(); }   /* the pulse gate needs the drone: queue it now */
         holdWake();
         syncBtn(); renderPanel();
       };
@@ -4585,9 +4609,26 @@
     rimUi();
   })();
   /* ---------- undo ---------- */
+  /* the rim's scale and strikes ride along with each undo step */
+  function rimEncode() {
+    var o = [], i;
+    for (i = 0; i < rimNotes.length; i++) { o.push(rimNotes[i].step + "." + rimNotes[i].field); }
+    return rimScale + ":" + o.join(",");
+  }
+  function rimDecode(str) {
+    var p = String(str || "0:").split(":"), list = p[1] ? p[1].split(",") : [], i;
+    rimScale = Math.max(0, Math.min(RIM_SCALES.length - 1, parseInt(p[0], 10) || 0));
+    rimNotes = [];
+    for (i = 0; i < list.length; i++) {
+      var q = list[i].split("."), st = parseInt(q[0], 10), f = parseInt(q[1], 10);
+      if (st >= 0 && st < 60 && f >= 0 && f < 12) { rimNotes.push({ step: st, field: f, hold: 0 }); }
+    }
+    rimUi();
+  }
+  function undoCode() { return encodeState(captureState()) + "\u0001" + rimEncode(); }
   function undoNote() {
     if (drag || undoLast === null) { return; }
-    var code = encodeState(captureState());
+    var code = undoCode();
     if (code === undoLast) { return; }
     undoStack.push(undoLast);
     if (undoStack.length > UNDO_MAX) { undoStack.shift(); }
@@ -4602,7 +4643,9 @@
     if (live) { ph = (ac.currentTime - t0) / T; ph -= Math.floor(ph); }
     for (var i = 0; i < shapes.length; i++) { if (shapes[i].gain) { shapes[i].gain.disconnect(); } }
     closeChooser();
-    applyState(decodeState(code));
+    var uparts = code.split("\u0001");
+    rimDecode(uparts[1]);
+    applyState(decodeState(uparts[0]));
     if (live) {
       if (T !== oldT) { t0 = ac.currentTime - ph * T; }
       for (var j = 0; j < shapes.length; j++) { align(shapes[j]); }
@@ -4612,13 +4655,13 @@
       droneNodes.gate.gain.cancelScheduledValues(ac.currentTime);
       droneNodes.gate.gain.setTargetAtTime(pulseOn ? 0 : 1, ac.currentTime, 0.01);
     }
-    if (!drone) { stopDrone(); } else if (playing) { audio(); startDrone(); }
+    engineSync();
     retuneDrone(); applyFreePitch(0.07); applyFreeLevel(); applyFreeReverb(); applyDroneLevel(); applyDroneRoom();
     applyFreeGate();
     renderPanel();
-    undoLast = encodeState(captureState());
+    undoLast = undoCode();
   }
-  undoLast = encodeState(captureState());
+  undoLast = undoCode();
   (function () {
     var ends = ["pointerup", "pointercancel", "touchend", "mouseup", "click", "change", "keyup"];
     function later() { setTimeout(undoNote, 0); }
