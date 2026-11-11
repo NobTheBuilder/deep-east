@@ -5030,8 +5030,6 @@
       makeShape(defByN(6), "hat", [0, 2, 4])
     ];
     pulseDivRaw(12);          /* the opening beat counts in 12 (4, 3 and 6 all land on it), so its pulse does too */
-    shapes.push(makeShape(defByN(8), "snare", euclidMutes(8)));
-    shapes.push(makeShape(defByN(12), "manjira", euclidMutes(12)));
     recomputeRings();
     for (var i = 0; i < shapes.length; i++) { shapes[i].ring = shapes[i].ringT; }
   })();
