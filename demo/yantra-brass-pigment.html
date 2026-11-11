@@ -1131,7 +1131,7 @@
       <div class="demo-opt">
         <button class="demo-sw" id="demoBrass" type="button" aria-pressed="true" aria-label="Engraved brass rim"></button>
         <div class="demo-name">Th&#257;l&#299;, the brass ring, played like a handpan</div>
-        <p>Strike the ring and it rings. Sixteen tone fields run clockwise from the top, a semitone each, an octave and a third in all: the span of a Volca Bass keyboard. They are lettered with the twelve swaras, the plate's own Sa sitting on A. The komal and tivra swaras are shaded like black keys and a dot marks the upper octave. The tuning is the plate's own and does not follow the drone or the free voice. It is added like any shape, from the Th&#257;l&#299; box beside Infinity. Tap its box or its row to rest it, hold the box to remove it. One button in its row steps through free, keeping and locked: free just plays, keeping records each strike so it returns every turn, and locked leaves the melody playing while touches on the ring do nothing. To change the melody without touching the rhythms, hold a stud to remove that one note, or hold the plate anywhere else for a second to clear every note; a line shows the hold filling.</p>
+        <p>Strike the ring and it rings. Sixteen tone fields run clockwise from the top, a semitone each, an octave and a third in all: the span of a Volca Bass keyboard. They are lettered with the twelve swaras, the plate's own Sa sitting on A. The komal and tivra swaras are shaded like black keys and a dot marks the upper octave. The tuning is the plate's own and does not follow the drone or the free voice. It is added like any shape, from the Th&#257;l&#299; box beside Infinity. Tap its box or its row to rest it, hold the box to remove it. One button in its row steps through free, keeping and locked: free just plays, keeping records each strike so it returns every turn, and locked leaves the melody playing while touches on the ring do nothing. To change the melody without touching the rhythms, hold a stud to remove that one note, or hold the plate anywhere else for a second to clear every note; a line shows the hold filling, and a hold never leaves a note of its own behind. Its row also has a m&#257;tr&#257; count, as the shapes do: 16 turns the plate once per turn of the Yantra, and any other count runs the melody at its own length against the rhythm, with its own hand crossing the brass.</p>
 
       </div>
       <div class="demo-opt">
@@ -3251,9 +3251,14 @@
   /* the rim is a voice like the shapes: added or not, resting or not; Keep is its one extra switch */
   var rimOn = true, rimRest = false, rimKeep = false, rimLock = false, rimVol = 0.6;
   var RIM_DEF = { n: -1, name: "Rim", rim: true };
+  /* like a shape with sixteen corners: at 16 the plate turns once per turn of the Yantra; at any other count
+     each sixteenth of the plate takes one matra, so the melody runs at its own length against the rhythm */
+  var RIM_HOME = 16, rimOwn = 16;
+  function rimPeriod() { return T * RIM_HOME / rimOwn; }
+  function rimSetOwn(v) { rimOwn = Math.max(1, Math.min(32, v | 0)); renderPanel(); }
   function rimAwake() { return rimOn && !rimRest; }
   function rimTap() { if (!rimOn) { rimOn = true; rimRest = false; } else { rimRest = !rimRest; } renderPanel(); }
-  function rimRemove() { rimOn = false; rimRest = false; rimKeep = false; rimLock = false; rimNotes = []; rimGlow = []; renderPanel(); }
+  function rimRemove() { rimOn = false; rimRest = false; rimKeep = false; rimLock = false; rimOwn = RIM_HOME; rimNotes = []; rimGlow = []; renderPanel(); }
   function rimSetVol(v) {
     rimVol = v < 0 ? 0 : (v > 1 ? 1 : v);
     if (rimBus && ac && rimAc === ac) { rimBus.gain.setTargetAtTime(0.5 * rimVol, ac.currentTime, 0.012); }
@@ -3305,6 +3310,10 @@
     if (!rimHold) { return; }
     if (!drag) { rimHold = null; return; }             /* the finger has gone */
     var el = now_() - rimHold.t, ix;
+    if (rimHold.made && el > 280) {
+      ix = rimNotes.indexOf(rimHold.made); if (ix >= 0) { rimNotes.splice(ix, 1); rimCountUi(); }
+      rimHold.made = null;
+    }
     if (rimHold.note) {
       if (el < RIM_HOLD_ONE) { return; }
       ix = rimNotes.indexOf(rimHold.note); if (ix >= 0) { rimNotes.splice(ix, 1); }
@@ -3361,16 +3370,16 @@
     rimVoice(rimFreq(field), now + 0.004, 0.9);
     rimGlow.push({ f: field, t: now_(), step: -1 });
     if (playing && rimKeep) {
-      var turns = (viewClock() - t0) / T, step = Math.round((turns - Math.floor(turns)) * 240) % 240;
+      var turns = (viewClock() - t0) / rimPeriod(), step = Math.round((turns - Math.floor(turns)) * 240) % 240;
       for (i = 0; i < rimNotes.length; i++) { if (rimNotes[i].step === step && rimNotes[i].field === field) { return; } }
-      rimNotes.push({ step: step, field: field, hold: now + T / 240 * 1.5 });
+      rimNotes.push({ step: step, field: field, hold: now + rimPeriod() / 240 * 1.5 });
       rimLast = rimNotes[rimNotes.length - 1];
       rimCountUi();
     }
   }
   function scheduleRim(until) {
     if (!DEMO.brass || !rimNotes.length || !rimAwake()) { return; }
-    var sd = T / 240, lo = Math.ceil((ac.currentTime - t0) / sd - 1e-6), i;
+    var sd = rimPeriod() / 240, lo = Math.ceil((ac.currentTime - t0) / sd - 1e-6), i;
     if (rimNext < lo || rimNext > lo + 240) { rimNext = lo; }
     while (t0 + rimNext * sd < until) {
       var at = t0 + rimNext * sd, st = ((rimNext % 240) + 240) % 240;
@@ -3438,6 +3447,13 @@
     }
     var sr = Math.max(2.2, bw * 0.105), rad = rIn + bw * 0.21;
     rimHoldTick();
+    if (playing && ac && rimOwn !== RIM_HOME && rimAwake() && rimNotes.length) {
+      var bph = (viewClock() - t0) / rimPeriod(); bph -= Math.floor(bph);
+      var bha = -Math.PI / 2 + bph * RIM_TAU;
+      ctx.beginPath(); ctx.moveTo(cx + (rIn - 3) * Math.cos(bha), cy + (rIn - 3) * Math.sin(bha));
+      ctx.lineTo(cx + (rOut + 3) * Math.cos(bha), cy + (rOut + 3) * Math.sin(bha));
+      ctx.strokeStyle = "rgba(255,246,222,0.92)"; ctx.lineWidth = 1.8; ctx.stroke();
+    }
     if (rimHold) {
       var hel = now_() - rimHold.t;
       ctx.strokeStyle = "rgba(255,246,222,0.92)"; ctx.lineCap = "round";
@@ -3821,7 +3837,7 @@
     pulseResume = true; pulseNext = -1;
   }
   function move(x, y) {
-    if (rimHold && Math.sqrt(Math.pow(x - rimHold.x, 2) + Math.pow(y - rimHold.y, 2)) > 10) { rimHold = null; }
+    if (rimHold && Math.sqrt(Math.pow(x - rimHold.x, 2) + Math.pow(y - rimHold.y, 2)) > 24) { rimHold = null; }
     if (!drag) { return; }
     if (drag.mode === "oct") { setOct(octFromSwipe(x, y)); return; }
     if (drag.mode === "ring") { return; }
@@ -3966,7 +3982,10 @@
     }
     drag = null;
   }
+  var lastTouchAt = -1e9;
+  cv.addEventListener("contextmenu", function (e) { e.preventDefault(); }, false);
   cv.addEventListener("mousedown", function (e) {
+    if (now_() - lastTouchAt < 900) { return; }
     var p = local(e.clientX, e.clientY);
     if (down(p[0], p[1])) { e.preventDefault(); }
   }, false);
@@ -3977,6 +3996,7 @@
   }, false);
   window.addEventListener("mouseup", function () { if (drag) { up(); } }, false);
   cv.addEventListener("touchstart", function (e) {
+    lastTouchAt = now_();
     if (e.touches.length !== 1) { drag = null; return; }
     var t = e.touches[0], p = local(t.clientX, t.clientY);
     down(p[0], p[1]);
@@ -3989,6 +4009,7 @@
     move(p[0], p[1]);
   }, { passive: false });
   cv.addEventListener("touchend", function (e) {
+    lastTouchAt = now_();
     if (e.cancelable) { e.preventDefault(); }
     if (drag) { up(); }
   }, { passive: false });
@@ -4365,6 +4386,22 @@
       rk.addEventListener("click", function (e) { e.preventDefault(); if (rimLock) { rimLock = false; } else if (rimKeep) { rimKeep = false; rimLock = true; } else { rimKeep = true; rimRest = false; }
         renderPanel(); }, false);
       row2.appendChild(rk);
+      var rmw = document.createElement("span"); rmw.className = "own-wrap";
+      var rmb = document.createElement("button"); rmb.className = "inst"; rmb.id = "rimOwnBtn";
+      rmb.appendChild(document.createTextNode("mātrā · " + rimOwn));
+      rmb.title = "mātrā: how many beats fill one turn · each sixteenth of the plate takes one mātrā · ◦ marks its home count";
+      rmb.addEventListener("click", function (e) {
+        e.preventDefault();
+        toggleChooser(rmb, rimOwn, function (v) { return "mātrā · " + v + (v === RIM_HOME ? "  ◦" : ""); },
+          function (v) { rimSetOwn(v); }, COUNT_VALUES);
+      }, false);
+      var rmd = document.createElement("button"); rmd.className = "nudge"; rmd.id = "rimOwnDown";
+      rmd.appendChild(document.createTextNode("▾")); rmd.title = "fewer mātrās to a turn";
+      rmd.addEventListener("click", function (e) { e.preventDefault(); rimSetOwn(rimOwn - 1); }, false);
+      var rmu = document.createElement("button"); rmu.className = "nudge"; rmu.id = "rimOwnUp";
+      rmu.appendChild(document.createTextNode("▴")); rmu.title = "more mātrās to a turn";
+      rmu.addEventListener("click", function (e) { e.preventDefault(); rimSetOwn(rimOwn + 1); }, false);
+      rmw.appendChild(rmu); rmw.appendChild(rmb); rmw.appendChild(rmd);
       var rgap = document.createElement("span"); rgap.className = "gap";
       var rvi = document.createElement("span"); rvi.className = "vol-inline";
       var rvl = document.createElement("span"); rvl.className = "ctrl-label"; rvl.appendChild(document.createTextNode("VOL"));
@@ -4376,12 +4413,12 @@
       bindVolTrack(rvt, rvk, rvp, function () { return rimVol; }, function (v) { rimSetVol(v); });
       var rrm = document.createElement("button"); rrm.className = "rm"; rrm.appendChild(document.createTextNode("×"));
       rrm.addEventListener("click", function (e) { e.preventDefault(); rimRemove(); }, false);
-      rmain.appendChild(rdot); rmain.appendChild(rnm); rmain.appendChild(row2);
+      rmain.appendChild(rdot); rmain.appendChild(rnm); rmain.appendChild(row2); rmain.appendChild(rmw);
       rmain.appendChild(rgap); rmain.appendChild(rvi); rmain.appendChild(rrm);
       rrow.appendChild(rmain);
       rrow.style.cursor = "pointer";
       rrow.addEventListener("click", function (e) {
-        if (rsc.contains(e.target) || row2.contains(e.target) || rvi.contains(e.target) || rrm.contains(e.target)) { return; }
+        if (rsc.contains(e.target) || row2.contains(e.target) || rmw.contains(e.target) || rvi.contains(e.target) || rrm.contains(e.target)) { return; }
         rimRest = !rimRest; renderPanel();
       }, false);
       layersEl.appendChild(rrow);
@@ -4966,7 +5003,7 @@
   /* An empty yantra: no shapes, drone asleep, free voice off, hum.
      Tempo, key and saptak stay as they were. */
   function resetScene() {
-    rimNotes = []; rimGlow = []; rimOn = false; rimRest = false; rimKeep = false; rimLock = false;
+    rimNotes = []; rimGlow = []; rimOn = false; rimRest = false; rimKeep = false; rimLock = false; rimOwn = RIM_HOME;
     for (var i = 0; i < shapes.length; i++) { if (shapes[i].gain) { shapes[i].gain.disconnect(); } }
     shapes = []; drone = false; droneSilent = false; stopDrone(); freeOn = false; freeOct = 1;
     droneEA = 0.5; droneER = 0.5; freePulse = false;
@@ -5038,7 +5075,7 @@
   function rimEncode() {
     var o = [], i;
     for (i = 0; i < rimNotes.length; i++) { o.push(rimNotes[i].step + "." + rimNotes[i].field); }
-    return rimScale + ":" + o.join(",") + ":" + (rimOn ? 1 : 0) + (rimRest ? 1 : 0) + (rimKeep ? 1 : 0) + (rimLock ? 1 : 0);
+    return rimScale + ":" + o.join(",") + ":" + (rimOn ? 1 : 0) + (rimRest ? 1 : 0) + (rimKeep ? 1 : 0) + (rimLock ? 1 : 0) + ":" + rimOwn;
   }
   function rimDecode(str) {
     var p = String(str || "0:").split(":"), list = p[1] ? p[1].split(",") : [], i;
@@ -5050,6 +5087,7 @@
     }
     var fl = p[2] || "000";
     rimOn = fl.charAt(0) === "1"; rimRest = fl.charAt(1) === "1"; rimKeep = fl.charAt(2) === "1"; rimLock = fl.charAt(3) === "1";
+    rimOwn = Math.max(1, Math.min(32, parseInt(p[3], 10) || RIM_HOME));
   }
   function undoCode() { return encodeState(captureState()) + "\u0001" + rimEncode(); }
   function undoNote() {
