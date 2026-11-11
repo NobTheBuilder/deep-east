@@ -1145,6 +1145,15 @@
         <p>The dial is drawn slightly smaller inside its box, the rim is wider, and the gaps between the pulse ring, the rim and the pitch arcs are wider. On a phone the box runs to the screen edges and is taller than it is wide.</p>
       </div>
       <div class="demo-opt">
+        <button class="demo-sw" id="demoDrums" type="button" aria-pressed="true" aria-label="Rebuilt kick, snare, clap and hat"></button>
+        <div class="demo-name">Rebuilt kick, snare, clap and hat</div>
+        <p>The four machine voices are rebuilt on the recipes of the classic analog drum machine. The kick is a pinged sine with a warm, rounded sub and a dull beater in place of the bright click; the snare, clap and hat lose their fizz. Switch this off to hear the old voices again. The manjira, ghatam, na and ge are unchanged.</p>
+      </div>
+      <div class="demo-opt">
+        <div class="demo-name">The hum opens into a space</div>
+        <p>Stretching the hum's fade past the middle now opens a far larger, longer reverb round it, with a soft echo feeding the tail and the tone brightening as the space grows.</p>
+      </div>
+      <div class="demo-opt">
         <button class="demo-sw" id="demoBead" type="button" aria-pressed="true" aria-label="Arcs answer only at their bead"></button>
         <div class="demo-name">Arcs answer only at their bead</div>
         <p>The free voice above and the drone key below no longer react to a touch anywhere along their arc. Each answers only when you take hold of its bead: tap the bead to switch the voice, drag it to move the pitch. The arc itself is just a line.</p>
@@ -1303,7 +1312,7 @@
                 "#957ac5","#96b44c","#bf566d","#7aacd1","#b46b4e","#6f78c1","#9fa3a9"];
   var DRONE_COL = "#c9973f";
   /* ===== demo ===== */
-  var DEMO = { brass: true, pig: false, room: true, bead: true };
+  var DEMO = { brass: true, pig: false, room: true, bead: true, drums: true };
   var DEF_VOL = 0.6;   /* where every voice starts */
   /* hue is the material that sounds; within the skins, the lower the voice the darker the pigment */
   var PIGMENTS = {
@@ -1715,7 +1724,7 @@
   /* past the middle, a longer fade also opens the drone into the temple space the free voice uses, up to
      ROOM_MAX of send at the longest: the tail is heard on every packet in pulse, and as a bloom round the hum.
      Unshaped there is no send and no reverb node at all, so it costs nothing. */
-  var ROOM_MAX = 0.9;
+  var ROOM_MAX = 1.5;
   function droneRoom() { return droneER > 0.5 ? (droneER - 0.5) * 2 * ROOM_MAX : 0; }
   function applyDroneRoom() {
     if (!droneNodes || !ac) { return; }
@@ -1724,10 +1733,19 @@
       if (amt < 0.005) { return; }
       var conv = makeReverb(); if (!conv) { return; }
       var send = ac.createGain(); send.gain.value = 0;
-      droneNodes.duck.connect(send); send.connect(conv); conv.connect(droneNodes.out);
+      /* the reverb is given real weight, and a soft, darkened echo feeds it so the tail outlasts the note */
+      var wet = ac.createGain(); wet.gain.value = 2.2;
+      var dl = ac.createDelay(1); dl.delayTime.value = 0.34;
+      var fb = ac.createGain(); fb.gain.value = 0.46;
+      var dlp = ac.createBiquadFilter(); dlp.type = "lowpass"; dlp.frequency.value = 2400;
+      droneNodes.duck.connect(send); send.connect(conv); send.connect(dl);
+      dl.connect(dlp); dlp.connect(fb); fb.connect(dl); dlp.connect(conv);
+      conv.connect(wet); wet.connect(droneNodes.out);
       droneNodes.room = send;
     }
     droneNodes.room.gain.setTargetAtTime(amt, ac.currentTime, 0.08);
+    /* the hum brightens as the space opens */
+    if (droneNodes.lp) { droneNodes.lp.frequency.setTargetAtTime(1400 + 1100 * Math.min(1, amt / ROOM_MAX), ac.currentTime, 0.2); }
   }
   /* one hit of a shape: its length while the voice is built, and a soft attack in front of it when it has one */
   function playHit(s, t) {
@@ -1738,8 +1756,109 @@
       ag.connect(dest); ag.__kv = dest.gain.value; dest = ag;
     }
     ENV_DEC = shapeLength(s); ENV_HOLD = A > 0.0005 ? A : 0;
-    try { SYNTH[s.inst](t, dest); } finally { ENV_DEC = 1; ENV_HOLD = 0; }
+    try { ((DEMO.drums && SYNTH2[s.inst]) || SYNTH[s.inst])(t, dest); } finally { ENV_DEC = 1; ENV_HOLD = 0; }
   }
+  /* ===== demo: the four machine voices, rebuilt =====
+     Recipes follow the classic analog drum machine; the numbers are the commonly quoted ones and are meant to be
+     tuned by ear. Nothing here is a sample. */
+  var KICK_CURVE = null;
+  function kickCurve() {
+    if (!KICK_CURVE) {
+      /* a soft, slightly lopsided clip: the lopsidedness adds the octave above the sub, which is what a small
+         speaker actually plays, and it does so warmly, without the bright click the old kick leaned on */
+      var n = 2048, k = 2.1, b = 0.22, lo = Math.tanh(b - k), hi = Math.tanh(b + k), mid = Math.tanh(b), i;
+      KICK_CURVE = new Float32Array(n);
+      for (i = 0; i < n; i++) { var x = (i * 2) / (n - 1) - 1; KICK_CURVE[i] = (Math.tanh(k * x + b) - mid) / Math.max(hi - mid, mid - lo); }
+    }
+    return KICK_CURVE;
+  }
+  /* noise between a high-pass and a low-pass, dying away */
+  function noiseBand(t, dur, hpF, lpF, peak, dest) {
+    var src = ac.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
+    var hp = ac.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = hpF; hp.Q.value = 0.7;
+    var lp = ac.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = lpF; lp.Q.value = 0.7;
+    var g = ac.createGain();
+    dur = dk(dur);
+    g.gain.setValueAtTime(peak, t); holdAt(g.gain, peak, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(hp); hp.connect(lp); lp.connect(g); g.connect(dest || master);
+    src.start(t); src.stop(t + dur + 0.02);
+  }
+  var SYNTH2 = {
+    /* a sine pinged like a resonator: it starts high and falls onto the sub within a few hundredths of a second
+       (the punch), rings out long, and sags a little as it dies. The sub sits on the drone's Sa nearest 55 Hz. */
+    kick: function (t, dest) {
+      var sa = 110 * Math.pow(2, droneKey / 12);
+      var f0 = sa * Math.pow(2, Math.round(Math.log(55 / sa) / Math.LN2));
+      var dur = dk(0.6);
+      var o = ac.createOscillator(), g = ac.createGain(), ws = ac.createWaveShaper(), out = ac.createGain();
+      o.type = "sine";
+      o.frequency.setValueAtTime(f0 * 3.4, t);
+      o.frequency.exponentialRampToValueAtTime(f0 * 1.3, t + 0.022);
+      o.frequency.exponentialRampToValueAtTime(f0, t + 0.075);
+      o.frequency.linearRampToValueAtTime(f0 * 0.95, t + dur);
+      g.gain.setValueAtTime(1, t); holdAt(g.gain, 1, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      ws.curve = kickCurve(); ws.oversample = "2x";
+      out.gain.value = 0.76;
+      o.connect(g); g.connect(ws); ws.connect(out); out.connect(dest || master);
+      o.start(t); o.stop(t + dur + 0.02);
+      body(t, 260, 130, 0.03, 0.08, 0.12, "sine", dest);              /* a round knock a phone can play */
+      noiseHit(t, 0.005, "lowpass", 1500, 0.7, 0.14, "linear", dest);  /* the beater: dull, not bright */
+      duckDrone(t, dest);
+    },
+    /* two tuned sines an octave apart for the shell, and the snares as noise with the fizz taken off the top */
+    snare: function (t, dest) {
+      body(t, 238 * 1.2, 238, 0.012, 0.16, 0.38, "sine", dest);
+      body(t, 476 * 1.12, 476, 0.01, 0.085, 0.2, "sine", dest);
+      noiseBand(t, 0.2, 1900, 8200, 0.32, dest);
+    },
+    /* one band of noise round 1 kHz, opened three times in quick sawtooth bursts and then left to ring */
+    clap: function (t, dest) {
+      var src = ac.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
+      var bp = ac.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 1050; bp.Q.value = 1.5;
+      var hp = ac.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 480; hp.Q.value = 0.7;
+      var g = ac.createGain(), out = ac.createGain(), gap = 0.0105, tail = dk(0.2), i;
+      g.gain.setValueAtTime(0, t);
+      for (i = 0; i < 3; i++) {
+        g.gain.setValueAtTime(1, t + i * gap);
+        g.gain.linearRampToValueAtTime(0.12, t + (i + 1) * gap - 0.0008);
+      }
+      g.gain.setValueAtTime(0.85, t + 3 * gap);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 3 * gap + tail);
+      out.gain.value = 1.6;
+      src.connect(bp); bp.connect(hp); hp.connect(g); g.connect(out); out.connect(dest || master);
+      src.start(t); src.stop(t + 3 * gap + tail + 0.02);
+    },
+    /* six square waves at clashing pitches, heard only through a band high up: metal, not hiss */
+    hat: function (t, dest) {
+      var fr = [205.3, 304.4, 369.6, 522.7, 540, 800], d = dk(0.06), i;
+      var bp = ac.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 7100; bp.Q.value = 1.1;
+      var hp = ac.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 6200; hp.Q.value = 0.7;
+      var g = ac.createGain();
+      g.gain.setValueAtTime(0.34, t); holdAt(g.gain, 0.34, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+      for (i = 0; i < fr.length; i++) {
+        var o = ac.createOscillator();
+        o.type = "square"; o.frequency.value = fr[i];
+        o.connect(bp); o.start(t); o.stop(t + d + 0.015);
+      }
+      bp.connect(hp); hp.connect(g); g.connect(dest || master);
+    }
+  };
+  /* a test hook: render one hit of a voice, old or new, and hand back the samples */
+  window.__yantraRender = function (inst, useNew) {
+    var OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    var off = new OAC(1, 44100, 44100), kAc = ac, kM = master, kN = noiseBuf, was = DEMO.drums, i;
+    ac = off; master = off.destination;
+    noiseBuf = off.createBuffer(1, 44100, 44100);
+    var d = noiseBuf.getChannelData(0), seed = 12345;
+    for (i = 0; i < d.length; i++) { seed = (seed * 1103515245 + 12345) & 0x7fffffff; d[i] = seed / 0x3fffffff - 1; }
+    DEMO.drums = !!useNew;
+    try { ((DEMO.drums && SYNTH2[inst]) || SYNTH[inst])(0.005, off.destination); }
+    finally { ac = kAc; master = kM; noiseBuf = kN; DEMO.drums = was; }
+    return off.startRendering().then(function (buf) { return Array.prototype.slice.call(buf.getChannelData(0)); });
+  };
   var SYNTH = {
     /* 808 lineage: long sine, deep pitch drop, plus a click transient */
     kick: function (t, dest) {
@@ -2059,7 +2178,7 @@
       fo.__ratio = freeRatio(); fo.__free = true;
       oscs.push(fo);
     }
-    droneNodes = { out: out, userGain: userGain, oscs: oscs, lfo: lfo, vlfo: vlfo, freeGain: fg, gate: gate, revSend: rsend, duck: duck, freeGate: fgate, hum: hum, freeOut: fout };
+    droneNodes = { out: out, userGain: userGain, oscs: oscs, lfo: lfo, vlfo: vlfo, freeGain: fg, gate: gate, revSend: rsend, duck: duck, freeGate: fgate, hum: hum, freeOut: fout, lp: lp };
     applyDroneRoom();
   }
   function retuneDrone() {
@@ -2503,6 +2622,11 @@
     var rad = geo.R * LIMB_IN + (geo.R * LIMB_OUT - geo.R * LIMB_IN) * 0.21, o = [], i;
     for (i = 0; i < rimNotes.length; i++) { var a = -Math.PI / 2 + rimNotes[i].step * RIM_TAU / 240; o.push([geo.cx + rad * Math.cos(a), geo.cy + rad * Math.sin(a)]); }
     return o;
+  };
+  window.__yantraHum = function (er) {
+    droneER = er; applyDroneRoom();
+    return { engine: !!droneNodes, room: !!(droneNodes && droneNodes.room), send: droneRoom(),
+             tone: droneNodes && droneNodes.lp ? Math.round(droneNodes.lp.frequency.value) : null };
   };
   window.__yantraDemo = function () {
     return { drone: drone, free: freeOn, engine: !!droneNodes,
@@ -4847,6 +4971,7 @@
     press("rimFree", function () { rimMode = 1; rimUi(); });
     press("rimKeep", function () { rimMode = 2; rimUi(); });
     wire("demoBead", "bead", "");
+    wire("demoDrums", "drums", "");
     document.body.classList.add("demo-room");
     var roomBtn = document.getElementById("demoRoom");
     if (roomBtn) {
