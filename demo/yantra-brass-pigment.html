@@ -1131,7 +1131,7 @@
       <div class="demo-opt">
         <button class="demo-sw" id="demoBrass" type="button" aria-pressed="true" aria-label="Engraved brass rim"></button>
         <div class="demo-name">Th&#257;l&#299;, the brass ring, played like a handpan</div>
-        <p>Strike the ring and it rings. Twelve tone fields, inlaid with their swaras, start from Sa at the top and rise clockwise through the scale; a dot above a swara marks each higher octave. Changing the scale re-letters them. It is added like any shape, from the Th&#257;l&#299; box beside Infinity. Tap its box or its row to rest it, hold the box to remove it. One button in its row steps through free, keeping and locked: free just plays, keeping records each strike so it returns every turn, and locked leaves the melody playing while touches on the ring do nothing. To change the melody without touching the rhythms, hold a stud to remove that one note, or hold the plate anywhere else for a second to clear every note; a line shows the hold filling.</p>
+        <p>Strike the ring and it rings. Sixteen tone fields run clockwise from A at the top, a semitone each, up to C in the octave above: the span of a Volca Bass keyboard. Sharps are shaded like black keys and a dot marks the upper octave. The tuning is the plate's own and does not follow the drone or the free voice. It is added like any shape, from the Th&#257;l&#299; box beside Infinity. Tap its box or its row to rest it, hold the box to remove it. One button in its row steps through free, keeping and locked: free just plays, keeping records each strike so it returns every turn, and locked leaves the melody playing while touches on the ring do nothing. To change the melody without touching the rhythms, hold a stud to remove that one note, or hold the plate anywhere else for a second to clear every note; a line shows the hold filling.</p>
 
       </div>
       <div class="demo-opt">
@@ -2449,7 +2449,7 @@
       g.restore();
     }
     /* a small drilled mark between the numerals */
-    rimLabels(g, m, nr, fs, small);
+    rimLabels(g, m, nr, fs, small, scaleTop, rOut);
     if (false) {
       for (i = 0; i < 12; i++) {
         a = -Math.PI / 2 + (i + 0.5) * TAU / 12;
@@ -3061,6 +3061,9 @@
      Twelve tone fields, one between each pair of numerals. Where you strike is the pitch;
      when you strike is the time, kept as a stud on the 60-step scale while the Yantra plays. */
   var RIM_TAU = Math.PI * 2;
+  var RIM_N = 16;           /* A up to C an octave and a third above, the span of a Volca Bass keyboard */
+  var RIM_A = 220;          /* the first field: A3, whatever the drone is doing */
+  var RIM_NAMES = ["A", "A\u266F", "B", "C", "C\u266F", "D", "D\u266F", "E", "F", "F\u266F", "G", "G\u266F"];
   var RIM_SCALES = [
     { name: "Bhūpālī", semis: [0, 2, 4, 7, 9] },
     { name: "Durgā", semis: [0, 2, 5, 7, 9] },
@@ -3084,15 +3087,10 @@
   }
   var rimScale = 0, rimNotes = [], rimNext = 0, rimGlow = [], rimBus = null, rimAc = null;
   function rimDegree(field) { return RIM_ORDER.indexOf(field); }
-  function rimOct(field) { return Math.floor(rimDegree(field) / RIM_SCALES[rimScale].semis.length); }
-  function rimSemis(field) {
-    var sc = RIM_SCALES[rimScale].semis;
-    return sc[rimDegree(field) % sc.length] + 12 * rimOct(field);
-  }
+  function rimOct(field) { return Math.floor(field / 12); }
+  function rimSemis(field) { return field; }   /* chromatic: one field, one semitone */
   function rimFreq(field) {
-    var base = 220 * Math.pow(2, droneKey / 12);
-    if (droneKey > 5) { base /= 2; }            /* keep the lowest field in a handpan's range */
-    return base * Math.pow(2, rimSemis(field) / 12);
+    return RIM_A * Math.pow(2, field / 12);
   }
   /* a struck steel tone field: fundamental, octave and twelfth, tuned true, each dying at its own rate */
   function rimVoice(freq, t, vel) {
@@ -3151,7 +3149,7 @@
     if (d < geo.R * LIMB_IN || d > geo.R * LIMB_OUT + 4) { return -1; }
     var a = Math.atan2(y - geo.cy, x - geo.cx) + Math.PI / 2;
     a = ((a % RIM_TAU) + RIM_TAU) % RIM_TAU;
-    return Math.floor(a / (RIM_TAU / 12)) % 12;
+    return Math.floor(a / (RIM_TAU / RIM_N)) % RIM_N;
   }
   function rimUi() {}
   function rimUiOld2() {
@@ -3174,6 +3172,15 @@
     if (b) { b.textContent = "Scale · " + RIM_SCALES[rimScale].name; }
     if (c) { c.textContent = rimNotes.length ? rimNotes.length + (rimNotes.length === 1 ? " strike kept" : " strikes kept") : "No strikes kept yet"; }
   }
+  function rimCountUi() {
+    var e = document.querySelector("#rimRow .nm");
+    if (e) { e.textContent = "Thālī" + (rimNotes.length ? " · " + rimNotes.length + " kept" : ""); }
+  }
+  /* 2. the plate's reverb used to be built on the first strike; it is built when play starts instead */
+  function rimWarm() {
+    if (!ac || !master || !DEMO.brass || !rimOn) { return; }
+    if (!rimBus || rimAc !== ac) { try { rimVoice(RIM_A, ac.currentTime, 0.0001); } catch (e) {} }
+  }
   function rimStrike(field) {
     audio();
     if (ac.state === "suspended" && ac.resume) { ac.resume(); }
@@ -3185,7 +3192,7 @@
       for (i = 0; i < rimNotes.length; i++) { if (rimNotes[i].step === step && rimNotes[i].field === field) { return; } }
       rimNotes.push({ step: step, field: field, hold: now + T / 240 * 1.5 });
       rimLast = rimNotes[rimNotes.length - 1];
-      renderPanel();
+      rimCountUi();
     }
   }
   function scheduleRim(until) {
@@ -3207,18 +3214,33 @@
     }
   }
   /* swaras inlaid pale into the brass, as silver is in Bidri work; a dot above for each higher saptak */
-  function rimLabels(g, m, nr, fs, small) {
-    var i, a, f2 = fs * (small ? 1.05 : 1.2);
-    g.font = f2.toFixed(1) + "px \"Tiro Devanagari Sanskrit\", \"Eczar\", serif";
+  function rimLabels(g, m, nr, fs, small, top, rOut) {
+    var i, a, a0, step = RIM_TAU / RIM_N, f2 = fs * (small ? 0.95 : 1.05);
+    for (i = 0; i < RIM_N; i++) {
+      a0 = -Math.PI / 2 + i * step;
+      if (RIM_NAMES[i % 12].length > 1) {            /* a sharp: a darker key */
+        g.beginPath(); g.arc(m, m, rOut - 1.5, a0, a0 + step); g.arc(m, m, top + 1, a0 + step, a0, true); g.closePath();
+        g.fillStyle = "rgba(18,11,4,0.36)"; g.fill();
+      }
+      g.lineWidth = 0.8;
+      g.beginPath(); g.moveTo(m + (top + 1) * Math.cos(a0) + 0.6, m + (top + 1) * Math.sin(a0) + 0.6);
+      g.lineTo(m + (rOut - 1.5) * Math.cos(a0) + 0.6, m + (rOut - 1.5) * Math.sin(a0) + 0.6);
+      g.strokeStyle = "rgba(255,236,190,0.22)"; g.stroke();
+      g.beginPath(); g.moveTo(m + (top + 1) * Math.cos(a0), m + (top + 1) * Math.sin(a0));
+      g.lineTo(m + (rOut - 1.5) * Math.cos(a0), m + (rOut - 1.5) * Math.sin(a0));
+      g.strokeStyle = "rgba(24,15,5,0.7)"; g.stroke();
+    }
+    g.font = "500 " + f2.toFixed(1) + "px \"Eczar\", \"Spectral\", serif";
     g.textAlign = "center"; g.textBaseline = "middle";
-    for (i = 0; i < 12; i++) {
-      a = -Math.PI / 2 + (i + 0.5) * RIM_TAU / 12;
-      var sem = rimSemis(i) % 12, oc = rimOct(i), q;
+    for (i = 0; i < RIM_N; i++) {
+      a = -Math.PI / 2 + (i + 0.5) * step;
+      var nm = RIM_NAMES[i % 12], sharp = nm.length > 1, oc = rimOct(i), q;
       g.save(); g.translate(m + nr * Math.cos(a), m + nr * Math.sin(a)); g.rotate(a + Math.PI / 2);
-      g.fillStyle = "rgba(20,12,4,0.8)"; g.fillText(RIM_SWARA[sem], 0.6, 1);
-      g.fillStyle = sem === 0 ? "#fffaea" : "rgba(243,236,219,0.84)"; g.fillText(RIM_SWARA[sem], 0, 0.3);   /* each Sa stands out */
-      for (q = 0; q < oc; q++) {
-        g.beginPath(); g.arc((q - (oc - 1) / 2) * f2 * 0.3, -f2 * 0.62, Math.max(0.7, f2 * 0.07), 0, RIM_TAU); g.fill();
+      g.fillStyle = "rgba(20,12,4,0.8)"; g.fillText(nm, 0.6, 1);
+      g.fillStyle = sharp ? "rgba(236,228,208,0.72)" : (i % 12 === 0 ? "#fffaea" : "rgba(246,240,224,0.93)");
+      g.fillText(nm, 0, 0.3);
+      for (q = 0; q < oc; q++) {                     /* a dot above for the octave above */
+        g.beginPath(); g.arc((q - (oc - 1) / 2) * f2 * 0.3, -f2 * 0.66, Math.max(0.7, f2 * 0.07), 0, RIM_TAU); g.fill();
       }
       g.restore();
     }
@@ -3237,7 +3259,7 @@
       var gl = rimGlow[i], age = (tn - gl.t) / 900;
       if (age > 1) { rimGlow.splice(i, 1); continue; }
       if (gl.step >= 0 && age < 0.4) { lit[gl.step + "/" + gl.f] = 1 - age / 0.4; }
-      var a0 = -Math.PI / 2 + gl.f * RIM_TAU / 12, a1 = a0 + RIM_TAU / 12;
+      var a0 = -Math.PI / 2 + gl.f * RIM_TAU / RIM_N, a1 = a0 + RIM_TAU / RIM_N;
       ctx.beginPath(); ctx.arc(cx, cy, rOut, a0, a1); ctx.arc(cx, cy, rIn, a1, a0, true); ctx.closePath();
       ctx.fillStyle = "rgba(255,238,196," + (0.4 * Math.pow(1 - age, 2)).toFixed(3) + ")"; ctx.fill();
     }
@@ -4181,7 +4203,7 @@
       bindVolTrack(rvt, rvk, rvp, function () { return rimVol; }, function (v) { rimSetVol(v); });
       var rrm = document.createElement("button"); rrm.className = "rm"; rrm.appendChild(document.createTextNode("×"));
       rrm.addEventListener("click", function (e) { e.preventDefault(); rimRemove(); }, false);
-      rmain.appendChild(rdot); rmain.appendChild(rnm); rmain.appendChild(rsc); rmain.appendChild(row2);
+      rmain.appendChild(rdot); rmain.appendChild(rnm); rmain.appendChild(row2);
       rmain.appendChild(rgap); rmain.appendChild(rvi); rmain.appendChild(rrm);
       rrow.appendChild(rmain);
       rrow.style.cursor = "pointer";
@@ -4319,6 +4341,7 @@
       var begin = function () {
         playing = true;
         hushSoundEmbeds();
+        rimWarm();
         /* sam is 25 ms out (was 60) and handed to the audio engine at once, not on the next 16 ms tick; the slow
            one-off work (building the drone, which fades in over 2 s anyway) comes after, so it cannot delay it */
         if (!shapes.length && !drone && !freeOn) { toggleShape(defByN(0)); }   /* an empty yantra wakes the drone */
@@ -4849,7 +4872,7 @@
     rimNotes = [];
     for (i = 0; i < list.length; i++) {
       var q = list[i].split("."), st = parseInt(q[0], 10), f = parseInt(q[1], 10);
-      if (st >= 0 && st < 240 && f >= 0 && f < 12) { rimNotes.push({ step: st, field: f, hold: 0 }); }
+      if (st >= 0 && st < 240 && f >= 0 && f < RIM_N) { rimNotes.push({ step: st, field: f, hold: 0 }); }
     }
     var fl = p[2] || "000";
     rimOn = fl.charAt(0) === "1"; rimRest = fl.charAt(1) === "1"; rimKeep = fl.charAt(2) === "1"; rimLock = fl.charAt(3) === "1";
