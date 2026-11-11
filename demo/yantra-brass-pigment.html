@@ -1131,7 +1131,7 @@
       <div class="demo-opt">
         <button class="demo-sw" id="demoBrass" type="button" aria-pressed="true" aria-label="Engraved brass rim"></button>
         <div class="demo-name">Th&#257;l&#299;, the brass ring, played like a handpan</div>
-        <p>Strike the ring and it rings. Sixteen tone fields run clockwise from the top, a semitone each, an octave and a third in all: the span of a Volca Bass keyboard. They are lettered with the twelve swaras, the plate's own Sa sitting on A. The komal and tivra swaras are shaded like black keys and a dot marks the upper octave. The tuning is the plate's own and does not follow the drone or the free voice. It is added like any shape, from the Th&#257;l&#299; box beside Infinity. Tap its box or its row to rest it, hold the box to remove it. Its state is the mark beside the plate at nine o'clock. Each tap takes the next step in making a pattern. An open ring is free: audition notes. Tap, and red is keeping: each strike is recorded and returns every turn. Tap again to leave record and carry on playing over it; the ring now holds a loose brass stud, meaning a pattern is held. Tap again and it becomes a slotted brass head: locked, the melody playing on while touches on the ring do nothing. One more tap unlocks it, back to the open ring. Holding the mark for half a second jumps straight into record from any of these, to add to a pattern without going round; a red line closes round the mark as the hold fills. To change the melody without touching the rhythms, hold a stud to remove that one note, or hold the plate anywhere else for a second to clear every note; a line shows the hold filling, and a hold never leaves a note of its own behind. Snap is also on the face of the dial, without a word: the short arc of dots beside the plate at three o'clock. Tap it: hollow dots are off, three filled dots are the rhythm's count, five are twice as fine. The count is the rhythm's own (the one the dotted pulse ring shows), or twice as fine. With snap on, a ring of dots appears on the plate and every kept note lands on one; notes already kept are pulled in too. Its row in Layers has a m&#257;tr&#257; count, as the shapes do: 16 turns the plate once per turn of the Yantra, and any other count runs the melody at its own length against the rhythm, with its own hand crossing the brass.</p>
+        <p>Strike the ring and it rings. Sixteen tone fields run clockwise from the top, a semitone each, an octave and a third in all: the span of a Volca Bass keyboard. They are lettered with the twelve swaras, the plate's own Sa sitting on A. The komal and tivra swaras are shaded like black keys and a dot marks the upper octave. The tuning is the plate's own and does not follow the drone or the free voice. It is added like any shape, from the Th&#257;l&#299; box beside Infinity. Tap its box or its row to rest it, hold the box to remove it. Its state is the mark beside the plate at nine o'clock. Each tap takes the next step in making a pattern. An open ring is free: audition notes. Tap, and red is keeping: each strike is recorded and returns every turn. Tap again to leave record and carry on playing over it; the ring now holds a loose brass stud, meaning a pattern is held. Tap again and it becomes a slotted brass head: locked, the melody playing on while touches on the ring do nothing. One more tap unlocks it, back to the open ring. Holding the mark for half a second jumps straight into record from any of these, to add to a pattern without going round; a red line closes round the mark as the hold fills. The plate has an envelope like the shapes. Draw a finger straight out from the plate to lengthen its ring, or straight in to shorten it; once that has begun, moving round the plate softens the attack. A faint ring outside the brass shows the shape, wider for longer and blurred for softer. To change the melody without touching the rhythms, hold a stud to remove that one note, or hold the plate anywhere else for a second to clear every note; a line shows the hold filling, and a hold never leaves a note of its own behind. Snap is also on the face of the dial, without a word: the short arc of dots beside the plate at three o'clock. Tap it: hollow dots are off, three filled dots are the rhythm's count, five are twice as fine. The count is the rhythm's own (the one the dotted pulse ring shows), or twice as fine. With snap on, a ring of dots appears on the plate and every kept note lands on one; notes already kept are pulled in too. Its row in Layers has a m&#257;tr&#257; count, as the shapes do: 16 turns the plate once per turn of the Yantra, and any other count runs the melody at its own length against the rhythm, with its own hand crossing the brass.</p>
 
       </div>
       <div class="demo-opt">
@@ -2677,10 +2677,10 @@
     }
     return off.startRendering().then(function (buf) { return Array.prototype.slice.call(buf.getChannelData(0)); });
   };
-  window.__yantraSet = function (k, v) { if (k === "drums") { DEMO.drums = !!v; } if (k in TUNE) { TUNE[k] = v; } if (k in KT) { KT[k] = v; } if (k in RT) { RT[k] = v; } return TUNE; };
+  window.__yantraSet = function (k, v) { if (k === "drums") { DEMO.drums = !!v; } if (k in TUNE) { TUNE[k] = v; } if (k in KT) { KT[k] = v; } if (k in RT) { RT[k] = v; } if (k === "rimEA") { rimEA = v; } if (k === "rimED") { rimED = v; } return TUNE; };
   var TUNE = { duck: 1 };
   window.__yantraDemo = function () {
-    return { drone: drone, free: freeOn, engine: !!droneNodes,
+    return { rimEA: rimEA, rimED: rimED, drone: drone, free: freeOn, engine: !!droneNodes,
              hum: droneNodes && droneNodes.hum ? droneNodes.hum.gain.value : null, rim: rimNotes.length };
   };
   function droneOn() {
@@ -3258,6 +3258,11 @@
   /* like a shape with sixteen corners: at 16 the plate turns once per turn of the Yantra; at any other count
      each sixteenth of the plate takes one matra, so the melody runs at its own length against the rhythm */
   var RIM_HOME = 16, rimOwn = 16;
+  /* the plate's envelope, as for a shape: attack 0 = struck, length 0.5 = as built */
+  var rimEA = 0, rimED = 0.5, rimEnv = null;
+  function rimAttack() { return rimEA * rimEA * 0.3; }
+  function rimLength() { return logMap(rimED, 0.25, 1, 3); }
+  function rimEnvDefault() { return rimEA < 0.005 && Math.abs(rimED - 0.5) < 0.005; }
   /* 0 off; 1 the rhythm's own count, the one the dotted ring shows; 2 twice as fine */
   var rimSnap = 0;
   function rimGrid() { return rimSnap ? PULSE_N * rimSnap : 0; }
@@ -3283,7 +3288,7 @@
   function rimSetOwn(v) { rimOwn = Math.max(1, Math.min(32, v | 0)); renderPanel(); }
   function rimAwake() { return rimOn && !rimRest; }
   function rimTap() { if (!rimOn) { rimOn = true; rimRest = false; } else { rimRest = !rimRest; } renderPanel(); }
-  function rimRemove() { rimOn = false; rimRest = false; rimKeep = false; rimLock = false; rimPost = false; rimOwn = RIM_HOME; rimSnap = 0; rimNotes = []; rimGlow = []; renderPanel(); }
+  function rimRemove() { rimOn = false; rimRest = false; rimKeep = false; rimLock = false; rimPost = false; rimOwn = RIM_HOME; rimSnap = 0; rimEA = 0; rimED = 0.5; rimNotes = []; rimGlow = []; renderPanel(); }
   function rimSetVol(v) {
     rimVol = v < 0 ? 0 : (v > 1 ? 1 : v);
     if (rimBus && ac && rimAc === ac) { rimBus.gain.setTargetAtTime(RT.level * rimVol, ac.currentTime, 0.012); }
@@ -3313,14 +3318,16 @@
       var o = ac.createOscillator(), g = ac.createGain();
       o.type = "sine"; o.frequency.value = freq * parts[i][0];
       g.gain.setValueAtTime(0, t);
-      g.gain.linearRampToValueAtTime(parts[i][1] * vel, t + 0.005);
-      g.gain.setTargetAtTime(0, t + 0.005, parts[i][2]);
-      o.connect(g); g.connect(rimBus); o.start(t); o.stop(t + 4.5);
+      /* a longer ring is laid a little quieter, so stretched notes do not pile up into the ceiling */
+      var eA = Math.max(0.005, rimAttack()), eL = rimLength(), eV = vel / Math.sqrt(Math.max(1, eL));
+      g.gain.linearRampToValueAtTime(parts[i][1] * eV, t + eA);
+      g.gain.setTargetAtTime(0, t + eA, parts[i][2] * eL);
+      o.connect(g); g.connect(rimBus); o.start(t); o.stop(t + eA + 4.5 * eL);
     }
     if (noiseBuf) {                             /* the finger */
       var n = ac.createBufferSource(), bp = ac.createBiquadFilter(), ng = ac.createGain();
       n.buffer = noiseBuf; bp.type = "bandpass"; bp.frequency.value = Math.min(6000, freq * 3); bp.Q.value = 1.4;
-      ng.gain.setValueAtTime(0.22 * vel, t); ng.gain.exponentialRampToValueAtTime(0.001, t + 0.045);
+      ng.gain.setValueAtTime(Math.max(0.0011, 0.22 * vel * Math.max(0, 1 - rimAttack() / 0.04)), t); ng.gain.exponentialRampToValueAtTime(0.001, t + 0.045);
       n.connect(bp); bp.connect(ng); ng.connect(rimBus); n.start(t); n.stop(t + 0.06);
     }
   }
@@ -3568,6 +3575,15 @@
     var sr = Math.max(2.2, bw * 0.105), rad = rIn + bw * 0.21;
     rimHoldTick();
     drawRimMark(cx, cy);
+    if (rimOn && ((rimEnv && rimEnv.on) || !rimEnvDefault())) {
+      var eLive = !!(rimEnv && rimEnv.on);
+      ctx.beginPath(); ctx.arc(cx, cy, rOut + 5 + (rimED - 0.5) * 0.2 * R, 0, RIM_TAU);
+      ghostStroke(DRONE_COL, (eLive ? 0.6 : 0.16) * (rimAwake() ? 1 : 0.5), rimEA);
+      if (eLive) {
+        cText("attack " + fmtSecs(rimAttack()) + "  \u00B7  length \u00D7" + rimLength().toFixed(1), cx, cy - Math.max(44, R * 0.3),
+              "italic 300 13px 'Spectral', serif", "rgba(245,239,228,0.85)", "center");
+      }
+    }
     drawRimMode(cx, cy);
     if (rimSnap && rimOwn === RIM_HOME && rimAwake()) {
       var gN = rimGrid(), gi, gr = rIn + bw * 0.21;
@@ -3837,6 +3853,7 @@
         rimLast = null;
         rimStrike(rf);
         rimHold = rimNotes.length ? { t: now_(), x: x, y: y, note: heldNote, made: rimLast } : null;
+        rimEnv = { rr0: distC(x, y), a0: angleAt(x, y), aLock: 0, e0: [rimEA, rimED], on: false, made: rimLast };
         drag = { mode: "ring", s: null, k: -1, moved: false, dist: 0 };
         return true;
       }
@@ -3977,6 +3994,21 @@
     pulseResume = true; pulseNext = -1;
   }
   function move(x, y) {
+    if (rimEnv) {
+      var edr = distC(x, y) - rimEnv.rr0, etg = Math.abs(wrapA(angleAt(x, y) - rimEnv.a0)) * Math.max(30, rimEnv.rr0);
+      if (!rimEnv.on && Math.abs(edr) >= 14 && Math.abs(edr) > etg * 1.2) {
+        /* gone straight out or in: this is shaping, not a strike and not a hold */
+        rimEnv.on = true; rimEnv.aLock = angleAt(x, y); rimHold = null;
+        var emi = rimEnv.made ? rimNotes.indexOf(rimEnv.made) : -1;
+        if (emi >= 0) { rimNotes.splice(emi, 1); rimCountUi(); }
+        try { if (navigator.vibrate) { navigator.vibrate(8); } } catch (e) {}
+      }
+      if (rimEnv.on) {
+        rimED = clamp01(rimEnv.e0[1] + edr / ENV_SPAN);
+        rimEA = clamp01(rimEnv.e0[0] + wrapA(angleAt(x, y) - rimEnv.aLock) * Math.max(30, rimEnv.rr0) / ENV_SPAN);
+        return;
+      }
+    }
     if (rimModePress && Math.sqrt(Math.pow(x - rimModePress.x, 2) + Math.pow(y - rimModePress.y, 2)) > 24) { rimModePress = null; }
     if (rimHold && Math.sqrt(Math.pow(x - rimHold.x, 2) + Math.pow(y - rimHold.y, 2)) > 24) { rimHold = null; }
     if (!drag) { return; }
@@ -4071,6 +4103,7 @@
   var LONG_PRESS = 480;
   function up() {
     rimHold = null;
+    if (rimEnv) { var shaped = rimEnv.on; rimEnv = null; if (shaped) { renderPanel(); } }
     if (rimModePress) { if (!rimModePress.done) { rimCycleMode(); } rimModePress = null; }
     if (drag && drag.lp) { clearTimeout(drag.lp); }
     if (drag && drag.mode === "pulse" && drag.ready && !drag.moved) {
@@ -5151,7 +5184,7 @@
   /* An empty yantra: no shapes, drone asleep, free voice off, hum.
      Tempo, key and saptak stay as they were. */
   function resetScene() {
-    rimNotes = []; rimGlow = []; rimOn = false; rimRest = false; rimKeep = false; rimLock = false; rimPost = false; rimOwn = RIM_HOME; rimSnap = 0;
+    rimNotes = []; rimGlow = []; rimOn = false; rimRest = false; rimKeep = false; rimLock = false; rimPost = false; rimOwn = RIM_HOME; rimSnap = 0; rimEA = 0; rimED = 0.5;
     for (var i = 0; i < shapes.length; i++) { if (shapes[i].gain) { shapes[i].gain.disconnect(); } }
     shapes = []; drone = false; droneSilent = false; stopDrone(); freeOn = false; freeOct = 1;
     droneEA = 0.5; droneER = 0.5; freePulse = false;
@@ -5221,7 +5254,7 @@
   function rimEncode() {
     var o = [], i;
     for (i = 0; i < rimNotes.length; i++) { o.push(rimNotes[i].step + "." + rimNotes[i].field); }
-    return rimScale + ":" + o.join(",") + ":" + (rimOn ? 1 : 0) + (rimRest ? 1 : 0) + (rimKeep ? 1 : 0) + (rimLock ? 1 : 0) + (rimPost ? 1 : 0) + ":" + rimOwn + ":" + rimSnap;
+    return rimScale + ":" + o.join(",") + ":" + (rimOn ? 1 : 0) + (rimRest ? 1 : 0) + (rimKeep ? 1 : 0) + (rimLock ? 1 : 0) + (rimPost ? 1 : 0) + ":" + rimOwn + ":" + rimSnap + ":" + Math.round(rimEA * 100) + "." + Math.round(rimED * 100);
   }
   function rimDecode(str) {
     var p = String(str || "0:").split(":"), list = p[1] ? p[1].split(",") : [], i;
@@ -5235,6 +5268,9 @@
     rimOn = fl.charAt(0) === "1"; rimRest = fl.charAt(1) === "1"; rimKeep = fl.charAt(2) === "1"; rimLock = fl.charAt(3) === "1"; rimPost = fl.charAt(4) === "1";
     rimOwn = Math.max(1, Math.min(32, parseInt(p[3], 10) || RIM_HOME));
     rimSnap = Math.max(0, Math.min(2, parseInt(p[4], 10) || 0));
+    var pe5 = String(p[5] || "0.50").split(".");
+    rimEA = Math.max(0, Math.min(1, (parseInt(pe5[0], 10) || 0) / 100));
+    rimED = Math.max(0, Math.min(1, (isNaN(parseInt(pe5[1], 10)) ? 50 : parseInt(pe5[1], 10)) / 100));
   }
   function undoCode() { return encodeState(captureState()) + "\u0001" + rimEncode(); }
   function undoNote() {
