@@ -991,6 +991,12 @@
   .layer .inst.rim-keep.on::before { background: #e25438; box-shadow: none; animation: rim-rec 1.3s ease-in-out infinite; }
   @media (prefers-reduced-motion: reduce) { .layer .inst.rim-keep.on::before { animation: none; } }
 </style>
+
+<style>
+  /* ================= demo, stage 6 ================= */
+  .layer .inst.rim-keep.locked { color: var(--kansa); }
+  .layer .inst.rim-keep.locked::before { background: var(--kansa); box-shadow: none; border-radius: 0; }
+</style>
 </head>
 <body>
 <canvas id="skyCv" aria-hidden="true"></canvas>
@@ -1124,8 +1130,8 @@
     <div class="demo-opts">
       <div class="demo-opt">
         <button class="demo-sw" id="demoBrass" type="button" aria-pressed="true" aria-label="Engraved brass rim"></button>
-        <div class="demo-name">Brass rim, played like a handpan</div>
-        <p>Strike the rim and it rings. Twelve tone fields, inlaid with their swaras, run from low at the bottom to high at the top, alternating sides. The rim is added like any shape, from the Rim box beside Infinity. Tap its box or its row to rest it, hold the box to remove it. In its row, tap the scale to change it and tap Keep to record: kept strikes return every turn, and the dial's undo takes them back one at a time.</p>
+        <div class="demo-name">Gha&#7789;&#299;, the brass ring, played like a handpan</div>
+        <p>Strike the ring and it rings. Twelve tone fields, inlaid with their swaras, run from low at the bottom to high at the top, alternating sides. It is added like any shape, from the Gha&#7789;&#299; box beside Infinity. Tap its box or its row to rest it, hold the box to remove it. One button in its row steps through free, keeping and locked: free just plays, keeping records each strike so it returns every turn, and locked leaves the melody playing while touches on the ring do nothing.</p>
 
       </div>
       <div class="demo-opt">
@@ -1136,7 +1142,13 @@
       <div class="demo-opt">
         <button class="demo-sw" id="demoRoom" type="button" aria-pressed="true" aria-label="More room"></button>
         <div class="demo-name">More room in the box</div>
+        <!-- next option follows this one -->
         <p>The dial is drawn slightly smaller inside its box, the rim is wider, and the gaps between the pulse ring, the rim and the pitch arcs are wider. On a phone the box runs to the screen edges and is taller than it is wide.</p>
+      </div>
+      <div class="demo-opt">
+        <button class="demo-sw" id="demoBead" type="button" aria-pressed="true" aria-label="Arcs answer only at their bead"></button>
+        <div class="demo-name">Arcs answer only at their bead</div>
+        <p>The free voice above and the drone key below no longer react to a touch anywhere along their arc. Each answers only when you take hold of its bead: tap the bead to switch the voice, drag it to move the pitch. The arc itself is just a line.</p>
       </div>
     </div>
   </div>
@@ -1295,7 +1307,7 @@
                 "#957ac5","#96b44c","#bf566d","#7aacd1","#b46b4e","#6f78c1","#9fa3a9"];
   var DRONE_COL = "#c9973f";
   /* ===== demo ===== */
-  var DEMO = { brass: true, pig: true, room: true };
+  var DEMO = { brass: true, pig: true, room: true, bead: true };
   /* hue is the material that sounds; within the skins, the lower the voice the darker the pigment */
   var PIGMENTS = {
     kick:    { col: "#b23a56", name: "lākh",     en: "lac",          fam: "skin" },
@@ -2456,7 +2468,7 @@
   function drawLimb(cx, cy, R) {
     var dpr = window.devicePixelRatio || 1, key = R.toFixed(1) + "/" + dpr + "/" + limbFont + "/" + rimScale + "/" + LIMB_OUT;
     if (key !== limbKey) { buildLimb(R, dpr); limbKey = key; }
-    ctx.globalAlpha = rimAwake() ? 1 : 0.55;   /* a resting or absent rim sits back */
+    ctx.globalAlpha = rimAwake() ? (rimLock ? 0.84 : 1) : 0.55;   /* a resting or absent rim sits back */
     ctx.drawImage(limbCv, cx - limbM, cy - limbM, limbM * 2, limbM * 2);
     ctx.globalAlpha = 1;
   }
@@ -3059,11 +3071,11 @@
   var RIM_ORDER = [5, 6, 4, 7, 3, 8, 2, 9, 1, 10, 0, 11];
   var rimMode = 0;
   /* the rim is a voice like the shapes: added or not, resting or not; Keep is its one extra switch */
-  var rimOn = true, rimRest = false, rimKeep = false, rimVol = 1;
+  var rimOn = true, rimRest = false, rimKeep = false, rimLock = false, rimVol = 1;
   var RIM_DEF = { n: -1, name: "Rim", rim: true };
   function rimAwake() { return rimOn && !rimRest; }
   function rimTap() { if (!rimOn) { rimOn = true; rimRest = false; } else { rimRest = !rimRest; } renderPanel(); }
-  function rimRemove() { rimOn = false; rimRest = false; rimKeep = false; rimNotes = []; rimGlow = []; renderPanel(); }
+  function rimRemove() { rimOn = false; rimRest = false; rimKeep = false; rimLock = false; rimNotes = []; rimGlow = []; renderPanel(); }
   function rimSetVol(v) {
     rimVol = v < 0 ? 0 : (v > 1 ? 1 : v);
     if (rimBus && ac && rimAc === ac) { rimBus.gain.setTargetAtTime(0.5 * rimVol, ac.currentTime, 0.012); }
@@ -3417,7 +3429,7 @@
       drag = { mode: "oct", s: null, k: -1, moved: false, dist: 0, x0: x, y0: y, o0: droneOct };
       return true;
     }
-    if (DEMO.brass && rimAwake()) {
+    if (DEMO.brass && rimAwake() && !rimLock) {
       var rf = rimFieldAt(x, y), rv = rf >= 0 ? nearOuterVertex(x, y) : null, rnear = false;
       if (rv) { var rp = vpos(rv.s, rv.k); rnear = Math.sqrt(Math.pow(x - rp[0], 2) + Math.pow(y - rp[1], 2)) < 11; }
       if (rf >= 0 && !rnear && !nearPitchMarker(x, y) && !nearFreeDot(x, y)) {
@@ -3431,7 +3443,7 @@
        so there a finger's width (24 px) still counts */
     var vOut = nearOuterVertex(x, y);
     var nodeFirst = !!vOut && !nearFreeDot(x, y) && !nearPitchMarker(x, y);
-    if (!nodeFirst && onFreeArc(x, y)) {
+    if (!nodeFirst && onFreeArc(x, y) && (!DEMO.bead || nearFreeDot(x, y))) {
       var onDot = nearFreeDot(x, y);
       drag = { mode: "free", s: null, k: -1, moved: false, dist: 0, onDot: onDot,
                wasOn: freeOn, oct0: freeOct,
@@ -3442,7 +3454,7 @@
       }
       return true;
     }
-    if (!nodeFirst && onPitchArc(x, y)) {
+    if (!nodeFirst && onPitchArc(x, y) && (!DEMO.bead || nearPitchMarker(x, y))) {
       var onMk = nearPitchMarker(x, y);
       drag = { mode: "pitch", s: null, k: -1, moved: false, dist: 0, onMarker: onMk, wasOn: drone };
       if (!onMk) { setDroneKey(pitchKeyAt(x, y)); droneOn(); }
@@ -3933,7 +3945,7 @@
     rsw.className = "sw"; rsw.style.color = DRONE_COL;
     rsw.innerHTML = "<svg viewBox=\"0 0 16 16\" aria-hidden=\"true\"><circle cx=\"8\" cy=\"8\" r=\"6.8\"/><circle cx=\"8\" cy=\"8\" r=\"4.3\"/></svg>";
     rb.appendChild(rsw);
-    rb.appendChild(document.createTextNode("Rim \u00B7 60"));
+    rb.appendChild(document.createTextNode("Gha\u1E6D\u012B \u00B7 60"));
     rb.setAttribute("data-n", "-1"); rb.setAttribute("data-col", DRONE_COL); rb.id = "rimBox";
     bindPress(rb, RIM_DEF);
     rows.inf.appendChild(rb);
@@ -4091,17 +4103,18 @@
       var rmain = document.createElement("div"); rmain.className = "layer-main";
       var rdot = document.createElement("span"); rdot.className = "dot"; rdot.style.background = DRONE_COL;
       var rnm = document.createElement("span"); rnm.className = "nm";
-      rnm.appendChild(document.createTextNode("Rim" + (rimNotes.length ? " · " + rimNotes.length + " kept" : "")));
+      rnm.appendChild(document.createTextNode("Gha\u1E6D\u012B" + (rimNotes.length ? " · " + rimNotes.length + " kept" : "")));
       var rsc = document.createElement("button"); rsc.className = "inst"; rsc.id = "rimScaleBtn";
       rsc.appendChild(document.createTextNode(RIM_SCALES[rimScale].name));
-      rsc.title = "The rim's scale — tap to change";
+      rsc.title = "The gha\u1E6D\u012B's scale \u2014 tap to change";
       rsc.addEventListener("click", function (e) { e.preventDefault(); rimScale = (rimScale + 1) % RIM_SCALES.length; renderPanel(); }, false);
       var row2 = document.createElement("span"); row2.className = "own-wrap";
-      var rk = document.createElement("button"); rk.className = "inst rim-keep" + (rimKeep ? " on" : ""); rk.id = "rimKeepBtn";
+      var rk = document.createElement("button"); rk.className = "inst rim-keep" + (rimKeep ? " on" : rimLock ? " locked" : ""); rk.id = "rimKeepBtn";
       rk.setAttribute("aria-pressed", rimKeep ? "true" : "false");
-      rk.appendChild(document.createTextNode(rimKeep ? (playing ? "keeping" : "keep · press play") : "keep"));
-      rk.title = "Keep: while on, each strike is recorded and returns every turn";
-      rk.addEventListener("click", function (e) { e.preventDefault(); rimKeep = !rimKeep; if (rimKeep) { rimRest = false; } renderPanel(); }, false);
+      rk.appendChild(document.createTextNode(rimLock ? "locked" : rimKeep ? (playing ? "keeping" : "keep · press play") : "free"));
+      rk.title = "Free: strikes sound and are not kept. Keeping: each strike is recorded and returns every turn. Locked: the kept melody plays on and touches do nothing.";
+      rk.addEventListener("click", function (e) { e.preventDefault(); if (rimLock) { rimLock = false; } else if (rimKeep) { rimKeep = false; rimLock = true; } else { rimKeep = true; rimRest = false; }
+        renderPanel(); }, false);
       row2.appendChild(rk);
       var rgap = document.createElement("span"); rgap.className = "gap";
       var rvi = document.createElement("span"); rvi.className = "vol-inline";
@@ -4703,7 +4716,7 @@
   /* An empty yantra: no shapes, drone asleep, free voice off, hum.
      Tempo, key and saptak stay as they were. */
   function resetScene() {
-    rimNotes = []; rimGlow = []; rimOn = false; rimRest = false; rimKeep = false;
+    rimNotes = []; rimGlow = []; rimOn = false; rimRest = false; rimKeep = false; rimLock = false;
     for (var i = 0; i < shapes.length; i++) { if (shapes[i].gain) { shapes[i].gain.disconnect(); } }
     shapes = []; drone = false; droneSilent = false; stopDrone(); freeOn = false; freeOct = 1;
     droneEA = 0.5; droneER = 0.5; freePulse = false;
@@ -4756,6 +4769,7 @@
     press("rimLocked", function () { rimMode = 0; rimUi(); });
     press("rimFree", function () { rimMode = 1; rimUi(); });
     press("rimKeep", function () { rimMode = 2; rimUi(); });
+    wire("demoBead", "bead", "");
     document.body.classList.add("demo-room");
     var roomBtn = document.getElementById("demoRoom");
     if (roomBtn) {
@@ -4773,7 +4787,7 @@
   function rimEncode() {
     var o = [], i;
     for (i = 0; i < rimNotes.length; i++) { o.push(rimNotes[i].step + "." + rimNotes[i].field); }
-    return rimScale + ":" + o.join(",") + ":" + (rimOn ? 1 : 0) + (rimRest ? 1 : 0) + (rimKeep ? 1 : 0);
+    return rimScale + ":" + o.join(",") + ":" + (rimOn ? 1 : 0) + (rimRest ? 1 : 0) + (rimKeep ? 1 : 0) + (rimLock ? 1 : 0);
   }
   function rimDecode(str) {
     var p = String(str || "0:").split(":"), list = p[1] ? p[1].split(",") : [], i;
@@ -4784,7 +4798,7 @@
       if (st >= 0 && st < 60 && f >= 0 && f < 12) { rimNotes.push({ step: st, field: f, hold: 0 }); }
     }
     var fl = p[2] || "000";
-    rimOn = fl.charAt(0) === "1"; rimRest = fl.charAt(1) === "1"; rimKeep = fl.charAt(2) === "1";
+    rimOn = fl.charAt(0) === "1"; rimRest = fl.charAt(1) === "1"; rimKeep = fl.charAt(2) === "1"; rimLock = fl.charAt(3) === "1";
   }
   function undoCode() { return encodeState(captureState()) + "\u0001" + rimEncode(); }
   function undoNote() {
