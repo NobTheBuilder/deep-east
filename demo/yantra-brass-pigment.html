@@ -1130,14 +1130,13 @@
     <div class="demo-opts">
       <div class="demo-opt">
         <button class="demo-sw" id="demoBrass" type="button" aria-pressed="true" aria-label="Engraved brass rim"></button>
-        <div class="demo-name">Gha&#7789;&#299;, the brass ring, played like a handpan</div>
-        <p>Strike the ring and it rings. Twelve tone fields, inlaid with their swaras, run from low at the bottom to high at the top, alternating sides. It is added like any shape, from the Gha&#7789;&#299; box beside Infinity. Tap its box or its row to rest it, hold the box to remove it. One button in its row steps through free, keeping and locked: free just plays, keeping records each strike so it returns every turn, and locked leaves the melody playing while touches on the ring do nothing.</p>
+        <div class="demo-name">Th&#257;l&#299;, the brass ring, played like a handpan</div>
+        <p>Strike the ring and it rings. Twelve tone fields, inlaid with their swaras, start from Sa at the top and rise clockwise through the scale; a dot above a swara marks each higher octave. Changing the scale re-letters them. It is added like any shape, from the Th&#257;l&#299; box beside Infinity. Tap its box or its row to rest it, hold the box to remove it. One button in its row steps through free, keeping and locked: free just plays, keeping records each strike so it returns every turn, and locked leaves the melody playing while touches on the ring do nothing.</p>
 
       </div>
       <div class="demo-opt">
-        <button class="demo-sw" id="demoPig" type="button" aria-pressed="true" aria-label="Pigment rule"></button>
-        <div class="demo-name">Pigment rule</div>
-        <p>Colour follows the voice. Skins take reds, metals the blues and greens of brass's own patina, clay ochre, the hand shell white. A second shape on the same voice takes a paler wash of that pigment, a third a deeper one, and a quieter shape is drawn fainter.</p>
+        <div class="demo-name">Quieter shapes fade</div>
+        <p>Every shape keeps its own colour. Turning a shape's volume down thins and fades its line, so a soft layer looks soft. The nodes never fade, the line never drops below about half strength, and a shape you are holding returns to full strength.</p>
       </div>
       <div class="demo-opt">
         <button class="demo-sw" id="demoRoom" type="button" aria-pressed="true" aria-label="More room"></button>
@@ -1175,10 +1174,7 @@
         <div class="hint" style="margin-bottom:0.6rem;">Layers &middot; tap sound to change</div>
         <div class="layers" id="layers"></div>
       </div>
-      <div id="pigBlock">
-        <div class="hint" style="margin-bottom:0.7rem;">Pigments &middot; colour follows the voice</div>
-        <div class="pig-legend" id="pigLegend"></div>
-      </div>
+
       <div>
         <div class="tempo-line"><span class="hint">Tempo</span><span class="bpm" id="bpmVal">96 BPM</span></div>
         <input type="range" id="bpm" min="50" max="180" value="96" />
@@ -1307,7 +1303,7 @@
                 "#957ac5","#96b44c","#bf566d","#7aacd1","#b46b4e","#6f78c1","#9fa3a9"];
   var DRONE_COL = "#c9973f";
   /* ===== demo ===== */
-  var DEMO = { brass: true, pig: true, room: true, bead: true };
+  var DEMO = { brass: true, pig: false, room: true, bead: true };
   /* hue is the material that sounds; within the skins, the lower the voice the darker the pigment */
   var PIGMENTS = {
     kick:    { col: "#b23a56", name: "lākh",     en: "lac",          fam: "skin" },
@@ -3068,7 +3064,7 @@
   var RIM_SWARA = ["सा", "रे॒", "रे", "ग॒", "ग", "म", "म॑",
                    "प", "ध॒", "ध", "नि॒", "नि"];
   /* fields in rising pitch: lowest at the bottom, then side to side up to the top, as on a handpan */
-  var RIM_ORDER = [5, 6, 4, 7, 3, 8, 2, 9, 1, 10, 0, 11];
+  var RIM_ORDER = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];   /* Sa at the top, rising clockwise */
   var rimMode = 0;
   /* the rim is a voice like the shapes: added or not, resting or not; Keep is its one extra switch */
   var rimOn = true, rimRest = false, rimKeep = false, rimLock = false, rimVol = 1;
@@ -3185,7 +3181,7 @@
       var sem = rimSemis(i) % 12, oc = rimOct(i), q;
       g.save(); g.translate(m + nr * Math.cos(a), m + nr * Math.sin(a)); g.rotate(a + Math.PI / 2);
       g.fillStyle = "rgba(20,12,4,0.8)"; g.fillText(RIM_SWARA[sem], 0.6, 1);
-      g.fillStyle = "#f3ecdb"; g.fillText(RIM_SWARA[sem], 0, 0.3);
+      g.fillStyle = sem === 0 ? "#fffaea" : "rgba(243,236,219,0.84)"; g.fillText(RIM_SWARA[sem], 0, 0.3);   /* each Sa stands out */
       for (q = 0; q < oc; q++) {
         g.beginPath(); g.arc((q - (oc - 1) / 2) * f2 * 0.3, -f2 * 0.62, Math.max(0.7, f2 * 0.07), 0, RIM_TAU); g.fill();
       }
@@ -3272,9 +3268,11 @@
       ctx.strokeStyle = s.color;
       var lit = (s.pop || 0) / POP;
       /* a quieter shape is laid on thinner */
-      var wv = DEMO.pig ? s.vol : 1;
-      ctx.globalAlpha = s.silent ? 0.22 + 0.5 * lit : (0.85 + 0.15 * lit) * (DEMO.pig ? 0.4 + 0.6 * wv : 1);
-      ctx.lineWidth = (1.3 + 1.1 * lit) * (DEMO.pig ? 0.55 + 0.65 * wv : 1); ctx.stroke();
+      /* only the line fades, never the nodes; it stops well short of invisible, and a shape
+         under the finger comes back to full strength */
+      var wv = s.vol + (1 - s.vol) * lit;
+      ctx.globalAlpha = s.silent ? 0.22 + 0.5 * lit : (0.85 + 0.15 * lit) * (0.48 + 0.52 * wv);
+      ctx.lineWidth = (1.3 + 1.1 * lit) * (0.62 + 0.38 * wv); ctx.stroke();
       ctx.globalAlpha = 1;
       for (k = 0; k < s.n; k++) {
         if (s.own && s.skips.indexOf(k) !== -1) { drawSkipMark(vpos(s, k), s.color, s.silent); continue; }
@@ -3945,7 +3943,7 @@
     rsw.className = "sw"; rsw.style.color = DRONE_COL;
     rsw.innerHTML = "<svg viewBox=\"0 0 16 16\" aria-hidden=\"true\"><circle cx=\"8\" cy=\"8\" r=\"6.8\"/><circle cx=\"8\" cy=\"8\" r=\"4.3\"/></svg>";
     rb.appendChild(rsw);
-    rb.appendChild(document.createTextNode("Gha\u1E6D\u012B \u00B7 60"));
+    rb.appendChild(document.createTextNode("Th\u0101l\u012B \u00B7 60"));
     rb.setAttribute("data-n", "-1"); rb.setAttribute("data-col", DRONE_COL); rb.id = "rimBox";
     bindPress(rb, RIM_DEF);
     rows.inf.appendChild(rb);
@@ -4103,10 +4101,10 @@
       var rmain = document.createElement("div"); rmain.className = "layer-main";
       var rdot = document.createElement("span"); rdot.className = "dot"; rdot.style.background = DRONE_COL;
       var rnm = document.createElement("span"); rnm.className = "nm";
-      rnm.appendChild(document.createTextNode("Gha\u1E6D\u012B" + (rimNotes.length ? " · " + rimNotes.length + " kept" : "")));
+      rnm.appendChild(document.createTextNode("Th\u0101l\u012B" + (rimNotes.length ? " · " + rimNotes.length + " kept" : "")));
       var rsc = document.createElement("button"); rsc.className = "inst"; rsc.id = "rimScaleBtn";
       rsc.appendChild(document.createTextNode(RIM_SCALES[rimScale].name));
-      rsc.title = "The gha\u1E6D\u012B's scale \u2014 tap to change";
+      rsc.title = "The th\u0101l\u012B's scale \u2014 tap to change";
       rsc.addEventListener("click", function (e) { e.preventDefault(); rimScale = (rimScale + 1) % RIM_SCALES.length; renderPanel(); }, false);
       var row2 = document.createElement("span"); row2.className = "own-wrap";
       var rk = document.createElement("button"); rk.className = "inst rim-keep" + (rimKeep ? " on" : rimLock ? " locked" : ""); rk.id = "rimKeepBtn";
