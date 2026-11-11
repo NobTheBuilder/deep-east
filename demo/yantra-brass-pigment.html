@@ -1131,7 +1131,7 @@
       <div class="demo-opt">
         <button class="demo-sw" id="demoBrass" type="button" aria-pressed="true" aria-label="Engraved brass rim"></button>
         <div class="demo-name">Th&#257;l&#299;, the brass ring, played like a handpan</div>
-        <p>Strike the ring and it rings. Sixteen tone fields run clockwise from the top, a semitone each, an octave and a third in all: the span of a Volca Bass keyboard. They are lettered with the twelve swaras, the plate's own Sa sitting on A. The komal and tivra swaras are shaded like black keys and a dot marks the upper octave. The tuning is the plate's own and does not follow the drone or the free voice. It is added like any shape, from the Th&#257;l&#299; box beside Infinity. Tap its box or its row to rest it, hold the box to remove it. Its state is the mark beside the plate at nine o'clock. Tap it to step through three: an open ring is free and just plays; a red disc is keeping, recording each strike so it returns every turn; a slotted brass head is locked, the melody playing on while touches on the ring do nothing. To change the melody without touching the rhythms, hold a stud to remove that one note, or hold the plate anywhere else for a second to clear every note; a line shows the hold filling, and a hold never leaves a note of its own behind. Snap is also on the face of the dial, without a word: the short arc of dots beside the plate at three o'clock. Tap it: hollow dots are off, three filled dots are the rhythm's count, five are twice as fine. The count is the rhythm's own (the one the dotted pulse ring shows), or twice as fine. With snap on, a ring of dots appears on the plate and every kept note lands on one; notes already kept are pulled in too. Its row in Layers has a m&#257;tr&#257; count, as the shapes do: 16 turns the plate once per turn of the Yantra, and any other count runs the melody at its own length against the rhythm, with its own hand crossing the brass.</p>
+        <p>Strike the ring and it rings. Sixteen tone fields run clockwise from the top, a semitone each, an octave and a third in all: the span of a Volca Bass keyboard. They are lettered with the twelve swaras, the plate's own Sa sitting on A. The komal and tivra swaras are shaded like black keys and a dot marks the upper octave. The tuning is the plate's own and does not follow the drone or the free voice. It is added like any shape, from the Th&#257;l&#299; box beside Infinity. Tap its box or its row to rest it, hold the box to remove it. Its state is the mark beside the plate at nine o'clock. Each tap takes the next step in making a pattern. An open ring is free: audition notes. Tap, and red is keeping: each strike is recorded and returns every turn. Tap again to leave record and carry on playing over it; the ring now holds a loose brass stud, meaning a pattern is held. Tap again and it becomes a slotted brass head: locked, the melody playing on while touches on the ring do nothing. One more tap unlocks it, back to the open ring. To change the melody without touching the rhythms, hold a stud to remove that one note, or hold the plate anywhere else for a second to clear every note; a line shows the hold filling, and a hold never leaves a note of its own behind. Snap is also on the face of the dial, without a word: the short arc of dots beside the plate at three o'clock. Tap it: hollow dots are off, three filled dots are the rhythm's count, five are twice as fine. The count is the rhythm's own (the one the dotted pulse ring shows), or twice as fine. With snap on, a ring of dots appears on the plate and every kept note lands on one; notes already kept are pulled in too. Its row in Layers has a m&#257;tr&#257; count, as the shapes do: 16 turns the plate once per turn of the Yantra, and any other count runs the melody at its own length against the rhythm, with its own hand crossing the brass.</p>
 
       </div>
       <div class="demo-opt">
@@ -3283,7 +3283,7 @@
   function rimSetOwn(v) { rimOwn = Math.max(1, Math.min(32, v | 0)); renderPanel(); }
   function rimAwake() { return rimOn && !rimRest; }
   function rimTap() { if (!rimOn) { rimOn = true; rimRest = false; } else { rimRest = !rimRest; } renderPanel(); }
-  function rimRemove() { rimOn = false; rimRest = false; rimKeep = false; rimLock = false; rimOwn = RIM_HOME; rimSnap = 0; rimNotes = []; rimGlow = []; renderPanel(); }
+  function rimRemove() { rimOn = false; rimRest = false; rimKeep = false; rimLock = false; rimPost = false; rimOwn = RIM_HOME; rimSnap = 0; rimNotes = []; rimGlow = []; renderPanel(); }
   function rimSetVol(v) {
     rimVol = v < 0 ? 0 : (v > 1 ? 1 : v);
     if (rimBus && ac && rimAc === ac) { rimBus.gain.setTargetAtTime(RT.level * rimVol, ac.currentTime, 0.012); }
@@ -3366,13 +3366,17 @@
   }
   /* the state mark, at nine o'clock: an open ring is free, a red disc is keeping, a slotted brass head is locked */
   var RIM_MODE_AT = Math.PI;
+  var rimPost = false;      /* just out of keeping, with a pattern held: the next tap fastens it */
   function rimModeHit(x, y) {
     if (!DEMO.brass || !rimOn || rimRest) { return false; }
     var mr = rimMarkR(), dx = x - (geo.cx + mr * Math.cos(RIM_MODE_AT)), dy = y - (geo.cy + mr * Math.sin(RIM_MODE_AT));
     return Math.sqrt(dx * dx + dy * dy) < 17;
   }
   function rimCycleMode() {
-    if (rimLock) { rimLock = false; } else if (rimKeep) { rimKeep = false; rimLock = true; } else { rimKeep = true; rimRest = false; }
+    if (rimLock) { rimLock = false; rimPost = false; }                        /* unlock: back to auditioning */
+    else if (rimKeep) { rimKeep = false; rimPost = rimNotes.length > 0; }     /* leave record, keep playing */
+    else if (rimPost && rimNotes.length) { rimPost = false; rimLock = true; } /* fasten what was kept */
+    else { rimPost = false; rimKeep = true; rimRest = false; }                /* record */
     renderPanel();
   }
   function drawRimMode(cx, cy) {
@@ -3397,9 +3401,14 @@
       ctx.strokeStyle = "#e25438"; ctx.lineWidth = 1.6; ctx.stroke();
       if (!playing) { ctx.beginPath(); ctx.arc(x, y, r * 0.3, 0, RIM_TAU); ctx.fillStyle = "#e25438"; ctx.fill(); }
     } else {
-      /* free: an open ring */
+      /* free: an open ring. With a pattern held and not yet fastened, a brass stud sits loose inside it */
       ctx.beginPath(); ctx.arc(x, y, r * 0.86, 0, RIM_TAU);
       ctx.strokeStyle = "rgba(214,178,110,0.9)"; ctx.lineWidth = 1.5; ctx.stroke();
+      if (rimPost && rimNotes.length) {
+        var pg = ctx.createRadialGradient(x - r * 0.15, y - r * 0.18, 0, x, y, r * 0.42);
+        pg.addColorStop(0, "#fff6dc"); pg.addColorStop(0.55, "#d6b26e"); pg.addColorStop(1, "#5a4320");
+        ctx.beginPath(); ctx.arc(x, y, r * 0.4, 0, RIM_TAU); ctx.fillStyle = pg; ctx.fill();
+      }
     }
     ctx.globalAlpha = 1;
   }
@@ -4496,10 +4505,9 @@
       var row2 = document.createElement("span"); row2.className = "own-wrap";
       var rk = document.createElement("button"); rk.className = "inst rim-keep" + (rimKeep ? " on" : rimLock ? " locked" : ""); rk.id = "rimKeepBtn";
       rk.setAttribute("aria-pressed", rimKeep ? "true" : "false");
-      rk.appendChild(document.createTextNode(rimLock ? "locked" : rimKeep ? (playing ? "keeping" : "keep · press play") : "free"));
+      rk.appendChild(document.createTextNode(rimLock ? "locked" : rimKeep ? (playing ? "keeping" : "keep · press play") : (rimPost && rimNotes.length ? "free · pattern held" : "free")));
       rk.title = "Free: strikes sound and are not kept. Keeping: each strike is recorded and returns every turn. Locked: the kept melody plays on and touches do nothing.";
-      rk.addEventListener("click", function (e) { e.preventDefault(); if (rimLock) { rimLock = false; } else if (rimKeep) { rimKeep = false; rimLock = true; } else { rimKeep = true; rimRest = false; }
-        renderPanel(); }, false);
+      rk.addEventListener("click", function (e) { e.preventDefault(); rimCycleMode(); }, false);
       row2.appendChild(rk);
       var rqw = document.createElement("span"); rqw.className = "own-wrap";
       var rq = document.createElement("button"); rq.className = "inst"; rq.id = "rimSnapBtn";
@@ -5125,7 +5133,7 @@
   /* An empty yantra: no shapes, drone asleep, free voice off, hum.
      Tempo, key and saptak stay as they were. */
   function resetScene() {
-    rimNotes = []; rimGlow = []; rimOn = false; rimRest = false; rimKeep = false; rimLock = false; rimOwn = RIM_HOME; rimSnap = 0;
+    rimNotes = []; rimGlow = []; rimOn = false; rimRest = false; rimKeep = false; rimLock = false; rimPost = false; rimOwn = RIM_HOME; rimSnap = 0;
     for (var i = 0; i < shapes.length; i++) { if (shapes[i].gain) { shapes[i].gain.disconnect(); } }
     shapes = []; drone = false; droneSilent = false; stopDrone(); freeOn = false; freeOct = 1;
     droneEA = 0.5; droneER = 0.5; freePulse = false;
@@ -5195,7 +5203,7 @@
   function rimEncode() {
     var o = [], i;
     for (i = 0; i < rimNotes.length; i++) { o.push(rimNotes[i].step + "." + rimNotes[i].field); }
-    return rimScale + ":" + o.join(",") + ":" + (rimOn ? 1 : 0) + (rimRest ? 1 : 0) + (rimKeep ? 1 : 0) + (rimLock ? 1 : 0) + ":" + rimOwn + ":" + rimSnap;
+    return rimScale + ":" + o.join(",") + ":" + (rimOn ? 1 : 0) + (rimRest ? 1 : 0) + (rimKeep ? 1 : 0) + (rimLock ? 1 : 0) + (rimPost ? 1 : 0) + ":" + rimOwn + ":" + rimSnap;
   }
   function rimDecode(str) {
     var p = String(str || "0:").split(":"), list = p[1] ? p[1].split(",") : [], i;
@@ -5206,7 +5214,7 @@
       if (st >= 0 && st < RIM_RES && f >= 0 && f < RIM_N) { rimNotes.push({ step: st, field: f, hold: 0 }); }
     }
     var fl = p[2] || "000";
-    rimOn = fl.charAt(0) === "1"; rimRest = fl.charAt(1) === "1"; rimKeep = fl.charAt(2) === "1"; rimLock = fl.charAt(3) === "1";
+    rimOn = fl.charAt(0) === "1"; rimRest = fl.charAt(1) === "1"; rimKeep = fl.charAt(2) === "1"; rimLock = fl.charAt(3) === "1"; rimPost = fl.charAt(4) === "1";
     rimOwn = Math.max(1, Math.min(32, parseInt(p[3], 10) || RIM_HOME));
     rimSnap = Math.max(0, Math.min(2, parseInt(p[4], 10) || 0));
   }
