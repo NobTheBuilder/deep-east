@@ -2441,7 +2441,7 @@
     var every = small ? 15 : 5, fs = Math.max(7, bw * (small ? 0.52 : 0.5)), nr = (scaleTop + rOut) / 2;
     g.font = fs.toFixed(1) + "px \"Tiro Devanagari Sanskrit\", \"Eczar\", serif";
     g.textAlign = "center"; g.textBaseline = "middle";
-    for (i = every; i <= 60; i += every) {
+    for (i = every; i <= 0; i += every) {   /* numerals removed: the grid and the swaras remain */
       a = -Math.PI / 2 + i * TAU / 60;
       g.save(); g.translate(m + nr * Math.cos(a), m + nr * Math.sin(a)); g.rotate(a + Math.PI / 2);
       g.fillStyle = LIT; g.fillText(devaNum(i), 0.6, 0.9);
@@ -3148,18 +3148,18 @@
     rimVoice(rimFreq(field), now + 0.004, 0.9);
     rimGlow.push({ f: field, t: now_(), step: -1 });
     if (playing && rimKeep) {
-      var turns = (viewClock() - t0) / T, step = Math.round((turns - Math.floor(turns)) * 60) % 60;
+      var turns = (viewClock() - t0) / T, step = Math.round((turns - Math.floor(turns)) * 240) % 240;
       for (i = 0; i < rimNotes.length; i++) { if (rimNotes[i].step === step && rimNotes[i].field === field) { return; } }
-      rimNotes.push({ step: step, field: field, hold: now + T / 60 * 1.5 });
+      rimNotes.push({ step: step, field: field, hold: now + T / 240 * 1.5 });
       renderPanel();
     }
   }
   function scheduleRim(until) {
     if (!DEMO.brass || !rimNotes.length || !rimAwake()) { return; }
-    var sd = T / 60, lo = Math.ceil((ac.currentTime - t0) / sd - 1e-6), i;
-    if (rimNext < lo || rimNext > lo + 60) { rimNext = lo; }
+    var sd = T / 240, lo = Math.ceil((ac.currentTime - t0) / sd - 1e-6), i;
+    if (rimNext < lo || rimNext > lo + 240) { rimNext = lo; }
     while (t0 + rimNext * sd < until) {
-      var at = t0 + rimNext * sd, st = ((rimNext % 60) + 60) % 60;
+      var at = t0 + rimNext * sd, st = ((rimNext % 240) + 240) % 240;
       for (i = 0; i < rimNotes.length; i++) {
         var n = rimNotes[i];
         if (n.step !== st || n.hold > at) { continue; }
@@ -3210,7 +3210,7 @@
     var sr = Math.max(2.2, bw * 0.105), rad = rIn + bw * 0.21;
     for (i = 0; i < rimNotes.length; i++) {
       var n = rimNotes[i];
-      a = -Math.PI / 2 + n.step * RIM_TAU / 60;
+      a = -Math.PI / 2 + n.step * RIM_TAU / 240;
       var x = cx + rad * Math.cos(a), y = cy + rad * Math.sin(a), l = lit[n.step + "/" + n.field] || 0;
       var sg = ctx.createRadialGradient(x - sr * 0.35, y - sr * 0.4, 0, x, y, sr);
       sg.addColorStop(0, "#fff6dc"); sg.addColorStop(0.5, l ? "#f3e2b4" : "#d6b26e"); sg.addColorStop(1, "#5a4320");
@@ -3945,7 +3945,7 @@
     rsw.className = "sw"; rsw.style.color = DRONE_COL;
     rsw.innerHTML = "<svg viewBox=\"0 0 16 16\" aria-hidden=\"true\"><circle cx=\"8\" cy=\"8\" r=\"6.8\"/><circle cx=\"8\" cy=\"8\" r=\"4.3\"/></svg>";
     rb.appendChild(rsw);
-    rb.appendChild(document.createTextNode("Th\u0101l\u012B \u00B7 60"));
+    rb.appendChild(document.createTextNode("Th\u0101l\u012B"));
     rb.setAttribute("data-n", "-1"); rb.setAttribute("data-col", DRONE_COL); rb.id = "rimBox";
     bindPress(rb, RIM_DEF);
     rows.inf.appendChild(rb);
@@ -4795,7 +4795,7 @@
     rimNotes = [];
     for (i = 0; i < list.length; i++) {
       var q = list[i].split("."), st = parseInt(q[0], 10), f = parseInt(q[1], 10);
-      if (st >= 0 && st < 60 && f >= 0 && f < 12) { rimNotes.push({ step: st, field: f, hold: 0 }); }
+      if (st >= 0 && st < 240 && f >= 0 && f < 12) { rimNotes.push({ step: st, field: f, hold: 0 }); }
     }
     var fl = p[2] || "000";
     rimOn = fl.charAt(0) === "1"; rimRest = fl.charAt(1) === "1"; rimKeep = fl.charAt(2) === "1"; rimLock = fl.charAt(3) === "1";
