@@ -1386,6 +1386,7 @@
       droneSilentWas = droneSilent;
     }
     if (droneNodes && ac) { droneNodes.userGain.gain.setTargetAtTime(droneLevel(), ac.currentTime, tc); }
+    if (droneNodes && ac && droneNodes.room) { applyDroneRoom(); }   /* the space follows the hum's fader and mute */
   }
   function setDroneVolume(v) {
     if (v < 0) { v = 0; } if (v > 1) { v = 1; }
@@ -1551,7 +1552,7 @@
   function audio() {
     if (!ac) {
       var AC = window.AudioContext || window.webkitAudioContext;
-      ac = new AC();
+      ac = window.__yantraOff || new AC();
       /* Output stage. Voices are mixed hot, then a compressor evens the gap
          between a kick and a hat, and a hard-kneed limiter catches peaks so
          the whole thing can sit far louder without clipping — which is what
@@ -1690,10 +1691,11 @@
     if (!droneNodes || !droneNodes.duck) { return; }
     var kv = (dest && dest.gain) ? Math.min(1, dest.gain.value) : 1;
     if (dest && typeof dest.__kv === "number") { kv = Math.min(1, dest.__kv); }   /* behind a soft-attack wrapper */
-    var low = 1 - (droneOct <= 0 ? DUCK_MANDRA : DUCK_DEPTH) * Math.sqrt(kv);
+    kv = Math.min(1, kv / DEF_VOL);
+    var low = 1 - (droneOct <= 0 ? (DEMO.drums ? 0.58 : DUCK_MANDRA) : (DEMO.drums ? 0.66 : DUCK_DEPTH)) * Math.sqrt(kv) * TUNE.duck;
     var g = droneNodes.duck.gain;
     g.setTargetAtTime(low, t, 0.004);
-    g.setTargetAtTime(1, t + 0.035, 0.08);
+    g.setTargetAtTime(1, t + (DEMO.drums ? 0.06 : 0.035), DEMO.drums ? 0.11 : 0.08);
   }
   /* the drone's Sa in the octave nearest f, so a pitched drum lands in tune whatever the key */
   function saNear(f) {
@@ -1743,7 +1745,7 @@
       conv.connect(wet); wet.connect(droneNodes.out);
       droneNodes.room = send;
     }
-    droneNodes.room.gain.setTargetAtTime(amt, ac.currentTime, 0.08);
+    droneNodes.room.gain.setTargetAtTime(amt * 2.2 * DRONE_GAIN * droneLevel(), ac.currentTime, 0.08);
     /* the hum brightens as the space opens */
     if (droneNodes.lp) { droneNodes.lp.frequency.setTargetAtTime(1400 + 1100 * Math.min(1, amt / ROOM_MAX), ac.currentTime, 0.2); }
   }
@@ -1761,12 +1763,14 @@
   /* ===== demo: the four machine voices, rebuilt =====
      Recipes follow the classic analog drum machine; the numbers are the commonly quoted ones and are meant to be
      tuned by ear. Nothing here is a sample. */
-  var KICK_CURVE = null;
+  var KT = { drive: 4, bias: 0.5, lp: 1000, level: 0.38, knock: 0.12, click: 0.14, mid: 0.7, midLen: 0.22 };
+  var KICK_CURVE = null, KICK_KEY = "";
   function kickCurve() {
+    if (KICK_KEY !== KT.drive + "/" + KT.bias) { KICK_CURVE = null; KICK_KEY = KT.drive + "/" + KT.bias; }
     if (!KICK_CURVE) {
       /* a soft, slightly lopsided clip: the lopsidedness adds the octave above the sub, which is what a small
          speaker actually plays, and it does so warmly, without the bright click the old kick leaned on */
-      var n = 2048, k = 2.1, b = 0.22, lo = Math.tanh(b - k), hi = Math.tanh(b + k), mid = Math.tanh(b), i;
+      var n = 2048, k = KT.drive, b = KT.bias, lo = Math.tanh(b - k), hi = Math.tanh(b + k), mid = Math.tanh(b), i;
       KICK_CURVE = new Float32Array(n);
       for (i = 0; i < n; i++) { var x = (i * 2) / (n - 1) - 1; KICK_CURVE[i] = (Math.tanh(k * x + b) - mid) / Math.max(hi - mid, mid - lo); }
     }
@@ -1792,6 +1796,7 @@
       var f0 = sa * Math.pow(2, Math.round(Math.log(55 / sa) / Math.LN2));
       var dur = dk(0.6);
       var o = ac.createOscillator(), g = ac.createGain(), ws = ac.createWaveShaper(), out = ac.createGain();
+      var lp = ac.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = KT.lp; lp.Q.value = 0.5;
       o.type = "sine";
       o.frequency.setValueAtTime(f0 * 3.4, t);
       o.frequency.exponentialRampToValueAtTime(f0 * 1.3, t + 0.022);
@@ -1799,12 +1804,18 @@
       o.frequency.linearRampToValueAtTime(f0 * 0.95, t + dur);
       g.gain.setValueAtTime(1, t); holdAt(g.gain, 1, t);
       g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      /* overdrive: the envelope goes in before the clipper, so the first tenth of a second is driven hard
+         (harmonics up through the low mids, where a small speaker and the ear both find it) and the tail
+         cleans up into a plain sub. A low-pass after it takes the buzz off the top. */
       ws.curve = kickCurve(); ws.oversample = "2x";
-      out.gain.value = 0.76;
-      o.connect(g); g.connect(ws); ws.connect(out); out.connect(dest || master);
+      out.gain.value = KT.level;
+      o.connect(g); g.connect(ws); ws.connect(lp); lp.connect(out); out.connect(dest || master);
       o.start(t); o.stop(t + dur + 0.02);
-      body(t, 260, 130, 0.03, 0.08, 0.12, "sine", dest);              /* a round knock a phone can play */
-      noiseHit(t, 0.005, "lowpass", 1500, 0.7, 0.14, "linear", dest);  /* the beater: dull, not bright */
+      /* the punch: a second, short sine an octave above the sub, falling with it. This is the part a small
+         speaker plays and the part that stands clear of a low drone. */
+      body(t, f0 * 4.2, f0 * 2, 0.045, KT.midLen, KT.mid, "sine", dest);
+      body(t, 260, 130, 0.03, 0.09, KT.knock, "sine", dest);               /* a round knock a phone can play */
+      noiseHit(t, 0.005, "lowpass", 1500, 0.7, KT.click, "linear", dest);   /* the beater: dull, not bright */
       duckDrone(t, dest);
     },
     /* two tuned sines an octave apart for the shell, and the snares as noise with the fizz taken off the top */
@@ -2029,7 +2040,7 @@
   }
   /* a temple-ish space made once from decaying noise: no files to load.
      About 3.6 s, darker as it fades, slightly different in each ear. */
-  var revBuf = null;
+  var revBuf = null, revShared = null, revSharedAc = null;
   function makeReverb() {
     try {
       if (!revBuf) {
@@ -2044,13 +2055,21 @@
           }
         }
       }
-      var c = ac.createConvolver(); c.buffer = revBuf;
-      return c;
+      if (!revShared || revSharedAc !== ac) {
+        revSharedAc = ac; revShared = ac.createConvolver(); revShared.buffer = revBuf;
+        var rlp = ac.createBiquadFilter(); rlp.type = "lowpass"; rlp.frequency.value = 3200; rlp.Q.value = 0.5;
+        revShared.connect(rlp); rlp.connect(master);
+      }
+      /* each caller gets its own way in; the way out is already made, so its connect() does nothing */
+      var inp = ac.createGain();
+      inp.connect(revShared);
+      inp.connect = function () {};
+      return inp;
     } catch (e) { return null; }
   }
   function applyFreeReverb() {
     if (!droneNodes || !ac || !droneNodes.revSend) { return; }
-    droneNodes.revSend.gain.setTargetAtTime(FREE_REV[freeOct + 1], ac.currentTime, 0.25);
+    droneNodes.revSend.gain.setTargetAtTime(FREE_REV[freeOct + 1] * DRONE_GAIN, ac.currentTime, 0.25);
   }
   function setFreeOct(o) {
     if (o < OCT_LO) { o = OCT_LO; } if (o > OCT_HI) { o = OCT_HI; }
@@ -2160,7 +2179,7 @@
     fout.connect(lp);
     fg.connect(fgate); fgate.connect(fout);
     var rsend = ac.createGain();
-    rsend.gain.value = FREE_REV[freeOct + 1];
+    rsend.gain.value = FREE_REV[freeOct + 1] * DRONE_GAIN;
     var conv = makeReverb();
     if (conv) { fgate.connect(rsend); rsend.connect(conv); conv.connect(fout); }
     var fparts = [["sine", 0.62, 0], ["triangle", 0.22, 5]];
@@ -2226,6 +2245,8 @@
     o.gain.cancelScheduledValues(now);
     o.gain.setValueAtTime(Math.max(o.gain.value, 0.0001), now);
     o.gain.exponentialRampToValueAtTime(0.0001, now + rel);
+    droneNodes.freeGain.gain.cancelScheduledValues(now); droneNodes.freeGain.gain.setTargetAtTime(0, now, 0.08);
+    if (droneNodes.room) { droneNodes.room.gain.cancelScheduledValues(now); droneNodes.room.gain.setTargetAtTime(0, now, Math.max(0.02, rel / 4)); }
     if (droneNodes.freeOut) {
       var fo2 = droneNodes.freeOut.gain;
       fo2.cancelScheduledValues(now); fo2.setValueAtTime(Math.max(fo2.value, 0.0001), now);
@@ -2628,6 +2649,34 @@
     return { engine: !!droneNodes, room: !!(droneNodes && droneNodes.room), send: droneRoom(),
              tone: droneNodes && droneNodes.lp ? Math.round(droneNodes.lp.frequency.value) : null };
   };
+  /* render `secs` of a scene through the real output chain. o: { bpm, secs, oct, free, freeOct, drone, kick, snare, hat, vol } */
+  window.__yantraMix = function (o) {
+    var OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    var rate = 48000, off = new OAC(1, Math.round(rate * o.secs), rate);
+    var keep = { ac: ac, master: master, noise: noiseBuf, rev: revBuf, nodes: droneNodes, drone: drone, free: freeOn,
+                 oct: droneOct, foct: freeOct, cents: freeCents, playing: playing, rb: rimBus, ra: rimAc, dv: droneVol, er: droneER };
+    ac = null; revBuf = null; droneNodes = null; window.__yantraOff = off;
+    try {
+      audio();
+      droneOct = typeof o.oct === "number" ? o.oct : 0; freeOct = typeof o.freeOct === "number" ? o.freeOct : 2; freeCents = 0;
+      drone = !!o.drone; freeOn = !!o.free; droneER = typeof o.er === "number" ? o.er : 0.5; droneVol = typeof o.dvol === "number" ? o.dvol : 0.6;
+      if (drone || freeOn) { startDrone(); if (droneNodes && droneNodes.hum) { droneNodes.hum.gain.value = drone ? 1 : 0; } }
+      if (o.rim) { rimBus = null; rimVoice(220, 0.1, 0.5); }
+      var beat = 60 / o.bpm, t, n = 0, bus = ac.createGain(); bus.gain.value = typeof o.vol === "number" ? o.vol : 0.6; bus.connect(master);
+      for (t = 0.05; t < o.secs - 0.3; t += beat / 2, n++) {
+        if (o.kick && n % 2 === 0) { ((DEMO.drums && SYNTH2.kick) || SYNTH.kick)(t, bus); }
+        if (o.snare && n % 4 === 2) { ((DEMO.drums && SYNTH2.snare) || SYNTH.snare)(t, bus); }
+        if (o.hat) { ((DEMO.drums && SYNTH2.hat) || SYNTH.hat)(t, bus); }
+      }
+    } finally {
+      ac = keep.ac; master = keep.master; noiseBuf = keep.noise; revBuf = keep.rev; droneNodes = keep.nodes; drone = keep.drone;
+      freeOn = keep.free; droneOct = keep.oct; freeOct = keep.foct; freeCents = keep.cents; playing = keep.playing;
+      rimBus = keep.rb; rimAc = keep.ra; droneVol = keep.dv; droneER = keep.er; window.__yantraOff = null;
+    }
+    return off.startRendering().then(function (buf) { return Array.prototype.slice.call(buf.getChannelData(0)); });
+  };
+  window.__yantraSet = function (k, v) { if (k === "drums") { DEMO.drums = !!v; } if (k in TUNE) { TUNE[k] = v; } if (k in KT) { KT[k] = v; } return TUNE; };
+  var TUNE = { duck: 1 };
   window.__yantraDemo = function () {
     return { drone: drone, free: freeOn, engine: !!droneNodes,
              hum: droneNodes && droneNodes.hum ? droneNodes.hum.gain.value : null, rim: rimNotes.length };
