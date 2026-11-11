@@ -1131,7 +1131,7 @@
       <div class="demo-opt">
         <button class="demo-sw" id="demoBrass" type="button" aria-pressed="true" aria-label="Engraved brass rim"></button>
         <div class="demo-name">Th&#257;l&#299;, the brass ring, played like a handpan</div>
-        <p>Strike the ring and it rings. Sixteen tone fields run clockwise from the top, a semitone each, an octave and a third in all: the span of a Volca Bass keyboard. They are lettered with the twelve swaras, the plate's own Sa sitting on A. The komal and tivra swaras are shaded like black keys and a dot marks the upper octave. The tuning is the plate's own and does not follow the drone or the free voice. It is added like any shape, from the Th&#257;l&#299; box beside Infinity. Tap its box or its row to rest it, hold the box to remove it. One button in its row steps through free, keeping and locked: free just plays, keeping records each strike so it returns every turn, and locked leaves the melody playing while touches on the ring do nothing. To change the melody without touching the rhythms, hold a stud to remove that one note, or hold the plate anywhere else for a second to clear every note; a line shows the hold filling, and a hold never leaves a note of its own behind. Snap is also on the face of the dial, without a word: the short arc of dots beside the plate at three o'clock. Tap it: hollow dots are off, three filled dots are the rhythm's count, five are twice as fine. Its row has the same control as a snap button: off, the rhythm's own count (the one the dotted pulse ring shows), or twice as fine. With snap on, a ring of dots appears on the plate and every kept note lands on one; notes already kept are pulled in too. Its row also has a m&#257;tr&#257; count, as the shapes do: 16 turns the plate once per turn of the Yantra, and any other count runs the melody at its own length against the rhythm, with its own hand crossing the brass.</p>
+        <p>Strike the ring and it rings. Sixteen tone fields run clockwise from the top, a semitone each, an octave and a third in all: the span of a Volca Bass keyboard. They are lettered with the twelve swaras, the plate's own Sa sitting on A. The komal and tivra swaras are shaded like black keys and a dot marks the upper octave. The tuning is the plate's own and does not follow the drone or the free voice. It is added like any shape, from the Th&#257;l&#299; box beside Infinity. Tap its box or its row to rest it, hold the box to remove it. Its state is the mark beside the plate at nine o'clock. Tap it to step through three: an open ring is free and just plays; a red disc is keeping, recording each strike so it returns every turn; a slotted brass head is locked, the melody playing on while touches on the ring do nothing. To change the melody without touching the rhythms, hold a stud to remove that one note, or hold the plate anywhere else for a second to clear every note; a line shows the hold filling, and a hold never leaves a note of its own behind. Snap is also on the face of the dial, without a word: the short arc of dots beside the plate at three o'clock. Tap it: hollow dots are off, three filled dots are the rhythm's count, five are twice as fine. The count is the rhythm's own (the one the dotted pulse ring shows), or twice as fine. With snap on, a ring of dots appears on the plate and every kept note lands on one; notes already kept are pulled in too. Its row in Layers has a m&#257;tr&#257; count, as the shapes do: 16 turns the plate once per turn of the Yantra, and any other count runs the melody at its own length against the rhythm, with its own hand crossing the brass.</p>
 
       </div>
       <div class="demo-opt">
@@ -3356,6 +3356,45 @@
     var mr = rimMarkR(), dx = x - (geo.cx + mr * Math.cos(RIM_MARK_AT)), dy = y - (geo.cy + mr * Math.sin(RIM_MARK_AT));
     return Math.sqrt(dx * dx + dy * dy) < 17;
   }
+  /* the state mark, at nine o'clock: an open ring is free, a red disc is keeping, a slotted brass head is locked */
+  var RIM_MODE_AT = Math.PI;
+  function rimModeHit(x, y) {
+    if (!DEMO.brass || !rimOn || rimRest) { return false; }
+    var mr = rimMarkR(), dx = x - (geo.cx + mr * Math.cos(RIM_MODE_AT)), dy = y - (geo.cy + mr * Math.sin(RIM_MODE_AT));
+    return Math.sqrt(dx * dx + dy * dy) < 17;
+  }
+  function rimCycleMode() {
+    if (rimLock) { rimLock = false; } else if (rimKeep) { rimKeep = false; rimLock = true; } else { rimKeep = true; rimRest = false; }
+    renderPanel();
+  }
+  function drawRimMode(cx, cy) {
+    if (!rimOn) { return; }
+    var mr = rimMarkR(), x = cx + mr * Math.cos(RIM_MODE_AT), y = cy + mr * Math.sin(RIM_MODE_AT);
+    var r = Math.max(5, geo.R * 0.036);
+    ctx.globalAlpha = rimRest ? 0.35 : 1;
+    if (rimLock) {
+      /* fastened: a brass screw head, its slot lying along the rim */
+      var sg = ctx.createRadialGradient(x - r * 0.35, y - r * 0.4, 0, x, y, r);
+      sg.addColorStop(0, "#f3dfae"); sg.addColorStop(0.55, "#c9a45c"); sg.addColorStop(1, "#5a4320");
+      ctx.beginPath(); ctx.arc(x, y, r, 0, RIM_TAU); ctx.fillStyle = sg; ctx.fill();
+      ctx.strokeStyle = "rgba(20,12,4,0.9)"; ctx.lineWidth = 1; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x, y - r * 0.72); ctx.lineTo(x, y + r * 0.72);
+      ctx.strokeStyle = "rgba(24,15,5,0.92)"; ctx.lineWidth = Math.max(1.4, r * 0.3); ctx.stroke();
+    } else if (rimKeep) {
+      /* keeping: red. A ring while it waits for play, a breathing disc once the Yantra turns */
+      var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      var kp = (playing && !still) ? 0.6 + 0.4 * Math.sin(now_() / 420) : 1;
+      ctx.beginPath(); ctx.arc(x, y, r * 0.86, 0, RIM_TAU);
+      if (playing) { ctx.fillStyle = "rgba(226,84,56," + kp.toFixed(3) + ")"; ctx.fill(); }
+      ctx.strokeStyle = "#e25438"; ctx.lineWidth = 1.6; ctx.stroke();
+      if (!playing) { ctx.beginPath(); ctx.arc(x, y, r * 0.3, 0, RIM_TAU); ctx.fillStyle = "#e25438"; ctx.fill(); }
+    } else {
+      /* free: an open ring */
+      ctx.beginPath(); ctx.arc(x, y, r * 0.86, 0, RIM_TAU);
+      ctx.strokeStyle = "rgba(214,178,110,0.9)"; ctx.lineWidth = 1.5; ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
   function drawRimMark(cx, cy) {
     if (!rimOn) { return; }
     var mr = rimMarkR(), n = rimSnap === 2 ? 5 : 3, span = 0.085 * (rimSnap === 2 ? 1.15 : 1), i;
@@ -3494,6 +3533,7 @@
     var sr = Math.max(2.2, bw * 0.105), rad = rIn + bw * 0.21;
     rimHoldTick();
     drawRimMark(cx, cy);
+    drawRimMode(cx, cy);
     if (rimSnap && rimOwn === RIM_HOME && rimAwake()) {
       var gN = rimGrid(), gi, gr = rIn + bw * 0.21;
       ctx.fillStyle = "rgba(255,246,222,0.8)";
@@ -3742,6 +3782,11 @@
     }
     if (onOctSlider(x, y)) {
       drag = { mode: "oct", s: null, k: -1, moved: false, dist: 0, x0: x, y0: y, o0: droneOct };
+      return true;
+    }
+    if (rimModeHit(x, y)) {
+      rimCycleMode();
+      drag = { mode: "ring", s: null, k: -1, moved: false, dist: 0 };
       return true;
     }
     if (rimMarkHit(x, y)) {
@@ -4479,7 +4524,8 @@
       bindVolTrack(rvt, rvk, rvp, function () { return rimVol; }, function (v) { rimSetVol(v); });
       var rrm = document.createElement("button"); rrm.className = "rm"; rrm.appendChild(document.createTextNode("×"));
       rrm.addEventListener("click", function (e) { e.preventDefault(); rimRemove(); }, false);
-      rmain.appendChild(rdot); rmain.appendChild(rnm); rmain.appendChild(row2); rmain.appendChild(rqw); rmain.appendChild(rmw);
+      rmain.appendChild(rdot); rmain.appendChild(rnm); row2.style.display = "none"; rqw.style.display = "none";
+      rmain.appendChild(row2); rmain.appendChild(rqw); rmain.appendChild(rmw);
       rmain.appendChild(rgap); rmain.appendChild(rvi); rmain.appendChild(rrm);
       rrow.appendChild(rmain);
       rrow.style.cursor = "pointer";
