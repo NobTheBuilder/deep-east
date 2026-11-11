@@ -2662,6 +2662,8 @@
       drone = !!o.drone; freeOn = !!o.free; droneER = typeof o.er === "number" ? o.er : 0.5; droneVol = typeof o.dvol === "number" ? o.dvol : 0.6;
       if (drone || freeOn) { startDrone(); if (droneNodes && droneNodes.hum) { droneNodes.hum.gain.value = drone ? 1 : 0; } }
       if (o.rim) { rimBus = null; rimVoice(220, 0.1, 0.5); }
+      if (o.rimNotes) { rimBus = null; for (var rn = 0; rn < o.rimNotes.length; rn++) { var same = 0, rq; for (rq = 0; rq < o.rimNotes.length; rq++) { if (o.rimNotes[rq][0] === o.rimNotes[rn][0]) { same++; } }
+        rimVoice(RIM_A * Math.pow(2, o.rimNotes[rn][1] / 12), o.rimNotes[rn][0], o.rimNotes[rn][2] / Math.sqrt(same)); } }
       var beat = 60 / o.bpm, t, n = 0, bus = ac.createGain(); bus.gain.value = typeof o.vol === "number" ? o.vol : 0.6; bus.connect(master);
       for (t = 0.05; t < o.secs - 0.3; t += beat / 2, n++) {
         if (o.kick && n % 2 === 0) { ((DEMO.drums && SYNTH2.kick) || SYNTH.kick)(t, bus); }
@@ -2675,7 +2677,7 @@
     }
     return off.startRendering().then(function (buf) { return Array.prototype.slice.call(buf.getChannelData(0)); });
   };
-  window.__yantraSet = function (k, v) { if (k === "drums") { DEMO.drums = !!v; } if (k in TUNE) { TUNE[k] = v; } if (k in KT) { KT[k] = v; } return TUNE; };
+  window.__yantraSet = function (k, v) { if (k === "drums") { DEMO.drums = !!v; } if (k in TUNE) { TUNE[k] = v; } if (k in KT) { KT[k] = v; } if (k in RT) { RT[k] = v; } return TUNE; };
   var TUNE = { duck: 1 };
   window.__yantraDemo = function () {
     return { drone: drone, free: freeOn, engine: !!droneNodes,
@@ -3249,6 +3251,7 @@
   /* fields in rising pitch: lowest at the bottom, then side to side up to the top, as on a handpan */
   var RIM_ORDER = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];   /* Sa at the top, rising clockwise */
   var rimMode = 0;
+  var RT = { level: 0.22, thr: 0, ratio: 1, makeup: 1 };
   /* the rim is a voice like the shapes: added or not, resting or not; Keep is its one extra switch */
   var rimOn = true, rimRest = false, rimKeep = false, rimLock = false, rimVol = 0.6;
   var RIM_DEF = { n: -1, name: "Rim", rim: true };
@@ -3283,7 +3286,7 @@
   function rimRemove() { rimOn = false; rimRest = false; rimKeep = false; rimLock = false; rimOwn = RIM_HOME; rimSnap = 0; rimNotes = []; rimGlow = []; renderPanel(); }
   function rimSetVol(v) {
     rimVol = v < 0 ? 0 : (v > 1 ? 1 : v);
-    if (rimBus && ac && rimAc === ac) { rimBus.gain.setTargetAtTime(0.5 * rimVol, ac.currentTime, 0.012); }
+    if (rimBus && ac && rimAc === ac) { rimBus.gain.setTargetAtTime(RT.level * rimVol, ac.currentTime, 0.012); }
   }
   var rimScale = 0, rimNotes = [], rimNext = 0, rimGlow = [], rimBus = null, rimAc = null;
   function rimDegree(field) { return RIM_ORDER.indexOf(field); }
@@ -3296,7 +3299,12 @@
   function rimVoice(freq, t, vel) {
     if (!rimBus || rimAc !== ac) {
       rimAc = ac;
-      rimBus = ac.createGain(); rimBus.gain.value = 0.5 * rimVol; rimBus.connect(master);
+      rimBus = ac.createGain(); rimBus.gain.value = RT.level * rimVol;
+      var rcomp = ac.createDynamicsCompressor(), rout = ac.createGain();
+      rcomp.threshold.value = RT.thr; rcomp.knee.value = 10; rcomp.ratio.value = RT.ratio;
+      rcomp.attack.value = 0.004; rcomp.release.value = 0.25;
+      rout.gain.value = RT.makeup;
+      rimBus.connect(rcomp); rcomp.connect(rout); rout.connect(master);
       var rv = makeReverb();
       if (rv) { var rs = ac.createGain(); rs.gain.value = 0.32; rimBus.connect(rs); rs.connect(rv); rv.connect(master); }
     }
@@ -3468,10 +3476,12 @@
     if (rimNext < lo || rimNext > lo + RIM_RES) { rimNext = lo; }
     while (t0 + rimNext * sd < until) {
       var at = t0 + rimNext * sd, st = ((rimNext % RIM_RES) + RIM_RES) % RIM_RES;
+      var together = 0;
+      for (i = 0; i < rimNotes.length; i++) { if (rimNotes[i].step === st && !(rimNotes[i].hold > at)) { together++; } }
       for (i = 0; i < rimNotes.length; i++) {
         var n = rimNotes[i];
         if (n.step !== st || n.hold > at) { continue; }
-        rimVoice(rimFreq(n.field), at, 0.8);
+        rimVoice(rimFreq(n.field), at, 0.8 / Math.sqrt(together));
         (function (f, stp, when) {
           setTimeout(function () { if (playing) { rimGlow.push({ f: f, t: now_(), step: stp }); } },
                      Math.max(0, (when - ac.currentTime + heardLag()) * 1000));
