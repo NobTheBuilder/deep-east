@@ -1131,7 +1131,7 @@
       <div class="demo-opt">
         <button class="demo-sw" id="demoBrass" type="button" aria-pressed="true" aria-label="Engraved brass rim"></button>
         <div class="demo-name">Th&#257;l&#299;, the brass ring, played like a handpan</div>
-        <p>Strike the ring and it rings. Sixteen tone fields run clockwise from the top, a semitone each, an octave and a third in all: the span of a Volca Bass keyboard. They are lettered with the twelve swaras, the plate's own Sa sitting on A. The komal and tivra swaras are shaded like black keys and a dot marks the upper octave. The tuning is the plate's own and does not follow the drone or the free voice. It is added like any shape, from the Th&#257;l&#299; box beside Infinity. Tap its box or its row to rest it, hold the box to remove it. Its state is the mark beside the plate at nine o'clock. Each tap takes the next step in making a pattern. An open ring is free: audition notes. Tap, and red is keeping: each strike is recorded and returns every turn. Tap again to leave record and carry on playing over it; the ring now holds a loose brass stud, meaning a pattern is held. Tap again and it becomes a slotted brass head: locked, the melody playing on while touches on the ring do nothing. One more tap unlocks it, back to the open ring. To change the melody without touching the rhythms, hold a stud to remove that one note, or hold the plate anywhere else for a second to clear every note; a line shows the hold filling, and a hold never leaves a note of its own behind. Snap is also on the face of the dial, without a word: the short arc of dots beside the plate at three o'clock. Tap it: hollow dots are off, three filled dots are the rhythm's count, five are twice as fine. The count is the rhythm's own (the one the dotted pulse ring shows), or twice as fine. With snap on, a ring of dots appears on the plate and every kept note lands on one; notes already kept are pulled in too. Its row in Layers has a m&#257;tr&#257; count, as the shapes do: 16 turns the plate once per turn of the Yantra, and any other count runs the melody at its own length against the rhythm, with its own hand crossing the brass.</p>
+        <p>Strike the ring and it rings. Sixteen tone fields run clockwise from the top, a semitone each, an octave and a third in all: the span of a Volca Bass keyboard. They are lettered with the twelve swaras, the plate's own Sa sitting on A. The komal and tivra swaras are shaded like black keys and a dot marks the upper octave. The tuning is the plate's own and does not follow the drone or the free voice. It is added like any shape, from the Th&#257;l&#299; box beside Infinity. Tap its box or its row to rest it, hold the box to remove it. Its state is the mark beside the plate at nine o'clock. Each tap takes the next step in making a pattern. An open ring is free: audition notes. Tap, and red is keeping: each strike is recorded and returns every turn. Tap again to leave record and carry on playing over it; the ring now holds a loose brass stud, meaning a pattern is held. Tap again and it becomes a slotted brass head: locked, the melody playing on while touches on the ring do nothing. One more tap unlocks it, back to the open ring. Holding the mark for half a second jumps straight into record from any of these, to add to a pattern without going round; a red line closes round the mark as the hold fills. To change the melody without touching the rhythms, hold a stud to remove that one note, or hold the plate anywhere else for a second to clear every note; a line shows the hold filling, and a hold never leaves a note of its own behind. Snap is also on the face of the dial, without a word: the short arc of dots beside the plate at three o'clock. Tap it: hollow dots are off, three filled dots are the rhythm's count, five are twice as fine. The count is the rhythm's own (the one the dotted pulse ring shows), or twice as fine. With snap on, a ring of dots appears on the plate and every kept note lands on one; notes already kept are pulled in too. Its row in Layers has a m&#257;tr&#257; count, as the shapes do: 16 turns the plate once per turn of the Yantra, and any other count runs the melody at its own length against the rhythm, with its own hand crossing the brass.</p>
 
       </div>
       <div class="demo-opt">
@@ -3366,7 +3366,7 @@
   }
   /* the state mark, at nine o'clock: an open ring is free, a red disc is keeping, a slotted brass head is locked */
   var RIM_MODE_AT = Math.PI;
-  var rimPost = false;      /* just out of keeping, with a pattern held: the next tap fastens it */
+  var rimPost = false, rimModePress = null, RIM_MODE_HOLD = 480;      /* just out of keeping, with a pattern held: the next tap fastens it */
   function rimModeHit(x, y) {
     if (!DEMO.brass || !rimOn || rimRest) { return false; }
     var mr = rimMarkR(), dx = x - (geo.cx + mr * Math.cos(RIM_MODE_AT)), dy = y - (geo.cy + mr * Math.sin(RIM_MODE_AT));
@@ -3383,6 +3383,22 @@
     if (!rimOn) { return; }
     var mr = rimMarkR(), x = cx + mr * Math.cos(RIM_MODE_AT), y = cy + mr * Math.sin(RIM_MODE_AT);
     var r = Math.max(5, geo.R * 0.036);
+    if (rimModePress) {
+      if (!drag) { rimModePress = null; }
+      else if (!rimModePress.done) {
+        var he = now_() - rimModePress.t;
+        if (he >= RIM_MODE_HOLD) {
+          /* held: straight into record, whatever came before */
+          rimLock = false; rimPost = false; rimKeep = true; rimRest = false; rimModePress.done = true;
+          try { if (navigator.vibrate) { navigator.vibrate(12); } } catch (e) {}
+          renderPanel();
+        } else if (he > 130) {
+          /* a red line closes round the mark while the hold fills */
+          ctx.beginPath(); ctx.arc(x, y, r + 5, -Math.PI / 2, -Math.PI / 2 + (he - 130) / (RIM_MODE_HOLD - 130) * RIM_TAU);
+          ctx.strokeStyle = "#e25438"; ctx.lineWidth = 1.8; ctx.lineCap = "round"; ctx.stroke(); ctx.lineCap = "butt";
+        }
+      }
+    }
     ctx.globalAlpha = rimRest ? 0.35 : 1;
     if (rimLock) {
       /* fastened: a brass screw head, its slot lying along the rim */
@@ -3804,7 +3820,7 @@
       return true;
     }
     if (rimModeHit(x, y)) {
-      rimCycleMode();
+      rimModePress = { t: now_(), x: x, y: y, done: false };
       drag = { mode: "ring", s: null, k: -1, moved: false, dist: 0 };
       return true;
     }
@@ -3961,6 +3977,7 @@
     pulseResume = true; pulseNext = -1;
   }
   function move(x, y) {
+    if (rimModePress && Math.sqrt(Math.pow(x - rimModePress.x, 2) + Math.pow(y - rimModePress.y, 2)) > 24) { rimModePress = null; }
     if (rimHold && Math.sqrt(Math.pow(x - rimHold.x, 2) + Math.pow(y - rimHold.y, 2)) > 24) { rimHold = null; }
     if (!drag) { return; }
     if (drag.mode === "oct") { setOct(octFromSwipe(x, y)); return; }
@@ -4054,6 +4071,7 @@
   var LONG_PRESS = 480;
   function up() {
     rimHold = null;
+    if (rimModePress) { if (!rimModePress.done) { rimCycleMode(); } rimModePress = null; }
     if (drag && drag.lp) { clearTimeout(drag.lp); }
     if (drag && drag.mode === "pulse" && drag.ready && !drag.moved) {
       togglePulseSkip(drag.start);         /* held and let go without shaping: skip the packet, as before */
