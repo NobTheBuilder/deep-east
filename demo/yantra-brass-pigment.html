@@ -1131,7 +1131,7 @@
       <div class="demo-opt">
         <button class="demo-sw" id="demoBrass" type="button" aria-pressed="true" aria-label="Engraved brass rim"></button>
         <div class="demo-name">Th&#257;l&#299;, the brass ring, played like a handpan</div>
-        <p>Strike the ring and it rings. Sixteen tone fields run clockwise from A at the top, a semitone each, up to C in the octave above: the span of a Volca Bass keyboard. Sharps are shaded like black keys and a dot marks the upper octave. The tuning is the plate's own and does not follow the drone or the free voice. It is added like any shape, from the Th&#257;l&#299; box beside Infinity. Tap its box or its row to rest it, hold the box to remove it. One button in its row steps through free, keeping and locked: free just plays, keeping records each strike so it returns every turn, and locked leaves the melody playing while touches on the ring do nothing. To change the melody without touching the rhythms, hold a stud to remove that one note, or hold the plate anywhere else for a second to clear every note; a line shows the hold filling.</p>
+        <p>Strike the ring and it rings. Sixteen tone fields run clockwise from the top, a semitone each, an octave and a third in all: the span of a Volca Bass keyboard. They are lettered with the twelve swaras, the plate's own Sa sitting on A. The komal and tivra swaras are shaded like black keys and a dot marks the upper octave. The tuning is the plate's own and does not follow the drone or the free voice. It is added like any shape, from the Th&#257;l&#299; box beside Infinity. Tap its box or its row to rest it, hold the box to remove it. One button in its row steps through free, keeping and locked: free just plays, keeping records each strike so it returns every turn, and locked leaves the melody playing while touches on the ring do nothing. To change the melody without touching the rhythms, hold a stud to remove that one note, or hold the plate anywhere else for a second to clear every note; a line shows the hold filling.</p>
 
       </div>
       <div class="demo-opt">
@@ -3230,11 +3230,11 @@
       g.lineTo(m + (rOut - 1.5) * Math.cos(a0), m + (rOut - 1.5) * Math.sin(a0));
       g.strokeStyle = "rgba(24,15,5,0.7)"; g.stroke();
     }
-    g.font = "500 " + f2.toFixed(1) + "px \"Eczar\", \"Spectral\", serif";
+    g.font = (f2 * 1.14).toFixed(1) + "px \"Tiro Devanagari Sanskrit\", \"Eczar\", serif";
     g.textAlign = "center"; g.textBaseline = "middle";
     for (i = 0; i < RIM_N; i++) {
       a = -Math.PI / 2 + (i + 0.5) * step;
-      var nm = RIM_NAMES[i % 12], sharp = nm.length > 1, oc = rimOct(i), q;
+      var nm = RIM_SWARA[i % 12], sharp = RIM_NAMES[i % 12].length > 1, oc = rimOct(i), q;
       g.save(); g.translate(m + nr * Math.cos(a), m + nr * Math.sin(a)); g.rotate(a + Math.PI / 2);
       g.fillStyle = "rgba(20,12,4,0.8)"; g.fillText(nm, 0.6, 1);
       g.fillStyle = sharp ? "rgba(236,228,208,0.72)" : (i % 12 === 0 ? "#fffaea" : "rgba(246,240,224,0.93)");
