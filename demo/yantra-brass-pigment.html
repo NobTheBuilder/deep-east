@@ -1135,8 +1135,8 @@
 
       </div>
       <div class="demo-opt">
-        <div class="demo-name">Quieter shapes fade</div>
-        <p>Every shape keeps its own colour. Turning a shape's volume down thins and fades its line, so a soft layer looks soft. The nodes never fade, the line never drops below about half strength, and a shape you are holding returns to full strength.</p>
+        <div class="demo-name">Voices start at 60%, and quieter shapes fade</div>
+        <p>Every shape, the drone and the Th&#257;l&#299; now start at 60% volume, leaving room to mix upwards. Every shape keeps its own colour. Turning a shape below 60% thins and fades its line, and raising it above thickens the line a little. The nodes never fade, the line never drops below about half strength, and a shape you are holding returns to full strength.</p>
       </div>
       <div class="demo-opt">
         <button class="demo-sw" id="demoRoom" type="button" aria-pressed="true" aria-label="More room"></button>
@@ -1304,6 +1304,7 @@
   var DRONE_COL = "#c9973f";
   /* ===== demo ===== */
   var DEMO = { brass: true, pig: false, room: true, bead: true };
+  var DEF_VOL = 0.6;   /* where every voice starts */
   /* hue is the material that sounds; within the skins, the lower the voice the darker the pigment */
   var PIGMENTS = {
     kick:    { col: "#b23a56", name: "lākh",     en: "lac",          fam: "skin" },
@@ -1361,7 +1362,7 @@
   }
   var shapes = [];
   var drone = false, droneNodes = null;
-  var droneVol = 1;
+  var droneVol = 0.6;
   /* tapping the Infinity layer row mutes it, the same as a shape's row;
      the fader keeps its value so unmuting returns to the same level */
   var droneSilent = false;
@@ -3067,7 +3068,7 @@
   var RIM_ORDER = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];   /* Sa at the top, rising clockwise */
   var rimMode = 0;
   /* the rim is a voice like the shapes: added or not, resting or not; Keep is its one extra switch */
-  var rimOn = true, rimRest = false, rimKeep = false, rimLock = false, rimVol = 1;
+  var rimOn = true, rimRest = false, rimKeep = false, rimLock = false, rimVol = 0.6;
   var RIM_DEF = { n: -1, name: "Rim", rim: true };
   function rimAwake() { return rimOn && !rimRest; }
   function rimTap() { if (!rimOn) { rimOn = true; rimRest = false; } else { rimRest = !rimRest; } renderPanel(); }
@@ -3270,9 +3271,10 @@
       /* a quieter shape is laid on thinner */
       /* only the line fades, never the nodes; it stops well short of invisible, and a shape
          under the finger comes back to full strength */
-      var wv = s.vol + (1 - s.vol) * lit;
+      var vn = Math.min(1, s.vol / DEF_VOL), wv = vn + (1 - vn) * lit;
+      var loud = s.vol > DEF_VOL ? (s.vol - DEF_VOL) / (1 - DEF_VOL) : 0;
       ctx.globalAlpha = s.silent ? 0.22 + 0.5 * lit : (0.85 + 0.15 * lit) * (0.48 + 0.52 * wv);
-      ctx.lineWidth = (1.3 + 1.1 * lit) * (0.62 + 0.38 * wv); ctx.stroke();
+      ctx.lineWidth = (1.3 + 1.1 * lit) * (0.62 + 0.38 * wv + 0.3 * loud); ctx.stroke();
       ctx.globalAlpha = 1;
       for (k = 0; k < s.n; k++) {
         if (s.own && s.skips.indexOf(k) !== -1) { drawSkipMark(vpos(s, k), s.color, s.silent); continue; }
@@ -3791,7 +3793,7 @@
     var s = { n: def.n, name: def.name, inst: inst,
               idx: idx, color: COLORS[idx % COLORS.length],
               ring: 1, ringT: 1, rot: 0, ang: ang, order: [], oi: 0,
-              silent: false, vol: 1, gain: null,
+              silent: false, vol: DEF_VOL, gain: null,
               mutes: mutes ? mutes.slice() : [], nk: 0, nt: 0,
               own: def.n, skips: [], ownN: -1, samAt: 0, ea: 0, ed: 0.5 };
     rebuildOrder(s);
@@ -5347,7 +5349,7 @@
     }
     if (!best) { return null; }
     var seg = { n: best.n, instIdx: INSTS.indexOf(line.inst), rot: 0, mutes: [], ang: null, silent: 0,
-                vol: Math.round(line.vol * 1000), own: 0, skips: [] }, i;
+                vol: Math.round(line.vol * 0.6 * 1000), own: 0, skips: [] }, i;
     var hitSet = {};
     for (i = 0; i < k; i++) { hitSet[Math.round(line.pos[i] * 1e6)] = 1; }
     if (best.even) {
@@ -5386,7 +5388,7 @@
       var cr = b.cross[i], n = cr.corners.length, hits = 0;
       if (n < 3 || n > 16 || used[n]) { continue; }
       var cseg = { n: n, instIdx: INSTS.indexOf(cr.inst), rot: 0, mutes: [], ang: null, silent: 0,
-                   vol: Math.round(cr.vol * 1000), own: cr.own === n ? 0 : cr.own, skips: [] };
+                   vol: Math.round(cr.vol * 0.6 * 1000), own: cr.own === n ? 0 : cr.own, skips: [] };
       for (j = 0; j < n; j++) { if (cr.corners.charAt(j) === 'x') { hits++; } else { cseg.mutes.push(j); } }
       used[n] = true;
       crossShapes.push(cseg);
