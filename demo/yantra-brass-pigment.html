@@ -1131,7 +1131,7 @@
       <div class="demo-opt">
         <button class="demo-sw" id="demoBrass" type="button" aria-pressed="true" aria-label="Engraved brass rim"></button>
         <div class="demo-name">Th&#257;l&#299;, the brass ring, played like a handpan</div>
-        <p>Strike the ring and it rings. Sixteen tone fields run clockwise from the top, a semitone each, an octave and a third in all: the span of a Volca Bass keyboard. They are lettered with the twelve swaras, the plate's own Sa sitting on A. The komal and tivra swaras are shaded like black keys and a dot marks the upper octave. The tuning is the plate's own and does not follow the drone or the free voice. It is added like any shape, from the Th&#257;l&#299; box beside Infinity. Tap its box or its row to rest it, hold the box to remove it. Its state is the mark beside the plate at nine o'clock. Each tap takes the next step in making a pattern. An open ring is free: audition notes. Tap, and red is keeping: each strike is recorded and returns every turn. Tap again to leave record and carry on playing over it; the ring now holds a loose brass stud, meaning a pattern is held. Tap again and it becomes a slotted brass head: locked, the melody playing on while touches on the ring do nothing. One more tap unlocks it, back to the open ring. Holding the mark for half a second jumps straight into record from any of these, to add to a pattern without going round; a red line closes round the mark as the hold fills. The plate has an envelope like the shapes. Draw a finger straight out from the plate to lengthen its ring, or straight in to shorten it; once that has begun, moving round the plate softens the attack. A faint ring outside the brass shows the shape, wider for longer and blurred for softer. To change the melody without touching the rhythms, hold a stud to remove that one note, or hold the plate anywhere else for a second to clear every note; a line shows the hold filling, and a hold never leaves a note of its own behind. Snap is also on the face of the dial, without a word: the short arc of dots beside the plate at three o'clock. Tap it: hollow dots are off, three filled dots are the rhythm's count, five are twice as fine. The count is the rhythm's own (the one the dotted pulse ring shows), or twice as fine. With snap on, a ring of dots appears on the plate and every kept note lands on one; notes already kept are pulled in too. Its row in Layers has a m&#257;tr&#257; count, as the shapes do: 16 turns the plate once per turn of the Yantra, and any other count runs the melody at its own length against the rhythm, with its own hand crossing the brass.</p>
+        <p>Strike the ring and it rings. Sixteen tone fields run clockwise from the top, a semitone each, an octave and a third in all: the span of a Volca Bass keyboard. They are lettered with the twelve swaras, the plate's own Sa sitting on A. The komal and tivra swaras are shaded like black keys and a dot marks the upper octave. The tuning is the plate's own and does not follow the drone or the free voice. It is added like any shape, from the Th&#257;l&#299; box beside Infinity. Tap its box or its row to rest it, hold the box to remove it. Its state is the mark beside the plate at nine o'clock. Each tap takes the next step in making a pattern. An open ring is free: audition notes. Tap, and red is keeping: each strike is recorded and returns every turn. Tap again to leave record and carry on playing over it; the ring now holds a loose brass stud, meaning a pattern is held. Tap again and it becomes a slotted brass head: locked, the melody playing on while touches on the ring do nothing. One more tap unlocks it, back to the open ring. Holding the mark for half a second jumps straight into record from any of these, to add to a pattern without going round; a red line closes round the mark as the hold fills. The plate has an envelope like the shapes, and it is shaped while the plate is locked. Lock it, then touch the plate: no note sounds and nothing can be erased. A ring appears just outside the brass with a read-out. Draw outward for a longer ring, inward for a shorter one, and round the plate for a softer attack. To change the melody without touching the rhythms, hold a stud to remove that one note, or hold the plate anywhere else for a second to clear every note; a line shows the hold filling, and a hold never leaves a note of its own behind. Snap is also on the face of the dial, without a word: the short arc of dots beside the plate at three o'clock. Tap it: hollow dots are off, three filled dots are the rhythm's count, five are twice as fine. The count is the rhythm's own (the one the dotted pulse ring shows), or twice as fine. With snap on, a ring of dots appears on the plate and every kept note lands on one; notes already kept are pulled in too. Its row in Layers has a m&#257;tr&#257; count, as the shapes do: 16 turns the plate once per turn of the Yantra, and any other count runs the melody at its own length against the rhythm, with its own hand crossing the brass.</p>
 
       </div>
       <div class="demo-opt">
@@ -3575,10 +3575,16 @@
     var sr = Math.max(2.2, bw * 0.105), rad = rIn + bw * 0.21;
     rimHoldTick();
     drawRimMark(cx, cy);
-    if (rimOn && ((rimEnv && rimEnv.on) || !rimEnvDefault())) {
-      var eLive = !!(rimEnv && rimEnv.on);
+    if (rimEnv && !drag) { rimEnv = null; }
+    if (rimEnv && !rimEnv.on && now_() - rimEnv.t >= 480) {
+      /* held still: armed, measured from where the finger rests */
+      rimEnv.on = true; rimEnv.rr0 = distC(rimEnv.px, rimEnv.py); rimEnv.aLock = angleAt(rimEnv.px, rimEnv.py);
+      try { if (navigator.vibrate) { navigator.vibrate(12); } } catch (e) {}
+    }
+    if (rimOn && (rimEnv || !rimEnvDefault())) {
+      var eLive = !!rimEnv;
       ctx.beginPath(); ctx.arc(cx, cy, rOut + 5 + (rimED - 0.5) * 0.2 * R, 0, RIM_TAU);
-      ghostStroke(DRONE_COL, (eLive ? 0.6 : 0.16) * (rimAwake() ? 1 : 0.5), rimEA);
+      ghostStroke(DRONE_COL, (eLive ? 0.9 : 0.26) * (rimAwake() ? 1 : 0.5), rimEA);
       if (eLive) {
         cText("attack " + fmtSecs(rimAttack()) + "  \u00B7  length \u00D7" + rimLength().toFixed(1), cx, cy - Math.max(44, R * 0.3),
               "italic 300 13px 'Spectral', serif", "rgba(245,239,228,0.85)", "center");
@@ -3845,6 +3851,16 @@
       drag = { mode: "ring", s: null, k: -1, moved: false, dist: 0 };
       return true;
     }
+    if (DEMO.brass && rimAwake() && rimLock && rimFieldAt(x, y) >= 0 && !nearPitchMarker(x, y) && !nearFreeDot(x, y)) {
+      var lv = nearOuterVertex(x, y), lnear = false;
+      if (lv) { var lp2 = vpos(lv.s, lv.k); lnear = Math.sqrt(Math.pow(x - lp2[0], 2) + Math.pow(y - lp2[1], 2)) < 11; }
+      if (!lnear) {
+        rimEnv = { rr0: distC(x, y), a0: angleAt(x, y), aLock: angleAt(x, y), e0: [rimEA, rimED], on: false, made: null,
+                   t: now_(), px: x, py: y };
+        drag = { mode: "ring", s: null, k: -1, moved: false, dist: 0 };
+        return true;
+      }
+    }
     if (DEMO.brass && rimAwake() && !rimLock) {
       var rf = rimFieldAt(x, y), rv = rf >= 0 ? nearOuterVertex(x, y) : null, rnear = false;
       if (rv) { var rp = vpos(rv.s, rv.k); rnear = Math.sqrt(Math.pow(x - rp[0], 2) + Math.pow(y - rp[1], 2)) < 11; }
@@ -3853,7 +3869,6 @@
         rimLast = null;
         rimStrike(rf);
         rimHold = rimNotes.length ? { t: now_(), x: x, y: y, note: heldNote, made: rimLast } : null;
-        rimEnv = { rr0: distC(x, y), a0: angleAt(x, y), aLock: 0, e0: [rimEA, rimED], on: false, made: rimLast };
         drag = { mode: "ring", s: null, k: -1, moved: false, dist: 0 };
         return true;
       }
@@ -3996,9 +4011,9 @@
   function move(x, y) {
     if (rimEnv) {
       var edr = distC(x, y) - rimEnv.rr0, etg = Math.abs(wrapA(angleAt(x, y) - rimEnv.a0)) * Math.max(30, rimEnv.rr0);
-      if (!rimEnv.on && Math.abs(edr) >= 14 && Math.abs(edr) > etg * 1.2) {
-        /* gone straight out or in: this is shaping, not a strike and not a hold */
-        rimEnv.on = true; rimEnv.aLock = angleAt(x, y); rimHold = null;
+      rimEnv.px = x; rimEnv.py = y;
+      if (!rimEnv.on && (Math.abs(edr) >= 8 || etg >= 8)) {
+        rimEnv.on = true; rimEnv.rr0 = distC(x, y); rimEnv.aLock = angleAt(x, y); edr = 0; rimHold = null;
         var emi = rimEnv.made ? rimNotes.indexOf(rimEnv.made) : -1;
         if (emi >= 0) { rimNotes.splice(emi, 1); rimCountUi(); }
         try { if (navigator.vibrate) { navigator.vibrate(8); } } catch (e) {}
