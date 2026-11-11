@@ -979,6 +979,18 @@
     }
   }
 </style>
+
+<style>
+  /* ================= demo, stage 5 ================= */
+  .bg-switch { display: none; }
+  .layer .inst.rim-keep::before {
+    content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 0.5em; vertical-align: 0.03em;
+    background: none; box-shadow: inset 0 0 0 1.2px #d64a30;
+  }
+  .layer .inst.rim-keep.on { color: #ee8a72; }
+  .layer .inst.rim-keep.on::before { background: #e25438; box-shadow: none; animation: rim-rec 1.3s ease-in-out infinite; }
+  @media (prefers-reduced-motion: reduce) { .layer .inst.rim-keep.on::before { animation: none; } }
+</style>
 </head>
 <body>
 <canvas id="skyCv" aria-hidden="true"></canvas>
@@ -1108,12 +1120,12 @@
   </div>
   <div style="height:2rem;"></div>
   <div class="demo-bar">
-    <div class="demo-title">Demo &middot; changes to the Yantra, each can be switched off to compare &middot; backgrounds switch at the top left</div>
+    <div class="demo-title">Demo &middot; changes to the Yantra, each can be switched off to compare</div>
     <div class="demo-opts">
       <div class="demo-opt">
         <button class="demo-sw" id="demoBrass" type="button" aria-pressed="true" aria-label="Engraved brass rim"></button>
         <div class="demo-name">Brass rim, played like a handpan</div>
-        <p>Strike the rim and it rings. Twelve tone fields, inlaid with their swaras, run from low at the bottom to high at the top, alternating sides. The switch under the dial sets the rim to Locked, Free or Keep. Locked ignores touches, so the dial's own gestures are safe. Free just plays. Keep records each strike as a stud that returns every turn, and the dial's undo takes them back one at a time.</p>
+        <p>Strike the rim and it rings. Twelve tone fields, inlaid with their swaras, run from low at the bottom to high at the top, alternating sides. The rim is added like any shape, from the Rim box beside Infinity. Tap its box or its row to rest it, hold the box to remove it. In its row, tap the scale to change it and tap Keep to record: kept strikes return every turn, and the dial's undo takes them back one at a time.</p>
 
       </div>
       <div class="demo-opt">
@@ -1133,21 +1145,6 @@
       <div class="stage">
         <canvas id="cv"></canvas>
         <button id="playBtn" class="transport" aria-label="Play"><span id="glyph">&#9654;</span></button>
-      </div>
-      <div class="rim-bar">
-        <div class="rim-row">
-          <div class="rim-seg" role="group" aria-label="Brass rim">
-            <span class="rim-lab">Rim</span>
-            <button type="button" id="rimLocked" aria-pressed="true">Locked</button>
-            <button type="button" id="rimFree" aria-pressed="false">Free</button>
-            <button type="button" id="rimKeep" aria-pressed="false">Keep</button>
-          </div>
-          <div class="rim-tools">
-            <button type="button" id="rimScale">Scale</button>
-            <button type="button" id="rimClear">Clear rim</button>
-          </div>
-        </div>
-        <div class="rim-status" id="rimCount" aria-live="polite"></div>
       </div>
       <p class="hint stage-hint">Tap a node to silence &middot; Drag a node to syncopate</p>
       <p class="hint stage-hint" id="astat" style="margin-top:0.4rem;color:#8c4734;display:none;"></p>
@@ -2459,7 +2456,7 @@
   function drawLimb(cx, cy, R) {
     var dpr = window.devicePixelRatio || 1, key = R.toFixed(1) + "/" + dpr + "/" + limbFont + "/" + rimScale + "/" + LIMB_OUT;
     if (key !== limbKey) { buildLimb(R, dpr); limbKey = key; }
-    ctx.globalAlpha = rimMode === 0 ? 0.6 : 1;   /* a locked rim sits back */
+    ctx.globalAlpha = rimAwake() ? 1 : 0.55;   /* a resting or absent rim sits back */
     ctx.drawImage(limbCv, cx - limbM, cy - limbM, limbM * 2, limbM * 2);
     ctx.globalAlpha = 1;
   }
@@ -3060,7 +3057,17 @@
                    "प", "ध॒", "ध", "नि॒", "नि"];
   /* fields in rising pitch: lowest at the bottom, then side to side up to the top, as on a handpan */
   var RIM_ORDER = [5, 6, 4, 7, 3, 8, 2, 9, 1, 10, 0, 11];
-  var rimMode = 0;   /* 0 locked, 1 free, 2 keep */
+  var rimMode = 0;
+  /* the rim is a voice like the shapes: added or not, resting or not; Keep is its one extra switch */
+  var rimOn = true, rimRest = false, rimKeep = false, rimVol = 1;
+  var RIM_DEF = { n: -1, name: "Rim", rim: true };
+  function rimAwake() { return rimOn && !rimRest; }
+  function rimTap() { if (!rimOn) { rimOn = true; rimRest = false; } else { rimRest = !rimRest; } renderPanel(); }
+  function rimRemove() { rimOn = false; rimRest = false; rimKeep = false; rimNotes = []; rimGlow = []; renderPanel(); }
+  function rimSetVol(v) {
+    rimVol = v < 0 ? 0 : (v > 1 ? 1 : v);
+    if (rimBus && ac && rimAc === ac) { rimBus.gain.setTargetAtTime(0.5 * rimVol, ac.currentTime, 0.012); }
+  }
   var rimScale = 0, rimNotes = [], rimNext = 0, rimGlow = [], rimBus = null, rimAc = null;
   function rimDegree(field) { return RIM_ORDER.indexOf(field); }
   function rimOct(field) { return Math.floor(rimDegree(field) / RIM_SCALES[rimScale].semis.length); }
@@ -3077,7 +3084,7 @@
   function rimVoice(freq, t, vel) {
     if (!rimBus || rimAc !== ac) {
       rimAc = ac;
-      rimBus = ac.createGain(); rimBus.gain.value = 0.5; rimBus.connect(master);
+      rimBus = ac.createGain(); rimBus.gain.value = 0.5 * rimVol; rimBus.connect(master);
       var rv = makeReverb();
       if (rv) { var rs = ac.createGain(); rs.gain.value = 0.32; rimBus.connect(rs); rs.connect(rv); rv.connect(master); }
     }
@@ -3104,7 +3111,8 @@
     a = ((a % RIM_TAU) + RIM_TAU) % RIM_TAU;
     return Math.floor(a / (RIM_TAU / 12)) % 12;
   }
-  function rimUi() {
+  function rimUi() {}
+  function rimUiOld2() {
     var ids = ["rimLocked", "rimFree", "rimKeep"], i, b = document.getElementById("rimScale"), c = document.getElementById("rimCount");
     for (i = 0; i < 3; i++) {
       var sb = document.getElementById(ids[i]);
@@ -3130,15 +3138,15 @@
     var now = ac.currentTime, i;
     rimVoice(rimFreq(field), now + 0.004, 0.9);
     rimGlow.push({ f: field, t: now_(), step: -1 });
-    if (playing && rimMode === 2) {
+    if (playing && rimKeep) {
       var turns = (viewClock() - t0) / T, step = Math.round((turns - Math.floor(turns)) * 60) % 60;
       for (i = 0; i < rimNotes.length; i++) { if (rimNotes[i].step === step && rimNotes[i].field === field) { return; } }
       rimNotes.push({ step: step, field: field, hold: now + T / 60 * 1.5 });
-      rimUi();
+      renderPanel();
     }
   }
   function scheduleRim(until) {
-    if (!DEMO.brass || !rimNotes.length) { return; }
+    if (!DEMO.brass || !rimNotes.length || !rimAwake()) { return; }
     var sd = T / 60, lo = Math.ceil((ac.currentTime - t0) / sd - 1e-6), i;
     if (rimNext < lo || rimNext > lo + 60) { rimNext = lo; }
     while (t0 + rimNext * sd < until) {
@@ -3174,7 +3182,7 @@
   }
   function drawRimPlay(cx, cy, R) {
     var rIn = R * LIMB_IN, rOut = R * LIMB_OUT, bw = rOut - rIn, tn = now_(), i, a, lit = {};
-    if (rimMode === 2) {
+    if (rimAwake() && rimKeep) {
       /* keeping: two cinnabar lines frame the rim and breathe while the Yantra turns */
       var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       var kp = (playing && !still) ? 0.5 + 0.5 * Math.sin(tn / 420) : 0.6;
@@ -3197,8 +3205,10 @@
       var x = cx + rad * Math.cos(a), y = cy + rad * Math.sin(a), l = lit[n.step + "/" + n.field] || 0;
       var sg = ctx.createRadialGradient(x - sr * 0.35, y - sr * 0.4, 0, x, y, sr);
       sg.addColorStop(0, "#fff6dc"); sg.addColorStop(0.5, l ? "#f3e2b4" : "#d6b26e"); sg.addColorStop(1, "#5a4320");
+      ctx.globalAlpha = rimAwake() ? 1 : 0.4;
       ctx.beginPath(); ctx.arc(x, y, sr, 0, RIM_TAU); ctx.fillStyle = sg; ctx.fill();
       ctx.strokeStyle = "rgba(20,12,4,0.9)"; ctx.lineWidth = 0.8; ctx.stroke();
+      ctx.globalAlpha = 1;
       if (l) {
         ctx.beginPath(); ctx.arc(x, y, sr + 2 + 5 * (1 - l), 0, RIM_TAU);
         ctx.strokeStyle = "rgba(255,244,214," + (0.8 * l).toFixed(3) + ")"; ctx.lineWidth = 1; ctx.stroke();
@@ -3407,7 +3417,7 @@
       drag = { mode: "oct", s: null, k: -1, moved: false, dist: 0, x0: x, y0: y, o0: droneOct };
       return true;
     }
-    if (DEMO.brass && rimMode > 0) {
+    if (DEMO.brass && rimAwake()) {
       var rf = rimFieldAt(x, y), rv = rf >= 0 ? nearOuterVertex(x, y) : null, rnear = false;
       if (rv) { var rp = vpos(rv.s, rv.k); rnear = Math.sqrt(Math.pow(x - rp[0], 2) + Math.pow(y - rp[1], 2)) < 11; }
       if (rf >= 0 && !rnear && !nearPitchMarker(x, y) && !nearFreeDot(x, y)) {
@@ -3866,6 +3876,7 @@
   var HOLD_MS = 500;
   function shapeOf(n) { for (var i = 0; i < shapes.length; i++) { if (shapes[i].n === n) { return shapes[i]; } } return null; }
   function shapeTap(def) {
+    if (def.rim) { rimTap(); return; }
     if (def.n === 0) {
       if (!drone) { toggleShape(def); return; }
       droneSilent = !droneSilent; applyDroneLevel(); renderPanel(); return;
@@ -3875,6 +3886,7 @@
     s.silent = !s.silent; renderPanel();
   }
   function shapeHold(def) {
+    if (def.rim) { if (rimOn) { rimRemove(); } else { rimTap(); } try { if (navigator.vibrate) { navigator.vibrate(12); } } catch (e0) {} return; }
     toggleShape(def);   /* removes what is there, adds what is not */
     try { if (navigator.vibrate) { navigator.vibrate(12); } } catch (e) {}
   }
@@ -3916,6 +3928,15 @@
         rows[def.g].appendChild(b);
       })(SHAPES[i]);
     }
+    /* the rim: 60 steps to a turn, so it reads like the others */
+    var rb = document.createElement("button"), rsw = document.createElement("span");
+    rsw.className = "sw"; rsw.style.color = DRONE_COL;
+    rsw.innerHTML = "<svg viewBox=\"0 0 16 16\" aria-hidden=\"true\"><circle cx=\"8\" cy=\"8\" r=\"6.8\"/><circle cx=\"8\" cy=\"8\" r=\"4.3\"/></svg>";
+    rb.appendChild(rsw);
+    rb.appendChild(document.createTextNode("Rim \u00B7 60"));
+    rb.setAttribute("data-n", "-1"); rb.setAttribute("data-col", DRONE_COL); rb.id = "rimBox";
+    bindPress(rb, RIM_DEF);
+    rows.inf.appendChild(rb);
   })();
   /* Volume track: continuous (no snapping), self-painting. Works for a
      shape or the drone identically via the getVol/setVol closures.
@@ -3999,7 +4020,7 @@
     for (var ci = 0; ci < shapes.length; ci++) { shapes[ci].color = shapeCol(shapes[ci]); }
     renderLegend();
     while (layersEl.firstChild) { layersEl.removeChild(layersEl.firstChild); }
-    if (!shapes.length && !drone) {
+    if (!shapes.length && !drone && !(DEMO.brass && rimOn)) {
       var e0 = document.createElement("div");
       e0.className = "hint"; e0.style.padding = "0.3rem 0";
       e0.appendChild(document.createTextNode("Empty \u2014 add a shape above"));
@@ -4063,6 +4084,45 @@
         renderPanel();
       }, false);
       layersEl.appendChild(dr);
+    }
+    if (DEMO.brass && rimOn) {
+      var rrow = document.createElement("div"); rrow.className = "layer" + (rimRest ? " off" : ""); rrow.id = "rimRow";
+      rrow.style.setProperty("--pig", DRONE_COL);
+      var rmain = document.createElement("div"); rmain.className = "layer-main";
+      var rdot = document.createElement("span"); rdot.className = "dot"; rdot.style.background = DRONE_COL;
+      var rnm = document.createElement("span"); rnm.className = "nm";
+      rnm.appendChild(document.createTextNode("Rim" + (rimNotes.length ? " · " + rimNotes.length + " kept" : "")));
+      var rsc = document.createElement("button"); rsc.className = "inst"; rsc.id = "rimScaleBtn";
+      rsc.appendChild(document.createTextNode(RIM_SCALES[rimScale].name));
+      rsc.title = "The rim's scale — tap to change";
+      rsc.addEventListener("click", function (e) { e.preventDefault(); rimScale = (rimScale + 1) % RIM_SCALES.length; renderPanel(); }, false);
+      var row2 = document.createElement("span"); row2.className = "own-wrap";
+      var rk = document.createElement("button"); rk.className = "inst rim-keep" + (rimKeep ? " on" : ""); rk.id = "rimKeepBtn";
+      rk.setAttribute("aria-pressed", rimKeep ? "true" : "false");
+      rk.appendChild(document.createTextNode(rimKeep ? (playing ? "keeping" : "keep · press play") : "keep"));
+      rk.title = "Keep: while on, each strike is recorded and returns every turn";
+      rk.addEventListener("click", function (e) { e.preventDefault(); rimKeep = !rimKeep; if (rimKeep) { rimRest = false; } renderPanel(); }, false);
+      row2.appendChild(rk);
+      var rgap = document.createElement("span"); rgap.className = "gap";
+      var rvi = document.createElement("span"); rvi.className = "vol-inline";
+      var rvl = document.createElement("span"); rvl.className = "ctrl-label"; rvl.appendChild(document.createTextNode("VOL"));
+      var rvt = document.createElement("span"); rvt.className = "vtrack";
+      var rvk = document.createElement("span"); rvk.className = "vknob"; rvk.style.background = DRONE_COL; rvt.appendChild(rvk);
+      var rvp = document.createElement("span"); rvp.className = "vpct";
+      rvp.appendChild(document.createTextNode(Math.round(rimVol * 100) + "%"));
+      rvi.appendChild(rvl); rvi.appendChild(rvt); rvi.appendChild(rvp);
+      bindVolTrack(rvt, rvk, rvp, function () { return rimVol; }, function (v) { rimSetVol(v); });
+      var rrm = document.createElement("button"); rrm.className = "rm"; rrm.appendChild(document.createTextNode("×"));
+      rrm.addEventListener("click", function (e) { e.preventDefault(); rimRemove(); }, false);
+      rmain.appendChild(rdot); rmain.appendChild(rnm); rmain.appendChild(rsc); rmain.appendChild(row2);
+      rmain.appendChild(rgap); rmain.appendChild(rvi); rmain.appendChild(rrm);
+      rrow.appendChild(rmain);
+      rrow.style.cursor = "pointer";
+      rrow.addEventListener("click", function (e) {
+        if (rsc.contains(e.target) || row2.contains(e.target) || rvi.contains(e.target) || rrm.contains(e.target)) { return; }
+        rimRest = !rimRest; renderPanel();
+      }, false);
+      layersEl.appendChild(rrow);
     }
     for (var i = 0; i < shapes.length; i++) {
       (function (s) {
@@ -4161,6 +4221,7 @@
       if (n === 0) { on = drone; }
       else { for (var q = 0; q < shapes.length; q++) { if (shapes[q].n === n) { on = true; break; } } }
       var sil = n === 0 ? (drone && droneSilent) : !!(shapeOf(n) && shapeOf(n).silent);
+      if (n === -1) { on = DEMO.brass && rimOn; sil = on && rimRest; btns[b].hidden = !DEMO.brass; }
       btns[b].className = on ? ("row-on on" + (sil ? " muted" : "")) : "";
       var bcol = btns[b].getAttribute("data-col");
       if (DEMO.pig && n !== 0 && shapeOf(n)) { bcol = shapeOf(n).color; }
@@ -4172,7 +4233,7 @@
       btns[b].style.background = on ? "rgba(245,239,228,0.05)" : "#17140f";
     }
     var tip = document.getElementById("shapeTip");
-    if (tip) { tip.hidden = !(shapes.length || drone); }
+    if (tip) { tip.hidden = !(shapes.length || drone || rimOn); }
   }
   /* ---------- transport ---------- */
   function syncBtn() {
@@ -4642,7 +4703,7 @@
   /* An empty yantra: no shapes, drone asleep, free voice off, hum.
      Tempo, key and saptak stay as they were. */
   function resetScene() {
-    rimNotes = []; rimGlow = []; rimUi();
+    rimNotes = []; rimGlow = []; rimOn = false; rimRest = false; rimKeep = false;
     for (var i = 0; i < shapes.length; i++) { if (shapes[i].gain) { shapes[i].gain.disconnect(); } }
     shapes = []; drone = false; droneSilent = false; stopDrone(); freeOn = false; freeOct = 1;
     droneEA = 0.5; droneER = 0.5; freePulse = false;
@@ -4712,7 +4773,7 @@
   function rimEncode() {
     var o = [], i;
     for (i = 0; i < rimNotes.length; i++) { o.push(rimNotes[i].step + "." + rimNotes[i].field); }
-    return rimScale + ":" + o.join(",");
+    return rimScale + ":" + o.join(",") + ":" + (rimOn ? 1 : 0) + (rimRest ? 1 : 0) + (rimKeep ? 1 : 0);
   }
   function rimDecode(str) {
     var p = String(str || "0:").split(":"), list = p[1] ? p[1].split(",") : [], i;
@@ -4722,7 +4783,8 @@
       var q = list[i].split("."), st = parseInt(q[0], 10), f = parseInt(q[1], 10);
       if (st >= 0 && st < 60 && f >= 0 && f < 12) { rimNotes.push({ step: st, field: f, hold: 0 }); }
     }
-    rimUi();
+    var fl = p[2] || "000";
+    rimOn = fl.charAt(0) === "1"; rimRest = fl.charAt(1) === "1"; rimKeep = fl.charAt(2) === "1";
   }
   function undoCode() { return encodeState(captureState()) + "\u0001" + rimEncode(); }
   function undoNote() {
