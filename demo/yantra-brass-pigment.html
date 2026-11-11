@@ -1131,7 +1131,7 @@
       <div class="demo-opt">
         <button class="demo-sw" id="demoBrass" type="button" aria-pressed="true" aria-label="Engraved brass rim"></button>
         <div class="demo-name">Th&#257;l&#299;, the brass ring, played like a handpan</div>
-        <p>Strike the ring and it rings. Sixteen tone fields run clockwise from the top, a semitone each, an octave and a third in all: the span of a Volca Bass keyboard. They are lettered with the twelve swaras, the plate's own Sa sitting on A. The komal and tivra swaras are shaded like black keys and a dot marks the upper octave. The tuning is the plate's own and does not follow the drone or the free voice. It is added like any shape, from the Th&#257;l&#299; box beside Infinity. Tap its box or its row to rest it, hold the box to remove it. One button in its row steps through free, keeping and locked: free just plays, keeping records each strike so it returns every turn, and locked leaves the melody playing while touches on the ring do nothing. To change the melody without touching the rhythms, hold a stud to remove that one note, or hold the plate anywhere else for a second to clear every note; a line shows the hold filling, and a hold never leaves a note of its own behind. Its row has a snap button: off, the rhythm's own count (the one the dotted pulse ring shows), or twice as fine. With snap on, a ring of dots appears on the plate and every kept note lands on one; notes already kept are pulled in too. Its row also has a m&#257;tr&#257; count, as the shapes do: 16 turns the plate once per turn of the Yantra, and any other count runs the melody at its own length against the rhythm, with its own hand crossing the brass.</p>
+        <p>Strike the ring and it rings. Sixteen tone fields run clockwise from the top, a semitone each, an octave and a third in all: the span of a Volca Bass keyboard. They are lettered with the twelve swaras, the plate's own Sa sitting on A. The komal and tivra swaras are shaded like black keys and a dot marks the upper octave. The tuning is the plate's own and does not follow the drone or the free voice. It is added like any shape, from the Th&#257;l&#299; box beside Infinity. Tap its box or its row to rest it, hold the box to remove it. One button in its row steps through free, keeping and locked: free just plays, keeping records each strike so it returns every turn, and locked leaves the melody playing while touches on the ring do nothing. To change the melody without touching the rhythms, hold a stud to remove that one note, or hold the plate anywhere else for a second to clear every note; a line shows the hold filling, and a hold never leaves a note of its own behind. Snap is also on the face of the dial, without a word: the short arc of dots beside the plate at three o'clock. Tap it: hollow dots are off, three filled dots are the rhythm's count, five are twice as fine. Its row has the same control as a snap button: off, the rhythm's own count (the one the dotted pulse ring shows), or twice as fine. With snap on, a ring of dots appears on the plate and every kept note lands on one; notes already kept are pulled in too. Its row also has a m&#257;tr&#257; count, as the shapes do: 16 turns the plate once per turn of the Yantra, and any other count runs the melody at its own length against the rhythm, with its own hand crossing the brass.</p>
 
       </div>
       <div class="demo-opt">
@@ -3348,6 +3348,30 @@
     try { if (navigator.vibrate) { navigator.vibrate(12); } } catch (e) {}
     renderPanel();
   }
+  /* the snap mark: where it sits, and whether a touch is on it */
+  var RIM_MARK_AT = 0;          /* three o'clock, clear of both arcs */
+  function rimMarkR() { return geo.R * (LIMB_OUT + (DEMO.room ? 0.135 : 0.115)); }
+  function rimMarkHit(x, y) {
+    if (!DEMO.brass || !rimOn || rimRest) { return false; }
+    var mr = rimMarkR(), dx = x - (geo.cx + mr * Math.cos(RIM_MARK_AT)), dy = y - (geo.cy + mr * Math.sin(RIM_MARK_AT));
+    return Math.sqrt(dx * dx + dy * dy) < 17;
+  }
+  function drawRimMark(cx, cy) {
+    if (!rimOn) { return; }
+    var mr = rimMarkR(), n = rimSnap === 2 ? 5 : 3, span = 0.085 * (rimSnap === 2 ? 1.15 : 1), i;
+    var dot = Math.max(2, geo.R * (rimSnap === 2 ? 0.011 : 0.014));
+    ctx.globalAlpha = rimRest ? 0.35 : 1;
+    /* a fine brass arc carries the dots, so they read as part of the instrument and not as stars */
+    ctx.beginPath(); ctx.arc(cx, cy, mr, RIM_MARK_AT - span * 1.5, RIM_MARK_AT + span * 1.5);
+    ctx.strokeStyle = "rgba(190,142,68,0.8)"; ctx.lineWidth = 1.2; ctx.stroke();
+    for (i = 0; i < n; i++) {
+      var a = RIM_MARK_AT + (i - (n - 1) / 2) * (span * 2 / (n - 1));
+      ctx.beginPath(); ctx.arc(cx + mr * Math.cos(a), cy + mr * Math.sin(a), dot, 0, RIM_TAU);
+      ctx.fillStyle = rimSnap ? "#e9cb8c" : "#12100d"; ctx.fill();
+      ctx.strokeStyle = rimSnap ? "#e9cb8c" : "rgba(214,178,110,0.85)"; ctx.lineWidth = 1.2; ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
   function rimFieldAt(x, y) {
     var d = Math.sqrt(Math.pow(x - geo.cx, 2) + Math.pow(y - geo.cy, 2));
     if (d < geo.R * LIMB_IN || d > geo.R * LIMB_OUT + 4) { return -1; }
@@ -3469,6 +3493,7 @@
     }
     var sr = Math.max(2.2, bw * 0.105), rad = rIn + bw * 0.21;
     rimHoldTick();
+    drawRimMark(cx, cy);
     if (rimSnap && rimOwn === RIM_HOME && rimAwake()) {
       var gN = rimGrid(), gi, gr = rIn + bw * 0.21;
       ctx.fillStyle = "rgba(255,246,222,0.8)";
@@ -3717,6 +3742,11 @@
     }
     if (onOctSlider(x, y)) {
       drag = { mode: "oct", s: null, k: -1, moved: false, dist: 0, x0: x, y0: y, o0: droneOct };
+      return true;
+    }
+    if (rimMarkHit(x, y)) {
+      rimSnap = (rimSnap + 1) % 3; rimSnapAll(); renderPanel();
+      drag = { mode: "ring", s: null, k: -1, moved: false, dist: 0 };
       return true;
     }
     if (DEMO.brass && rimAwake() && !rimLock) {
