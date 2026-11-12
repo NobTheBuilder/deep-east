@@ -1798,6 +1798,11 @@
   /* ===== demo: the four machine voices, rebuilt =====
      Recipes follow the classic analog drum machine; the numbers are the commonly quoted ones and are meant to be
      tuned by ear. Nothing here is a sample. */
+  function tidy(src, nodes) {
+    src.onended = function () {
+      for (var ti = 0; ti < nodes.length; ti++) { try { nodes[ti].disconnect(); } catch (e) {} }
+    };
+  }
   var KT = { drive: 4, bias: 0.5, lp: 1000, level: 0.34, knock: 0.12, click0: 0.14, keyfix: true, choke: false, tight: false, click: false, mid: 0.55, midLen: 0.22, midAt: 0, knockAt: 0 };
   var KICK_CURVE = null, KICK_KEY = "", KICK_OWNER = null, KICK_LOOSE = {}, KICK_PULSE = null;
   function kickCurve() {
@@ -1805,9 +1810,10 @@
     if (!KICK_CURVE) {
       /* a soft, slightly lopsided clip: the lopsidedness adds the octave above the sub, which is what a small
          speaker actually plays, and it does so warmly, without the bright click the old kick leaned on */
-      var n = 2048, k = KT.drive, b = KT.bias, lo = Math.tanh(b - k), hi = Math.tanh(b + k), mid = Math.tanh(b), i;
+      var n = 2049, k = KT.drive, b = KT.bias, lo = Math.tanh(b - k), hi = Math.tanh(b + k), mid = Math.tanh(b), i;
       KICK_CURVE = new Float32Array(n);
       for (i = 0; i < n; i++) { var x = (i * 2) / (n - 1) - 1; KICK_CURVE[i] = (Math.tanh(k * x + b) - mid) / Math.max(hi - mid, mid - lo); }
+      KICK_CURVE[(n - 1) / 2] = 0;
     }
     return KICK_CURVE;
   }
@@ -1822,6 +1828,7 @@
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     src.connect(hp); hp.connect(lp); lp.connect(g); g.connect(dest || master);
     src.start(t); src.stop(t + dur + 0.02);
+    tidy(src, [src, hp, lp, g]);
   }
   var SYNTH2 = {
     /* a sine pinged like a resonator: it starts high and falls onto the sub within a few hundredths of a second
@@ -1858,10 +1865,11 @@
       o.frequency.linearRampToValueAtTime(f0 * 0.95, t + dur);
       g.gain.setValueAtTime(1, t); holdAt(g.gain, 1, t);
       g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-      ws.curve = kickCurve(); ws.oversample = "2x";
+      ws.curve = kickCurve(); ws.oversample = "none";
       out.gain.value = KT.level;
       o.connect(g); g.connect(ws); ws.connect(lp); lp.connect(out); out.connect(bus);
       o.start(t); o.stop(t + dur + 0.02);
+      tidy(o, [o, g, ws, lp, out, bus]);
       /* the punch: a second, short sine an octave above the sub, falling with it */
       body(t + KT.midAt, f0 * 4.2, f0 * 2, KT.tight ? 0.03 : 0.045, KT.midLen, KT.mid, "sine", bus);
       body(t + KT.knockAt, 260, 130, 0.03, 0.09, KT.knock, "sine", bus);                 /* a round knock a phone can play */
@@ -1874,7 +1882,7 @@
         }
         var ps = ac.createBufferSource(), pl = ac.createBiquadFilter(), pg = ac.createGain();
         ps.buffer = KICK_PULSE; pl.type = "lowpass"; pl.frequency.value = 2600; pl.Q.value = 0.6; pg.gain.value = 0.2;
-        ps.connect(pl); pl.connect(pg); pg.connect(bus); ps.start(t);
+        ps.connect(pl); pl.connect(pg); pg.connect(bus); ps.start(t); tidy(ps, [ps, pl, pg]);
       } else {
         noiseHit(t, 0.005, "lowpass", 1500, 0.7, KT.click0, "linear", bus);   /* the beater: dull, not bright */
       }
@@ -1902,6 +1910,7 @@
       out.gain.value = 1.6;
       src.connect(bp); bp.connect(hp); hp.connect(g); g.connect(out); out.connect(dest || master);
       src.start(t); src.stop(t + 3 * gap + tail + 0.02);
+      tidy(src, [src, bp, hp, g, out]);
     },
     /* six square waves at clashing pitches, heard only through a band high up: metal, not hiss */
     hat: function (t, dest) {
@@ -1915,6 +1924,7 @@
         var o = ac.createOscillator();
         o.type = "square"; o.frequency.value = fr[i];
         o.connect(bp); o.start(t); o.stop(t + d + 0.015);
+        if (i === fr.length - 1) { tidy(o, [bp, hp, g]); }
       }
       bp.connect(hp); hp.connect(g); g.connect(dest || master);
     }
@@ -1999,6 +2009,7 @@
           holdAt(g.gain, parts[i][1], t + 0.002);
           g.gain.exponentialRampToValueAtTime(0.0001, t + dk(parts[i][2]));
           o.connect(g); g.connect(out); o.start(t); o.stop(t + dk(parts[i][2]) + 0.02);
+          if (c === 1 && i === 0) { tidy(o, [out, hp]); }   /* the longest-ringing partial */
         }
       }
       noiseHit(t, 0.006, "highpass", 6000, 0.7, 0.18, "linear", dest);
@@ -2027,6 +2038,7 @@
       holdAt(ag.gain, 0.55, t + 0.004);
       ag.gain.exponentialRampToValueAtTime(0.0001, t + dk(0.13));
       air.connect(ag); ag.connect(out); air.start(t); air.stop(t + dk(0.13) + 0.02);
+      tidy(air, [out]);
       noiseHit(t, 0.045, "bandpass", sa, 2.2, 0.18, undefined, out);           /* the breath of the air, hollow */
       noiseHit(t, 0.006, "highpass", 3200, 0.7, 0.3, "linear", out);           /* fingertip on clay */
     },
@@ -2077,6 +2089,7 @@
         ho.frequency.exponentialRampToValueAtTime(96 * gr * hs[hi][0], t + 0.34);
         ho.connect(hg); hg.connect(lp);
         ho.start(t); ho.stop(t + dk(0.46) + 0.02);
+        if (hi === 0) { tidy(ho, [lp, g]); }
       }
       body(t, 210, 150, 0.05, 0.10, 0.16, "triangle", dest);
       noiseHit(t, 0.016, "lowpass", 1400, 0.7, 0.2, "linear", dest);
@@ -2399,7 +2412,7 @@
     var step = T / PULSE_N, now = ac.currentTime, pact = pulseActive(), PL = pact.length, off = pulseRot * T;
     if (pulseNext < 0 || pulseT !== T || pulseL !== PL) {
       /* during a shift, carry on from what the gate already has, so no packet plays twice */
-      var from = (pulseResume && pulseUpTo > now && pulseUpTo < now + 0.2) ? pulseUpTo : now;
+      var from = (pulseResume && pulseUpTo > now && pulseUpTo < now + lookNow + 0.15) ? pulseUpTo : now;
       pulseNext = Math.ceil((from - t0 - off) / step - 1e-6) + PULSE_N; pulseT = T; pulseL = PL;
       if (pulseResume && pulseLast >= pulseNext && pulseLast - pulseNext < 3) { pulseNext = pulseLast + 1; }
       pulseResume = false;
@@ -2451,8 +2464,9 @@
     if (s.ownN < 0 || s.ownT !== T || s.ownL !== L) {
       /* re-entry after a drag, tempo or loop change: carry on from whatever
          was already sent to the audio clock, so nothing plays twice */
-      from = (typeof s.ownUpTo === "number" && s.ownUpTo > now - 0.002 && s.ownUpTo < now + 0.2)
-             ? s.ownUpTo : now - 0.002;
+      from = (typeof s.ownUpTo === "number" && s.ownUpTo > now - 0.002 && s.ownUpTo < now + lookNow + 0.15)
+             ? s.ownUpTo : now - 0.002;   /* (see the wider window just below) */
+      if (typeof s.sentTo === "number" && s.sentTo > from && s.sentTo < now + lookNow + 0.15) { from = s.sentTo; }
       s.ownN = 0; s.ownT = T; s.ownL = L;
     } else { from = s.ownUpTo; }
     var u0 = (from - t0) / step, u1 = (until - t0) / step;
@@ -2468,7 +2482,7 @@
         }
       }
     }
-    s.ownUpTo = until;
+    s.ownUpTo = until; s.sentTo = until;
   }
   function queueSam(s, at) {
     setTimeout(function () { if (playing) { s.samAt = now_(); } },
@@ -2511,13 +2525,14 @@
       var s = shapes[i], guard = 0;
       if (ownTime(s)) { scheduleOwn(s, until); continue; }
       while (s.nt < until && guard++ < 96) {
-        if (!s.silent && s.mutes.indexOf(s.nk) === -1 && s.nt >= ac.currentTime - LATE_OK) {
+        if (!s.silent && s.mutes.indexOf(s.nk) === -1 && s.nt >= ac.currentTime - LATE_OK && s.nt >= (s.sentTo || 0) - 0.0005) {
           playHit(s, s.nt);
           queueFlash(s, s.nk, s.nt);
         }
         advance(s);
       }
       if (guard >= 96) { align(s); }
+      s.sentTo = until;
     }
   }
   function queueFlash(s, k, at) {
@@ -3412,7 +3427,7 @@
     var nParts = rimLive > 44 ? 1 : (rimLive > 28 ? 2 : 3);
     for (i = 0; i < nParts; i++) {
       var o = ac.createOscillator(), g = ac.createGain();
-      rimLive++; o.onended = function () { rimLive = Math.max(0, rimLive - 1); };
+      rimLive++; o.onended = (function (og) { return function () { rimLive = Math.max(0, rimLive - 1); try { og.disconnect(); } catch (e) {} }; })(g);
       o.type = "sine"; o.frequency.value = freq * parts[i][0];
       g.gain.setValueAtTime(0, t);
       /* a longer ring is laid a little quieter, so stretched notes do not pile up into the ceiling */
@@ -3429,7 +3444,7 @@
       var n = ac.createBufferSource(), bp = ac.createBiquadFilter(), ng = ac.createGain();
       n.buffer = noiseBuf; bp.type = "bandpass"; bp.frequency.value = Math.min(6000, freq * 3); bp.Q.value = 1.4;
       ng.gain.setValueAtTime(Math.max(0.0011, 0.22 * vel * Math.max(0, 1 - rimAttack() / 0.04)), t); ng.gain.exponentialRampToValueAtTime(0.001, t + 0.045);
-      n.connect(bp); bp.connect(ng); ng.connect(rimBus); n.start(t); n.stop(t + 0.06);
+      n.connect(bp); bp.connect(ng); ng.connect(rimBus); n.start(t); n.stop(t + 0.06); tidy(n, [n, bp, ng]);
     }
   }
   /* a finger held on the plate: on a stud it lifts that one note out, elsewhere it clears the plate */
