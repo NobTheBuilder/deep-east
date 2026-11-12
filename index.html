@@ -5,8 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Deep East — New Age Indian Electronica</title>
 <meta name="description" content="Deep East — new age Indian electronica from Goa. “The machines will reveal.” Fully live electronic sets from Goa." />
-<meta name="theme-color" content="#12100d" />
-<!-- Open Graph / social previews. NOTE: replace https://deepeast.in with your final domain before launch -->
 <meta property="og:type" content="website" />
 <meta property="og:title" content="Deep East — New Age Indian Electronica" />
 <meta property="og:description" content="“The machines will reveal.” Fully live electronic sets from Goa." />
@@ -16,6 +14,8 @@
 <meta name="twitter:title" content="Deep East — New Age Indian Electronica" />
 <meta name="twitter:description" content="“The machines will reveal.” Fully live electronic sets from Goa." />
 <meta name="twitter:image" content="https://deepeast.in/assets/og.jpg" />
+<meta name="theme-color" content="#12100d" />
+<!-- Open Graph / social previews. NOTE: replace https://deepeast.in with your final domain before launch -->
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-120 -120 240 240'%3E%3Crect x='-120' y='-120' width='240' height='240' rx='38' fill='%2312100d'/%3E%3Cg fill='none' stroke='%23c9a24b' stroke-width='9' stroke-linejoin='round'%3E%3Cpolygon points='0,-100 86.6,50 -86.6,50'/%3E%3Cpolygon points='0,-84.9 84.9,0 0,84.9 -84.9,0'/%3E%3Cpolygon points='0,-70 60.62,-35 60.62,35 0,70 -60.62,35 -60.62,-35'/%3E%3C/g%3E%3C/svg%3E" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -853,8 +853,173 @@
   .close-sym svg { display: block; width: 100%; height: auto; overflow: visible; }
 
 </style>
+
+<style>
+  /* ================= demo: engraved brass + pigment rule ================= */
+  :root { color-scheme: dark; }
+  .demo-bar {
+    max-width: 1000px; margin: 0 auto 2rem; padding: 1rem 1.1rem;
+    border: 1px solid var(--rule); background: var(--basalt-2);
+    display: grid; gap: 0.9rem;
+  }
+  .demo-bar .demo-title { font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.24em; text-transform: uppercase; color: var(--kansa); }
+  .demo-opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.9rem 1.6rem; }
+  .demo-opt { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0.2rem 0.8rem; align-items: start; }
+  .demo-opt p { grid-column: 2; color: var(--ivory-2); font-size: 0.88rem; line-height: 1.45; }
+  .demo-opt .demo-name { grid-column: 2; color: var(--ivory); font-size: 1rem; }
+  .demo-sw {
+    grid-row: 1 / span 2; margin-top: 0.2rem;
+    width: 46px; height: 24px; padding: 0; cursor: pointer; position: relative;
+    background: var(--basalt); border: 1px solid var(--kansa-deep); border-radius: 0;
+    -webkit-appearance: none; appearance: none; touch-action: manipulation;
+  }
+  .demo-sw::after {
+    content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px;
+    background: var(--kansa-ox); transition: transform 0.2s ease, background 0.2s ease;
+  }
+  .demo-sw[aria-pressed="true"]::after { transform: translateX(22px); background: var(--kansa); }
+  .demo-sw:focus-visible { outline: 1px solid var(--kansa); outline-offset: 3px; }
+  @media (prefers-reduced-motion: reduce) { .demo-sw::after { transition: none; } }
+
+  /* the bindu as a turned brass boss: lathe rings, a dark rim, no glow */
+  body.demo-brass .transport[aria-label="Play"] {
+    background:
+      repeating-radial-gradient(circle at 50% 50%, rgba(40,26,10,0) 0 2.2px, rgba(40,26,10,0.3) 2.2px 3px),
+      conic-gradient(from 220deg, #b8924e, #6f5428, #c2a05c, #675026, #b8924e);
+    border: 1px solid #3f2e14;
+    box-shadow: inset 0 1px 0 rgba(255,236,190,0.35), inset 0 -2px 3px rgba(0,0,0,0.5), 0 1px 0 rgba(0,0,0,0.6);
+  }
+
+  /* pigment names */
+  .pig-nm { font-family: var(--verse); font-style: italic; font-weight: 300; font-size: 0.86rem;
+            letter-spacing: 0.01em; text-transform: none; color: var(--pig, var(--ivory-2)); margin-left: 0.6em; }
+  .pig-legend { display: grid; gap: 0.5rem; }
+  .pig-legend[hidden] { display: none; }
+  .pig-fam { display: grid; grid-template-columns: 3.6rem minmax(0, 1fr); gap: 0.6rem; align-items: baseline; }
+  .pig-fam .fam { font-family: var(--mono); font-size: 0.57rem; letter-spacing: 0.24em; text-transform: uppercase; color: #9a9080; }
+  .pig-chips { display: flex; flex-wrap: wrap; gap: 0.3rem 1.1rem; }
+  .pig-chip { display: inline-flex; align-items: baseline; gap: 0.45rem; opacity: 0.42; white-space: nowrap; }
+  .pig-chip.on { opacity: 1; }
+  .pig-chip i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; align-self: center; }
+  .pig-chip .pn { font-family: var(--verse); font-style: italic; font-weight: 300; font-size: 0.95rem; color: var(--ivory); }
+  .pig-chip .pv { font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; color: #9a9080; }
+</style>
+
+<style>
+  /* ================= demo, stage 2 ================= */
+  .demo-ctl { grid-column: 2; display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.5rem; align-items: center; }
+  .demo-ctl button {
+    font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--kansa); background: none; border: 1px solid var(--kansa-deep); border-radius: 0;
+    padding: 0.5rem 0.7rem; cursor: pointer; -webkit-appearance: none; appearance: none; touch-action: manipulation;
+  }
+  .demo-ctl button:hover { border-color: var(--kansa); }
+  .demo-ctl button:focus-visible { outline: 1px solid var(--kansa); outline-offset: 3px; }
+  .demo-ctl .rim-count { flex-basis: 100%; font-family: var(--verse); font-style: italic; font-weight: 300; font-size: 0.9rem; color: var(--ivory-2); }
+  .embed-note { font-family: var(--mono); font-size: 0.6rem; letter-spacing: 0.14em; text-transform: uppercase; color: #9a9080; padding: 1.2rem 0.4rem; }
+
+  /* grounds */
+  body.bg-sky::before, body.bg-stone::before, body.bg-scribed::before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='f' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.84 0 0 0 0 0.70 0 0 0 0 0.43 9 0 0 0 -6.6'/%3E%3C/filter%3E%3Cfilter id='g' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='3' seed='9' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.96 0 0 0 0 0.94 0 0 0 0 0.89 0 0 0 0.09 -0.02'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23g)'/%3E%3Crect width='220' height='220' filter='url(%23f)' opacity='0.3'/%3E%3C/svg%3E"); }
+  #skyCv { position: fixed; left: 0; top: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; display: none; }
+  body.bg-sky #skyCv { display: block; }
+  #scribe { position: absolute; left: 0; top: 0; width: 100%; z-index: -1; pointer-events: none; display: none; overflow: hidden; }
+  body.bg-scribed #scribe { display: block; }
+  .bg-switch {
+    position: fixed; z-index: 150;
+    bottom: calc(0.9rem + env(safe-area-inset-bottom, 0px)); left: calc(0.9rem + env(safe-area-inset-left, 0px));
+    display: flex; flex-direction: column-reverse; align-items: flex-start; gap: 0.3rem;
+  }
+  .bg-switch .bg-row { display: flex; border: 1px solid var(--kansa-deep); background: rgba(18,16,13,0.94); }
+  .bg-switch .bg-lab, .bg-switch button {
+    font-family: var(--mono); font-size: 0.58rem; letter-spacing: 0.14em; text-transform: uppercase; padding: 0.5rem 0.6rem;
+  }
+  .bg-switch .bg-lab { color: #9a9080; }
+  .bg-switch button {
+    color: var(--ivory-2); background: none; border: 0; border-left: 1px solid rgba(110,88,48,0.6); border-radius: 0;
+    cursor: pointer; -webkit-appearance: none; appearance: none; touch-action: manipulation;
+  }
+  .bg-switch button[aria-pressed="true"] { color: var(--basalt); background: var(--kansa); }
+  .bg-switch button:focus-visible { outline: 1px solid var(--ivory); outline-offset: -3px; }
+  .bg-cap { font-family: var(--verse); font-style: italic; font-weight: 300; font-size: 0.82rem; color: var(--ivory-2);
+            background: rgba(18,16,13,0.9); padding: 0.2rem 0.5rem; max-width: min(92vw, 34rem); transition: opacity 0.6s ease; }
+  .bg-cap.gone { opacity: 0; pointer-events: none; }
+  .bg-cap:empty { display: none; }
+  @media (max-width: 480px) { .bg-switch .bg-lab { display: none; } .bg-switch button:first-of-type { border-left: 0; } }
+</style>
+
+<style>
+  /* ================= demo, stage 4 ================= */
+  .rim-bar { margin-top: 0.9rem; display: grid; gap: 0.55rem; }
+  body:not(.demo-brass) .rim-bar { display: none; }
+  .rim-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: stretch; }
+  .rim-seg { display: flex; flex: 1 1 15rem; border: 1px solid var(--kansa-deep); background: var(--basalt-2); }
+  .rim-seg .rim-lab, .rim-seg button, .rim-tools button {
+    font-family: var(--mono); font-size: 0.64rem; letter-spacing: 0.14em; text-transform: uppercase;
+  }
+  .rim-seg .rim-lab { color: #9a9080; padding: 0.75rem 0.7rem; }
+  .rim-seg button {
+    flex: 1; color: var(--ivory-2); background: none; border: 0; border-left: 1px solid rgba(110,88,48,0.6); border-radius: 0;
+    padding: 0.75rem 0.4rem; cursor: pointer; -webkit-appearance: none; appearance: none; touch-action: manipulation;
+  }
+  .rim-seg button[aria-pressed="true"] { color: var(--basalt); background: var(--kansa); }
+  .rim-seg button#rimKeep[aria-pressed="true"] { color: var(--ivory); background: #b83a26; }
+  .rim-seg button#rimKeep::before {
+    content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 0.55em; vertical-align: 0.02em;
+    background: #d64a30;
+  }
+  .rim-seg button#rimKeep[aria-pressed="true"]::before { background: var(--ivory); animation: rim-rec 1.3s ease-in-out infinite; }
+  @keyframes rim-rec { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+  @media (prefers-reduced-motion: reduce) { .rim-seg button#rimKeep[aria-pressed="true"]::before { animation: none; } }
+  .rim-tools { display: flex; gap: 0.5rem; flex: 1 1 12rem; }
+  .rim-tools button {
+    flex: 1; color: var(--kansa); background: none; border: 1px solid var(--kansa-deep); border-radius: 0; white-space: nowrap;
+    padding: 0.75rem 0.6rem; cursor: pointer; -webkit-appearance: none; appearance: none; touch-action: manipulation;
+  }
+  .rim-tools button:hover { border-color: var(--kansa); }
+  .rim-seg button:focus-visible, .rim-tools button:focus-visible { outline: 1px solid var(--ivory); outline-offset: -3px; }
+  .rim-status { font-family: var(--verse); font-style: italic; font-weight: 300; font-size: 0.92rem; color: var(--ivory-2); min-height: 1.5em; }
+  .rim-status.keeping { color: #ee8a72; }
+
+  /* more room: on a phone the box runs to the screen edges and stands taller than it is wide */
+  @media (max-width: 760px) {
+    body.demo-room .stage {
+      aspect-ratio: 1 / 1.1;
+      margin-left: calc(-1 * clamp(1.2rem, 5vw, 4rem)); margin-right: calc(-1 * clamp(1.2rem, 5vw, 4rem));
+    }
+  }
+</style>
+
+<style>
+  /* ================= demo, stage 5 ================= */
+  .bg-switch { display: none; }
+  .layer .inst.rim-keep::before {
+    content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 0.5em; vertical-align: 0.03em;
+    background: none; box-shadow: inset 0 0 0 1.2px #d64a30;
+  }
+  .layer .inst.rim-keep.on { color: #ee8a72; }
+  .layer .inst.rim-keep.on::before { background: #e25438; box-shadow: none; animation: rim-rec 1.3s ease-in-out infinite; }
+  @media (prefers-reduced-motion: reduce) { .layer .inst.rim-keep.on::before { animation: none; } }
+</style>
+
+<style>
+  /* ================= demo, stage 6 ================= */
+  .layer .inst.rim-keep.locked { color: var(--kansa); }
+  .layer .inst.rim-keep.locked::before { background: var(--kansa); box-shadow: none; border-radius: 0; }
+</style>
 </head>
 <body>
+<canvas id="skyCv" aria-hidden="true"></canvas>
+<svg id="scribe" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"></svg>
+<div class="bg-switch" role="group" aria-label="Background">
+  <div class="bg-row">
+    <span class="bg-lab">Ground</span>
+    <button type="button" id="bgCurrent" data-bg="" aria-pressed="false">Current</button>
+    <button type="button" id="bgSky" data-bg="bg-sky" aria-pressed="true">Sky</button>
+    <button type="button" id="bgStone" data-bg="bg-stone" aria-pressed="false">Stone</button>
+    <button type="button" id="bgScribed" data-bg="bg-scribed" aria-pressed="false">Scribed</button>
+  </div>
+  <div class="bg-cap" id="bgCap"></div>
+</div>
 <nav>
   <div class="links">
     <a href="#sound">Sound</a>
@@ -992,6 +1157,7 @@
         <div class="hint" style="margin-bottom:0.6rem;">Layers &middot; tap sound to change</div>
         <div class="layers" id="layers"></div>
       </div>
+
       <div>
         <div class="tempo-line"><span class="hint">Tempo</span><span class="bpm" id="bpmVal">96 BPM</span></div>
         <input type="range" id="bpm" min="50" max="180" value="96" />
@@ -1119,6 +1285,51 @@
   var COLORS = ["#d8a959","#617cae","#c76957","#4ba06d","#e26a7b","#47a1ac","#d08449",
                 "#957ac5","#96b44c","#bf566d","#7aacd1","#b46b4e","#6f78c1","#9fa3a9"];
   var DRONE_COL = "#c9973f";
+  /* ===== demo ===== */
+  var DEMO = { brass: true, pig: false, room: true, bead: true, drums: true };
+  var DEF_VOL = 0.6;   /* where every voice starts */
+  /* hue is the material that sounds; within the skins, the lower the voice the darker the pigment */
+  var PIGMENTS = {
+    kick:    { col: "#b23a56", name: "lākh",     en: "lac",          fam: "skin" },
+    ge:      { col: "#d64a30", name: "hiṅgul",   en: "cinnabar",     fam: "skin" },
+    snare:   { col: "#ea7d3e", name: "sindūr",   en: "red lead",     fam: "skin" },
+    na:      { col: "#eeaaa4", name: "gulābī", en: "lac on chalk", fam: "skin" },
+    hat:     { col: "#5f86d6", name: "lājward",  en: "lapis",        fam: "metal" },
+    manjira: { col: "#6fc7b0", name: "zangār",   en: "verdigris",    fam: "metal" },
+    ghatam:  { col: "#b46a40", name: "gerū",     en: "red ochre",    fam: "clay" },
+    clap:    { col: "#ebe3cd", name: "śaṅkh", en: "shell white", fam: "hand" }
+  };
+  var PIG_FAMS = [["skin", ["kick", "ge", "snare", "na"]], ["metal", ["hat", "manjira"]], ["clay", ["ghatam"]], ["hand", ["clap"]]];
+  function mixHex(a, b, t) {
+    var o = "#", i;
+    for (i = 1; i < 7; i += 2) {
+      var x = parseInt(a.substr(i, 2), 16), y = parseInt(b.substr(i, 2), 16);
+      var v = Math.round(x + (y - x) * t).toString(16);
+      o += v.length < 2 ? "0" + v : v;
+    }
+    return o;
+  }
+  /* how many shapes before this one already play the same voice */
+  function washRank(s) {
+    var r = 0, i;
+    for (i = 0; i < shapes.length; i++) {
+      if (shapes[i] === s) { break; }
+      if (shapes[i].inst === s.inst) { r++; }
+    }
+    return r;
+  }
+  var WASH_NAMES = ["", " · pale wash", " · deep wash", " · thin wash"];
+  function shapeCol(s) {
+    if (DEMO.pig && PIGMENTS[s.inst]) {
+      var c = PIGMENTS[s.inst].col, r = washRank(s) % 4;
+      var lum = (parseInt(c.substr(1, 2), 16) + parseInt(c.substr(3, 2), 16) + parseInt(c.substr(5, 2), 16)) / 3;
+      if (r === 0) { return c; }
+      /* a pigment that is already pale is washed towards shadow, or it would not read as a second layer */
+      if (lum > 170) { return mixHex(c, "#5a4a3a", r === 1 ? 0.34 : r === 2 ? 0.58 : 0.2); }
+      return r === 1 ? mixHex(c, "#f5efe4", 0.45) : r === 2 ? mixHex(c, "#24170f", 0.4) : mixHex(c, "#f5efe4", 0.7);
+    }
+    return COLORS[s.idx % COLORS.length];
+  }
   /* the shape itself beside its name, vertex up as on the dial; Infinity is a plain ring */
   function shapeIcon(n) {
     var body = "<circle cx=\"8\" cy=\"8\" r=\"5.4\"/>";
@@ -1134,7 +1345,7 @@
   }
   var shapes = [];
   var drone = false, droneNodes = null;
-  var droneVol = 1;
+  var droneVol = 0.6;
   /* tapping the Infinity layer row mutes it, the same as a shape's row;
      the fader keeps its value so unmuting returns to the same level */
   var droneSilent = false;
@@ -1149,6 +1360,7 @@
       droneSilentWas = droneSilent;
     }
     if (droneNodes && ac) { droneNodes.userGain.gain.setTargetAtTime(droneLevel(), ac.currentTime, tc); }
+    if (droneNodes && ac && droneNodes.room) { applyDroneRoom(); }   /* the space follows the hum's fader and mute */
   }
   function setDroneVolume(v) {
     if (v < 0) { v = 0; } if (v > 1) { v = 1; }
@@ -1314,7 +1526,7 @@
   function audio() {
     if (!ac) {
       var AC = window.AudioContext || window.webkitAudioContext;
-      ac = new AC();
+      ac = window.__yantraOff || new AC();
       /* Output stage. Voices are mixed hot, then a compressor evens the gap
          between a kick and a hat, and a hard-kneed limiter catches peaks so
          the whole thing can sit far louder without clipping — which is what
@@ -1453,10 +1665,11 @@
     if (!droneNodes || !droneNodes.duck) { return; }
     var kv = (dest && dest.gain) ? Math.min(1, dest.gain.value) : 1;
     if (dest && typeof dest.__kv === "number") { kv = Math.min(1, dest.__kv); }   /* behind a soft-attack wrapper */
-    var low = 1 - (droneOct <= 0 ? DUCK_MANDRA : DUCK_DEPTH) * Math.sqrt(kv);
+    kv = Math.min(1, kv / DEF_VOL);
+    var low = 1 - (droneOct <= 0 ? (DEMO.drums ? 0.58 : DUCK_MANDRA) : (DEMO.drums ? 0.66 : DUCK_DEPTH)) * Math.sqrt(kv) * TUNE.duck;
     var g = droneNodes.duck.gain;
     g.setTargetAtTime(low, t, 0.004);
-    g.setTargetAtTime(1, t + 0.035, 0.08);
+    g.setTargetAtTime(1, t + (DEMO.drums ? 0.06 : 0.035), DEMO.drums ? 0.11 : 0.08);
   }
   /* the drone's Sa in the octave nearest f, so a pitched drum lands in tune whatever the key */
   function saNear(f) {
@@ -1487,7 +1700,7 @@
   /* past the middle, a longer fade also opens the drone into the temple space the free voice uses, up to
      ROOM_MAX of send at the longest: the tail is heard on every packet in pulse, and as a bloom round the hum.
      Unshaped there is no send and no reverb node at all, so it costs nothing. */
-  var ROOM_MAX = 0.9;
+  var ROOM_MAX = 1.5;
   function droneRoom() { return droneER > 0.5 ? (droneER - 0.5) * 2 * ROOM_MAX : 0; }
   function applyDroneRoom() {
     if (!droneNodes || !ac) { return; }
@@ -1496,10 +1709,19 @@
       if (amt < 0.005) { return; }
       var conv = makeReverb(); if (!conv) { return; }
       var send = ac.createGain(); send.gain.value = 0;
-      droneNodes.duck.connect(send); send.connect(conv); conv.connect(droneNodes.out);
+      /* the reverb is given real weight, and a soft, darkened echo feeds it so the tail outlasts the note */
+      var wet = ac.createGain(); wet.gain.value = 2.2;
+      var dl = ac.createDelay(1); dl.delayTime.value = 0.34;
+      var fb = ac.createGain(); fb.gain.value = 0.46;
+      var dlp = ac.createBiquadFilter(); dlp.type = "lowpass"; dlp.frequency.value = 2400;
+      droneNodes.duck.connect(send); send.connect(conv); send.connect(dl);
+      dl.connect(dlp); dlp.connect(fb); fb.connect(dl); dlp.connect(conv);
+      conv.connect(wet); wet.connect(droneNodes.out);
       droneNodes.room = send;
     }
-    droneNodes.room.gain.setTargetAtTime(amt, ac.currentTime, 0.08);
+    droneNodes.room.gain.setTargetAtTime(amt * 2.2 * DRONE_GAIN * droneLevel(), ac.currentTime, 0.08);
+    /* the hum brightens as the space opens */
+    if (droneNodes.lp) { droneNodes.lp.frequency.setTargetAtTime(1400 + 1100 * Math.min(1, amt / ROOM_MAX), ac.currentTime, 0.2); }
   }
   /* one hit of a shape: its length while the voice is built, and a soft attack in front of it when it has one */
   function playHit(s, t) {
@@ -1510,8 +1732,118 @@
       ag.connect(dest); ag.__kv = dest.gain.value; dest = ag;
     }
     ENV_DEC = shapeLength(s); ENV_HOLD = A > 0.0005 ? A : 0;
-    try { SYNTH[s.inst](t, dest); } finally { ENV_DEC = 1; ENV_HOLD = 0; }
+    try { ((DEMO.drums && SYNTH2[s.inst]) || SYNTH[s.inst])(t, dest); } finally { ENV_DEC = 1; ENV_HOLD = 0; }
   }
+  /* ===== demo: the four machine voices, rebuilt =====
+     Recipes follow the classic analog drum machine; the numbers are the commonly quoted ones and are meant to be
+     tuned by ear. Nothing here is a sample. */
+  var KT = { drive: 4, bias: 0.5, lp: 1000, level: 0.38, knock: 0.12, click: 0.14, mid: 0.7, midLen: 0.22 };
+  var KICK_CURVE = null, KICK_KEY = "";
+  function kickCurve() {
+    if (KICK_KEY !== KT.drive + "/" + KT.bias) { KICK_CURVE = null; KICK_KEY = KT.drive + "/" + KT.bias; }
+    if (!KICK_CURVE) {
+      /* a soft, slightly lopsided clip: the lopsidedness adds the octave above the sub, which is what a small
+         speaker actually plays, and it does so warmly, without the bright click the old kick leaned on */
+      var n = 2048, k = KT.drive, b = KT.bias, lo = Math.tanh(b - k), hi = Math.tanh(b + k), mid = Math.tanh(b), i;
+      KICK_CURVE = new Float32Array(n);
+      for (i = 0; i < n; i++) { var x = (i * 2) / (n - 1) - 1; KICK_CURVE[i] = (Math.tanh(k * x + b) - mid) / Math.max(hi - mid, mid - lo); }
+    }
+    return KICK_CURVE;
+  }
+  /* noise between a high-pass and a low-pass, dying away */
+  function noiseBand(t, dur, hpF, lpF, peak, dest) {
+    var src = ac.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
+    var hp = ac.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = hpF; hp.Q.value = 0.7;
+    var lp = ac.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = lpF; lp.Q.value = 0.7;
+    var g = ac.createGain();
+    dur = dk(dur);
+    g.gain.setValueAtTime(peak, t); holdAt(g.gain, peak, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(hp); hp.connect(lp); lp.connect(g); g.connect(dest || master);
+    src.start(t); src.stop(t + dur + 0.02);
+  }
+  var SYNTH2 = {
+    /* a sine pinged like a resonator: it starts high and falls onto the sub within a few hundredths of a second
+       (the punch), rings out long, and sags a little as it dies. The sub sits on the drone's Sa nearest 55 Hz. */
+    kick: function (t, dest) {
+      var sa = 110 * Math.pow(2, droneKey / 12);
+      var f0 = sa * Math.pow(2, Math.round(Math.log(55 / sa) / Math.LN2));
+      var dur = dk(0.6);
+      var o = ac.createOscillator(), g = ac.createGain(), ws = ac.createWaveShaper(), out = ac.createGain();
+      var lp = ac.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = KT.lp; lp.Q.value = 0.5;
+      o.type = "sine";
+      o.frequency.setValueAtTime(f0 * 3.4, t);
+      o.frequency.exponentialRampToValueAtTime(f0 * 1.3, t + 0.022);
+      o.frequency.exponentialRampToValueAtTime(f0, t + 0.075);
+      o.frequency.linearRampToValueAtTime(f0 * 0.95, t + dur);
+      g.gain.setValueAtTime(1, t); holdAt(g.gain, 1, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      /* overdrive: the envelope goes in before the clipper, so the first tenth of a second is driven hard
+         (harmonics up through the low mids, where a small speaker and the ear both find it) and the tail
+         cleans up into a plain sub. A low-pass after it takes the buzz off the top. */
+      ws.curve = kickCurve(); ws.oversample = "2x";
+      out.gain.value = KT.level;
+      o.connect(g); g.connect(ws); ws.connect(lp); lp.connect(out); out.connect(dest || master);
+      o.start(t); o.stop(t + dur + 0.02);
+      /* the punch: a second, short sine an octave above the sub, falling with it. This is the part a small
+         speaker plays and the part that stands clear of a low drone. */
+      body(t, f0 * 4.2, f0 * 2, 0.045, KT.midLen, KT.mid, "sine", dest);
+      body(t, 260, 130, 0.03, 0.09, KT.knock, "sine", dest);               /* a round knock a phone can play */
+      noiseHit(t, 0.005, "lowpass", 1500, 0.7, KT.click, "linear", dest);   /* the beater: dull, not bright */
+      duckDrone(t, dest);
+    },
+    /* two tuned sines an octave apart for the shell, and the snares as noise with the fizz taken off the top */
+    snare: function (t, dest) {
+      body(t, 238 * 1.2, 238, 0.012, 0.16, 0.38, "sine", dest);
+      body(t, 476 * 1.12, 476, 0.01, 0.085, 0.2, "sine", dest);
+      noiseBand(t, 0.2, 1900, 8200, 0.32, dest);
+    },
+    /* one band of noise round 1 kHz, opened three times in quick sawtooth bursts and then left to ring */
+    clap: function (t, dest) {
+      var src = ac.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
+      var bp = ac.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 1050; bp.Q.value = 1.5;
+      var hp = ac.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 480; hp.Q.value = 0.7;
+      var g = ac.createGain(), out = ac.createGain(), gap = 0.0105, tail = dk(0.2), i;
+      g.gain.setValueAtTime(0, t);
+      for (i = 0; i < 3; i++) {
+        g.gain.setValueAtTime(1, t + i * gap);
+        g.gain.linearRampToValueAtTime(0.12, t + (i + 1) * gap - 0.0008);
+      }
+      g.gain.setValueAtTime(0.85, t + 3 * gap);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 3 * gap + tail);
+      out.gain.value = 1.6;
+      src.connect(bp); bp.connect(hp); hp.connect(g); g.connect(out); out.connect(dest || master);
+      src.start(t); src.stop(t + 3 * gap + tail + 0.02);
+    },
+    /* six square waves at clashing pitches, heard only through a band high up: metal, not hiss */
+    hat: function (t, dest) {
+      var fr = [205.3, 304.4, 369.6, 522.7, 540, 800], d = dk(0.06), i;
+      var bp = ac.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 7100; bp.Q.value = 1.1;
+      var hp = ac.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 6200; hp.Q.value = 0.7;
+      var g = ac.createGain();
+      g.gain.setValueAtTime(0.34, t); holdAt(g.gain, 0.34, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+      for (i = 0; i < fr.length; i++) {
+        var o = ac.createOscillator();
+        o.type = "square"; o.frequency.value = fr[i];
+        o.connect(bp); o.start(t); o.stop(t + d + 0.015);
+      }
+      bp.connect(hp); hp.connect(g); g.connect(dest || master);
+    }
+  };
+  /* a test hook: render one hit of a voice, old or new, and hand back the samples */
+  window.__yantraRender = function (inst, useNew) {
+    var OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    var off = new OAC(1, 44100, 44100), kAc = ac, kM = master, kN = noiseBuf, was = DEMO.drums, i;
+    ac = off; master = off.destination;
+    noiseBuf = off.createBuffer(1, 44100, 44100);
+    var d = noiseBuf.getChannelData(0), seed = 12345;
+    for (i = 0; i < d.length; i++) { seed = (seed * 1103515245 + 12345) & 0x7fffffff; d[i] = seed / 0x3fffffff - 1; }
+    DEMO.drums = !!useNew;
+    try { ((DEMO.drums && SYNTH2[inst]) || SYNTH[inst])(0.005, off.destination); }
+    finally { ac = kAc; master = kM; noiseBuf = kN; DEMO.drums = was; }
+    return off.startRendering().then(function (buf) { return Array.prototype.slice.call(buf.getChannelData(0)); });
+  };
   var SYNTH = {
     /* 808 lineage: long sine, deep pitch drop, plus a click transient */
     kick: function (t, dest) {
@@ -1682,7 +2014,7 @@
   }
   /* a temple-ish space made once from decaying noise: no files to load.
      About 3.6 s, darker as it fades, slightly different in each ear. */
-  var revBuf = null;
+  var revBuf = null, revShared = null, revSharedAc = null;
   function makeReverb() {
     try {
       if (!revBuf) {
@@ -1697,13 +2029,21 @@
           }
         }
       }
-      var c = ac.createConvolver(); c.buffer = revBuf;
-      return c;
+      if (!revShared || revSharedAc !== ac) {
+        revSharedAc = ac; revShared = ac.createConvolver(); revShared.buffer = revBuf;
+        var rlp = ac.createBiquadFilter(); rlp.type = "lowpass"; rlp.frequency.value = 3200; rlp.Q.value = 0.5;
+        revShared.connect(rlp); rlp.connect(master);
+      }
+      /* each caller gets its own way in; the way out is already made, so its connect() does nothing */
+      var inp = ac.createGain();
+      inp.connect(revShared);
+      inp.connect = function () {};
+      return inp;
     } catch (e) { return null; }
   }
   function applyFreeReverb() {
     if (!droneNodes || !ac || !droneNodes.revSend) { return; }
-    droneNodes.revSend.gain.setTargetAtTime(FREE_REV[freeOct + 1], ac.currentTime, 0.25);
+    droneNodes.revSend.gain.setTargetAtTime(FREE_REV[freeOct + 1] * DRONE_GAIN, ac.currentTime, 0.25);
   }
   function setFreeOct(o) {
     if (o < OCT_LO) { o = OCT_LO; } if (o > OCT_HI) { o = OCT_HI; }
@@ -1772,7 +2112,8 @@
     /* sidechain: every kick briefly dips the drone body (not the free
        voice), so the two share the low end instead of fighting for it */
     var duck = ac.createGain(); duck.gain.value = 1;
-    gate.connect(drive); drive.connect(shelf); shelf.connect(hp); hp.connect(duck); duck.connect(out);
+    gate.connect(drive); drive.connect(shelf); shelf.connect(hp); var hum = ac.createGain(); hum.gain.value = drone ? 1 : 0;
+    hp.connect(hum); hum.connect(duck); duck.connect(out);
     for (var i = 0; i < parts.length; i++) {
       var o = ac.createOscillator(), g = ac.createGain();
       o.type = parts[i][0];
@@ -1806,11 +2147,15 @@
        Its reverb comes after the gate, so the chop rings into the space */
     var fgate = ac.createGain();
     fgate.gain.value = freeGated() ? 0 : 1;
-    fg.connect(fgate); fgate.connect(out);
+    var fout = ac.createGain();
+    fout.gain.setValueAtTime(0.0001, now);
+    fout.gain.exponentialRampToValueAtTime(DRONE_GAIN, now + 0.04);
+    fout.connect(lp);
+    fg.connect(fgate); fgate.connect(fout);
     var rsend = ac.createGain();
-    rsend.gain.value = FREE_REV[freeOct + 1];
+    rsend.gain.value = FREE_REV[freeOct + 1] * DRONE_GAIN;
     var conv = makeReverb();
-    if (conv) { fgate.connect(rsend); rsend.connect(conv); conv.connect(out); }
+    if (conv) { fgate.connect(rsend); rsend.connect(conv); conv.connect(fout); }
     var fparts = [["sine", 0.62, 0], ["triangle", 0.22, 5]];
     var vlfo = ac.createOscillator(), vg = ac.createGain();
     vlfo.frequency.value = 4.6; vg.gain.value = 7;      /* +/- 7 cents */
@@ -1826,7 +2171,7 @@
       fo.__ratio = freeRatio(); fo.__free = true;
       oscs.push(fo);
     }
-    droneNodes = { out: out, userGain: userGain, oscs: oscs, lfo: lfo, vlfo: vlfo, freeGain: fg, gate: gate, revSend: rsend, duck: duck, freeGate: fgate };
+    droneNodes = { out: out, userGain: userGain, oscs: oscs, lfo: lfo, vlfo: vlfo, freeGain: fg, gate: gate, revSend: rsend, duck: duck, freeGate: fgate, hum: hum, freeOut: fout, lp: lp };
     applyDroneRoom();
   }
   function retuneDrone() {
@@ -1874,6 +2219,13 @@
     o.gain.cancelScheduledValues(now);
     o.gain.setValueAtTime(Math.max(o.gain.value, 0.0001), now);
     o.gain.exponentialRampToValueAtTime(0.0001, now + rel);
+    droneNodes.freeGain.gain.cancelScheduledValues(now); droneNodes.freeGain.gain.setTargetAtTime(0, now, 0.08);
+    if (droneNodes.room) { droneNodes.room.gain.cancelScheduledValues(now); droneNodes.room.gain.setTargetAtTime(0, now, Math.max(0.02, rel / 4)); }
+    if (droneNodes.freeOut) {
+      var fo2 = droneNodes.freeOut.gain;
+      fo2.cancelScheduledValues(now); fo2.setValueAtTime(Math.max(fo2.value, 0.0001), now);
+      fo2.exponentialRampToValueAtTime(0.0001, now + Math.min(rel, 0.4));
+    }
     for (var i = 0; i < droneNodes.oscs.length; i++) { droneNodes.oscs[i].stop(now + rel + 0.1); }
     droneNodes.lfo.stop(now + rel + 0.1);
     if (droneNodes.vlfo) { droneNodes.vlfo.stop(now + rel + 0.1); }
@@ -1944,7 +2296,7 @@
   /* The free voice can join the pulse: in pulse mode, tap the pulse ring again (it has no gesture of its own
      left). Tap once more, or go back to hum, and it holds steady again. */
   var freePulse = false;
-  function freeGated() { return pulseOn && freePulse; }
+  function freeGated() { return pulseOn && freePulse && drone; }
   function applyFreeGate() {
     if (!droneNodes || !droneNodes.freeGate || !ac) { return; }
     var g = droneNodes.freeGate.gain, now = ac.currentTime;
@@ -2049,6 +2401,7 @@
   function schedule() {
     var until = ac.currentTime + 0.07;
     schedulePulse(until);
+    scheduleRim(until);
     for (var i = 0; i < shapes.length; i++) {
       var s = shapes[i], guard = 0;
       if (ownTime(s)) { scheduleOwn(s, until); continue; }
@@ -2104,7 +2457,135 @@
   /* the free-voice arc above and the drone key arc below share one radius, in proportion to the rings,
      so the mirror holds at any size; 1.2 leaves a finger's room between the top nodes and the arc */
   var ARC_RATIO = 1.2;
-  function pitchR() { return geo.R * ARC_RATIO; }
+  function pitchR() { return geo.R * (DEMO.brass ? (DEMO.room ? 1.34 : 1.275) : ARC_RATIO); }
+  /* ===== demo: the limb =====
+     A brass ring outside the shapes, graduated like the rim of an astrolabe: 60 ghatikas to one turn
+     (one day on the Jantar Mantar instruments), a long stroke every 5, Devanagari numerals every 5.
+     Drawn once into its own canvas and reused, so the frame loop only blits it. */
+  var LIMB_IN = 1.085, LIMB_OUT = 1.225;
+  function applyRoom() { LIMB_IN = DEMO.room ? 1.085 : 1.05; LIMB_OUT = DEMO.room ? 1.225 : 1.175; }
+  var limbCv = null, limbKey = "", limbM = 0, limbFont = 0;
+  var DEVA_DIGITS = "०१२३४५६७८९";
+  function devaNum(n) {
+    var t = String(n), o = "", i;
+    for (i = 0; i < t.length; i++) { o += DEVA_DIGITS.charAt(parseInt(t.charAt(i), 10)); }
+    return o;
+  }
+  function limbRand(seed) {
+    var a = seed;
+    return function () {
+      a = (a + 0x6D2B79F5) | 0;
+      var t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function buildLimb(R, dpr) {
+    var rIn = R * LIMB_IN, rOut = R * LIMB_OUT, bw = rOut - rIn, pad = 3;
+    var m = rOut + pad, size = Math.ceil(m * 2 * dpr), TAU = Math.PI * 2, i, a, rnd = limbRand(1727);
+    var c = document.createElement("canvas"); c.width = size; c.height = size;
+    var g = c.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    function band() { g.beginPath(); g.arc(m, m, rOut, 0, TAU); g.arc(m, m, rIn, 0, TAU, true); g.closePath(); }
+    /* the metal: light catches it top left and bottom right, as on a turned plate */
+    var base;
+    if (g.createConicGradient) {
+      base = g.createConicGradient(-Math.PI * 0.75, m, m);
+      var st = ["#b08a48", "#8a6a34", "#6a5026", "#93723a", "#b9965a", "#8c6c36", "#624a22", "#9a7a3e", "#b08a48"];
+      for (i = 0; i < st.length; i++) { base.addColorStop(i / (st.length - 1), st[i]); }
+    } else {
+      base = g.createLinearGradient(m - rOut, m - rOut, m + rOut, m + rOut);
+      base.addColorStop(0, "#b08a48"); base.addColorStop(0.5, "#6a5026"); base.addColorStop(1, "#a8843f");
+    }
+    band(); g.fillStyle = base; g.fill();
+    g.save(); band(); g.clip();
+    /* lathe marks */
+    for (var rr = rIn + 0.6; rr < rOut; rr += 1.1) {
+      g.beginPath(); g.arc(m, m, rr, 0, TAU);
+      g.strokeStyle = rnd() > 0.5 ? "rgba(255,232,180," + (0.03 + rnd() * 0.07).toFixed(3) + ")"
+                                  : "rgba(30,18,6," + (0.05 + rnd() * 0.12).toFixed(3) + ")";
+      g.lineWidth = 0.7; g.stroke();
+    }
+    /* tarnish: uneven dark bloom */
+    for (i = 0; i < 46; i++) {
+      a = rnd() * TAU;
+      var tr = rIn + rnd() * bw, tx = m + tr * Math.cos(a), ty = m + tr * Math.sin(a), ts = bw * (0.8 + rnd() * 2.2);
+      var tg = g.createRadialGradient(tx, ty, 0, tx, ty, ts);
+      tg.addColorStop(0, "rgba(34,22,8," + (0.14 + rnd() * 0.3).toFixed(3) + ")"); tg.addColorStop(1, "rgba(34,22,8,0)");
+      g.fillStyle = tg; g.fillRect(tx - ts, ty - ts, ts * 2, ts * 2);
+    }
+    /* verdigris gathers where a cloth does not reach: along the inner edge */
+    for (i = 0; i < 16; i++) {
+      a = rnd() * TAU;
+      var vr = rIn + rnd() * bw * 0.25, vx = m + vr * Math.cos(a), vy = m + vr * Math.sin(a), vs = bw * (0.35 + rnd() * 0.7);
+      var vg = g.createRadialGradient(vx, vy, 0, vx, vy, vs);
+      vg.addColorStop(0, "rgba(96,170,146," + (0.16 + rnd() * 0.2).toFixed(3) + ")"); vg.addColorStop(1, "rgba(96,170,146,0)");
+      g.fillStyle = vg; g.fillRect(vx - vs, vy - vs, vs * 2, vs * 2);
+    }
+    /* the edges fall away into shadow */
+    var eg = g.createRadialGradient(m, m, rIn, m, m, rOut);
+    eg.addColorStop(0, "rgba(0,0,0,0.5)"); eg.addColorStop(0.16, "rgba(0,0,0,0)");
+    eg.addColorStop(0.84, "rgba(0,0,0,0)"); eg.addColorStop(1, "rgba(0,0,0,0.45)");
+    g.fillStyle = eg; g.fillRect(0, 0, m * 2, m * 2);
+    g.restore();
+    /* engraving: each cut is a dark line with a thin lit edge below and right of it */
+    var CUT = "rgba(24,15,5,0.88)", LIT = "rgba(255,236,190,0.3)";
+    function cutLine(x0, y0, x1, y1, w) {
+      g.lineWidth = w; g.lineCap = "butt";
+      g.beginPath(); g.moveTo(x0 + 0.6, y0 + 0.6); g.lineTo(x1 + 0.6, y1 + 0.6); g.strokeStyle = LIT; g.stroke();
+      g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.strokeStyle = CUT; g.stroke();
+    }
+    function cutRing(r, w) {
+      g.lineWidth = w;
+      g.beginPath(); g.arc(m + 0.6, m + 0.6, r, 0, TAU); g.strokeStyle = LIT; g.stroke();
+      g.beginPath(); g.arc(m, m, r, 0, TAU); g.strokeStyle = CUT; g.stroke();
+    }
+    var small = bw < 20;
+    var scaleTop = rIn + bw * (small ? 0.46 : 0.4);
+    cutRing(scaleTop, 0.8);
+    /* 60 ghatikas; on a large dial each is halved again */
+    var div = small ? 60 : 120;
+    for (i = 0; i < div; i++) {
+      a = -Math.PI / 2 + i * TAU / div;
+      var gh = small ? i : i / 2, whole = small || i % 2 === 0;
+      var len = !whole ? 0.38 : (gh % 5 === 0 ? 1 : 0.66);
+      var r0 = rIn + 1.2, r1 = r0 + (scaleTop - r0) * len;
+      cutLine(m + r0 * Math.cos(a), m + r0 * Math.sin(a), m + r1 * Math.cos(a), m + r1 * Math.sin(a), whole && gh % 5 === 0 ? 1.2 : 0.8);
+    }
+    /* numerals stand on the scale, heads outward, read by walking round the rim */
+    var every = small ? 15 : 5, fs = Math.max(7, bw * (small ? 0.52 : 0.5)), nr = (scaleTop + rOut) / 2;
+    g.font = fs.toFixed(1) + "px \"Tiro Devanagari Sanskrit\", \"Eczar\", serif";
+    g.textAlign = "center"; g.textBaseline = "middle";
+    for (i = every; i <= 0; i += every) {   /* numerals removed: the grid and the swaras remain */
+      a = -Math.PI / 2 + i * TAU / 60;
+      g.save(); g.translate(m + nr * Math.cos(a), m + nr * Math.sin(a)); g.rotate(a + Math.PI / 2);
+      g.fillStyle = LIT; g.fillText(devaNum(i), 0.6, 0.9);
+      g.fillStyle = CUT; g.fillText(devaNum(i), 0, 0.3);
+      g.restore();
+    }
+    /* a small drilled mark between the numerals */
+    rimLabels(g, m, nr, fs, small, scaleTop, rOut);
+    if (false) {
+      for (i = 0; i < 12; i++) {
+        a = -Math.PI / 2 + (i + 0.5) * TAU / 12;
+        g.beginPath(); g.arc(m + nr * Math.cos(a) + 0.5, m + nr * Math.sin(a) + 0.5, 1.3, 0, TAU); g.fillStyle = LIT; g.fill();
+        g.beginPath(); g.arc(m + nr * Math.cos(a), m + nr * Math.sin(a), 1.3, 0, TAU); g.fillStyle = CUT; g.fill();
+      }
+    }
+    /* the rim: a lit arris outside, a dark one inside */
+    g.beginPath(); g.arc(m, m, rOut - 0.5, 0, TAU); g.strokeStyle = "rgba(240,216,160,0.5)"; g.lineWidth = 1; g.stroke();
+    g.beginPath(); g.arc(m, m, rIn + 0.5, 0, TAU); g.strokeStyle = "rgba(20,12,4,0.9)"; g.lineWidth = 1; g.stroke();
+    limbCv = c; limbM = m;
+  }
+  function drawLimb(cx, cy, R) {
+    var dpr = window.devicePixelRatio || 1, key = R.toFixed(1) + "/" + dpr + "/" + limbFont + "/" + rimScale + "/" + LIMB_OUT;
+    if (key !== limbKey) { buildLimb(R, dpr); limbKey = key; }
+    ctx.globalAlpha = rimAwake() ? (rimLock ? 0.84 : 1) : 0.55;   /* a resting or absent rim sits back */
+    ctx.drawImage(limbCv, cx - limbM, cy - limbM, limbM * 2, limbM * 2);
+    ctx.globalAlpha = 1;
+  }
+  if (document.fonts && document.fonts.load) {
+    document.fonts.load("12px \"Tiro Devanagari Sanskrit\"", DEVA_DIGITS).then(function () { limbFont++; }, function () {});
+  }
   function pitchAngle(k) { return Math.PI / 2 + PITCH_SPAN / 2 - k * (PITCH_SPAN / 11); }
   function pitchKeyAt(x, y) {
     var a = Math.atan2(y - geo.cy, x - geo.cx);
@@ -2122,15 +2603,69 @@
     return Math.abs(a - Math.PI / 2) <= PITCH_SPAN / 2 + 0.12;
   }
   /* the arcs are always on the instrument; touching them can wake the drone */
+  function engineSync() {
+    if ((drone || freeOn) && playing) {
+      audio(); startDrone();
+      if (droneNodes && droneNodes.hum) {
+        droneNodes.hum.gain.setTargetAtTime(drone ? 1 : 0, ac.currentTime,
+          Math.max(0.012, (drone ? humSwell() : humFade()) / 4));
+      }
+      applyFreeGate();
+    } else { stopDrone(); }
+  }
+  window.__yantraStuds = function () {
+    var rad = geo.R * LIMB_IN + (geo.R * LIMB_OUT - geo.R * LIMB_IN) * 0.21, o = [], i;
+    for (i = 0; i < rimNotes.length; i++) { var a = -Math.PI / 2 + rimNotes[i].step * RIM_TAU / RIM_RES; o.push([geo.cx + rad * Math.cos(a), geo.cy + rad * Math.sin(a)]); }
+    return o;
+  };
+  window.__yantraHum = function (er) {
+    droneER = er; applyDroneRoom();
+    return { engine: !!droneNodes, room: !!(droneNodes && droneNodes.room), send: droneRoom(),
+             tone: droneNodes && droneNodes.lp ? Math.round(droneNodes.lp.frequency.value) : null };
+  };
+  /* render `secs` of a scene through the real output chain. o: { bpm, secs, oct, free, freeOct, drone, kick, snare, hat, vol } */
+  window.__yantraMix = function (o) {
+    var OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    var rate = 48000, off = new OAC(1, Math.round(rate * o.secs), rate);
+    var keep = { ac: ac, master: master, noise: noiseBuf, rev: revBuf, nodes: droneNodes, drone: drone, free: freeOn,
+                 oct: droneOct, foct: freeOct, cents: freeCents, playing: playing, rb: rimBus, ra: rimAc, dv: droneVol, er: droneER };
+    ac = null; revBuf = null; droneNodes = null; window.__yantraOff = off;
+    try {
+      audio();
+      droneOct = typeof o.oct === "number" ? o.oct : 0; freeOct = typeof o.freeOct === "number" ? o.freeOct : 2; freeCents = 0;
+      drone = !!o.drone; freeOn = !!o.free; droneER = typeof o.er === "number" ? o.er : 0.5; droneVol = typeof o.dvol === "number" ? o.dvol : 0.6;
+      if (drone || freeOn) { startDrone(); if (droneNodes && droneNodes.hum) { droneNodes.hum.gain.value = drone ? 1 : 0; } }
+      if (o.rim) { rimBus = null; rimVoice(220, 0.1, 0.5); }
+      if (o.rimNotes) { rimBus = null; for (var rn = 0; rn < o.rimNotes.length; rn++) { var same = 0, rq; for (rq = 0; rq < o.rimNotes.length; rq++) { if (o.rimNotes[rq][0] === o.rimNotes[rn][0]) { same++; } }
+        rimVoice(RIM_A * Math.pow(2, o.rimNotes[rn][1] / 12), o.rimNotes[rn][0], o.rimNotes[rn][2] / Math.sqrt(same)); } }
+      var beat = 60 / o.bpm, t, n = 0, bus = ac.createGain(); bus.gain.value = typeof o.vol === "number" ? o.vol : 0.6; bus.connect(master);
+      for (t = 0.05; t < o.secs - 0.3; t += beat / 2, n++) {
+        if (o.kick && n % 2 === 0) { ((DEMO.drums && SYNTH2.kick) || SYNTH.kick)(t, bus); }
+        if (o.snare && n % 4 === 2) { ((DEMO.drums && SYNTH2.snare) || SYNTH.snare)(t, bus); }
+        if (o.hat) { ((DEMO.drums && SYNTH2.hat) || SYNTH.hat)(t, bus); }
+      }
+    } finally {
+      ac = keep.ac; master = keep.master; noiseBuf = keep.noise; revBuf = keep.rev; droneNodes = keep.nodes; drone = keep.drone;
+      freeOn = keep.free; droneOct = keep.oct; freeOct = keep.foct; freeCents = keep.cents; playing = keep.playing;
+      rimBus = keep.rb; rimAc = keep.ra; droneVol = keep.dv; droneER = keep.er; window.__yantraOff = null;
+    }
+    return off.startRendering().then(function (buf) { return Array.prototype.slice.call(buf.getChannelData(0)); });
+  };
+  window.__yantraSet = function (k, v) { if (k === "drums") { DEMO.drums = !!v; } if (k in TUNE) { TUNE[k] = v; } if (k in KT) { KT[k] = v; } if (k in RT) { RT[k] = v; } if (k === "rimEA") { rimEA = v; } if (k === "rimED") { rimED = v; } return TUNE; };
+  var TUNE = { duck: 1 };
+  window.__yantraDemo = function () {
+    return { rimEA: rimEA, rimED: rimED, drone: drone, free: freeOn, engine: !!droneNodes,
+             hum: droneNodes && droneNodes.hum ? droneNodes.hum.gain.value : null, rim: rimNotes.length };
+  };
   function droneOn() {
     if (drone) { return; }
     drone = true;
-    if (playing) { audio(); startDrone(); }
+    engineSync();
     renderPanel();
   }
   function droneOff() {
     if (!drone) { return; }
-    drone = false; stopDrone(); renderPanel();
+    drone = false; engineSync(); renderPanel();
   }
   function nearPitchMarker(x, y) {
     var a = pitchAngle(droneKey), pr = pitchR();
@@ -2223,7 +2758,7 @@
   function drawFreeArc() {
     var cx = geo.cx, cy = geo.cy, pr = pitchR(), a, i;
     var live = drag && drag.mode === "free" && drag.moved;
-    var sounding = freeOn && drone;
+    var sounding = freeOn;
     freeGlow += ((sounding ? 1 : 0) - freeGlow) * 0.12;
     ctx.globalAlpha = pitchShow;
     ctx.beginPath(); ctx.arc(cx, cy, pr, freeAngle(0), freeAngle(1200));
@@ -2671,11 +3206,415 @@
     }
   }
   /* ---------- draw ---------- */
+  /* ===== demo: the rim as a handpan =====
+     Twelve tone fields, one between each pair of numerals. Where you strike is the pitch;
+     when you strike is the time, kept as a stud on the 60-step scale while the Yantra plays. */
+  var RIM_TAU = Math.PI * 2;
+  var RIM_RES = 960;        /* places a note can sit in one turn of the plate: 12, 16, 24, 32 and 48 all divide it */
+  var RIM_N = 16;           /* A up to C an octave and a third above, the span of a Volca Bass keyboard */
+  var RIM_A = 220;          /* the first field: A3, whatever the drone is doing */
+  var RIM_NAMES = ["A", "A\u266F", "B", "C", "C\u266F", "D", "D\u266F", "E", "F", "F\u266F", "G", "G\u266F"];
+  var RIM_SCALES = [
+    { name: "Bhūpālī", semis: [0, 2, 4, 7, 9] },
+    { name: "Durgā", semis: [0, 2, 5, 7, 9] },
+    { name: "Śivarañjanī", semis: [0, 2, 3, 7, 9] },
+    { name: "Kāfī", semis: [0, 2, 3, 5, 7, 9, 10] }
+  ];
+  var RIM_SWARA = ["सा", "रे॒", "रे", "ग॒", "ग", "म", "म॑",
+                   "प", "ध॒", "ध", "नि॒", "नि"];
+  /* fields in rising pitch: lowest at the bottom, then side to side up to the top, as on a handpan */
+  var RIM_ORDER = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];   /* Sa at the top, rising clockwise */
+  var rimMode = 0;
+  var RT = { level: 0.22, thr: 0, ratio: 1, makeup: 1 };
+  /* the rim is a voice like the shapes: added or not, resting or not; Keep is its one extra switch */
+  var rimOn = true, rimRest = false, rimKeep = false, rimLock = false, rimVol = 0.6;
+  var RIM_DEF = { n: -1, name: "Rim", rim: true };
+  /* like a shape with sixteen corners: at 16 the plate turns once per turn of the Yantra; at any other count
+     each sixteenth of the plate takes one matra, so the melody runs at its own length against the rhythm */
+  var RIM_HOME = 16, rimOwn = 16;
+  /* the plate's envelope, as for a shape: attack 0 = struck, length 0.5 = as built */
+  var rimEA = 0, rimED = 0.5, rimEnv = null;
+  function rimAttack() { return rimEA * rimEA * 0.3; }
+  function rimLength() { return logMap(rimED, 0.25, 1, 3); }
+  function rimEnvDefault() { return rimEA < 0.005 && Math.abs(rimED - 0.5) < 0.005; }
+  /* 0 off; 1 the rhythm's own count, the one the dotted ring shows; 2 twice as fine */
+  var rimSnap = 0;
+  function rimGrid() { return rimSnap ? PULSE_N * rimSnap : 0; }
+  /* a moment in the bar (in turns of the Yantra) to a place on the plate, through the grid if there is one */
+  function rimPlace(barTurns) {
+    var g = rimGrid();
+    if (g) { barTurns = Math.round(barTurns * g) / g; }
+    var pt = barTurns * rimOwn / RIM_HOME; pt -= Math.floor(pt);
+    return Math.round(pt * RIM_RES) % RIM_RES;
+  }
+  /* turning snap on also pulls in what is already kept; undo puts it back */
+  function rimSnapAll() {
+    if (!rimGrid()) { return; }
+    var seen = {}, out = [], i;
+    for (i = 0; i < rimNotes.length; i++) {
+      var n = rimNotes[i];
+      n.step = rimPlace(n.step / RIM_RES * RIM_HOME / rimOwn);
+      if (!seen[n.step + "/" + n.field]) { seen[n.step + "/" + n.field] = 1; out.push(n); }
+    }
+    rimNotes = out;
+  }
+  function rimPeriod() { return T * RIM_HOME / rimOwn; }
+  function rimSetOwn(v) { rimOwn = Math.max(1, Math.min(32, v | 0)); renderPanel(); }
+  function rimAwake() { return rimOn && !rimRest; }
+  function rimTap() { if (!rimOn) { rimOn = true; rimRest = false; } else { rimRest = !rimRest; } renderPanel(); }
+  function rimRemove() { rimOn = false; rimRest = false; rimKeep = false; rimLock = false; rimPost = false; rimOwn = RIM_HOME; rimSnap = 0; rimEA = 0; rimED = 0.5; rimNotes = []; rimGlow = []; renderPanel(); }
+  function rimSetVol(v) {
+    rimVol = v < 0 ? 0 : (v > 1 ? 1 : v);
+    if (rimBus && ac && rimAc === ac) { rimBus.gain.setTargetAtTime(RT.level * rimVol, ac.currentTime, 0.012); }
+  }
+  var rimScale = 0, rimNotes = [], rimNext = 0, rimGlow = [], rimBus = null, rimAc = null;
+  function rimDegree(field) { return RIM_ORDER.indexOf(field); }
+  function rimOct(field) { return Math.floor(field / 12); }
+  function rimSemis(field) { return field; }   /* chromatic: one field, one semitone */
+  function rimFreq(field) {
+    return RIM_A * Math.pow(2, field / 12);
+  }
+  /* a struck steel tone field: fundamental, octave and twelfth, tuned true, each dying at its own rate */
+  function rimVoice(freq, t, vel) {
+    if (!rimBus || rimAc !== ac) {
+      rimAc = ac;
+      rimBus = ac.createGain(); rimBus.gain.value = RT.level * rimVol;
+      var rcomp = ac.createDynamicsCompressor(), rout = ac.createGain();
+      rcomp.threshold.value = RT.thr; rcomp.knee.value = 10; rcomp.ratio.value = RT.ratio;
+      rcomp.attack.value = 0.004; rcomp.release.value = 0.25;
+      rout.gain.value = RT.makeup;
+      rimBus.connect(rcomp); rcomp.connect(rout); rout.connect(master);
+      var rv = makeReverb();
+      if (rv) { var rs = ac.createGain(); rs.gain.value = 0.32; rimBus.connect(rs); rs.connect(rv); rv.connect(master); }
+    }
+    var parts = [[1, 1, 0.55], [2, 0.42, 0.36], [3, 0.2, 0.2]], i;
+    for (i = 0; i < parts.length; i++) {
+      var o = ac.createOscillator(), g = ac.createGain();
+      o.type = "sine"; o.frequency.value = freq * parts[i][0];
+      g.gain.setValueAtTime(0, t);
+      /* a longer ring is laid a little quieter, so stretched notes do not pile up into the ceiling */
+      var eA = Math.max(0.005, rimAttack()), eL = rimLength(), eV = vel / Math.sqrt(Math.max(1, eL));
+      g.gain.linearRampToValueAtTime(parts[i][1] * eV, t + eA);
+      g.gain.setTargetAtTime(0, t + eA, parts[i][2] * eL);
+      o.connect(g); g.connect(rimBus); o.start(t); o.stop(t + eA + 4.5 * eL);
+    }
+    if (noiseBuf) {                             /* the finger */
+      var n = ac.createBufferSource(), bp = ac.createBiquadFilter(), ng = ac.createGain();
+      n.buffer = noiseBuf; bp.type = "bandpass"; bp.frequency.value = Math.min(6000, freq * 3); bp.Q.value = 1.4;
+      ng.gain.setValueAtTime(Math.max(0.0011, 0.22 * vel * Math.max(0, 1 - rimAttack() / 0.04)), t); ng.gain.exponentialRampToValueAtTime(0.001, t + 0.045);
+      n.connect(bp); bp.connect(ng); ng.connect(rimBus); n.start(t); n.stop(t + 0.06);
+    }
+  }
+  /* a finger held on the plate: on a stud it lifts that one note out, elsewhere it clears the plate */
+  var RIM_HOLD_ONE = 520, RIM_HOLD_ALL = 1000, RIM_HOLD_SHOW = 280;
+  var rimHold = null, rimLast = null;
+  function rimStudAt(x, y) {
+    var rad = geo.R * LIMB_IN + (geo.R * LIMB_OUT - geo.R * LIMB_IN) * 0.21, best = -1, bd = 13, i;
+    for (i = 0; i < rimNotes.length; i++) {
+      var a = -Math.PI / 2 + rimNotes[i].step * RIM_TAU / RIM_RES;
+      var dx = x - (geo.cx + rad * Math.cos(a)), dy = y - (geo.cy + rad * Math.sin(a)), d = Math.sqrt(dx * dx + dy * dy);
+      if (d < bd) { bd = d; best = i; }
+    }
+    return best;
+  }
+  function rimHoldTick() {
+    if (!rimHold) { return; }
+    if (!drag) { rimHold = null; return; }             /* the finger has gone */
+    var el = now_() - rimHold.t, ix;
+    if (rimHold.made && el > 280) {
+      ix = rimNotes.indexOf(rimHold.made); if (ix >= 0) { rimNotes.splice(ix, 1); rimCountUi(); }
+      rimHold.made = null;
+    }
+    if (rimHold.note) {
+      if (el < RIM_HOLD_ONE) { return; }
+      ix = rimNotes.indexOf(rimHold.note); if (ix >= 0) { rimNotes.splice(ix, 1); }
+      ix = rimHold.made ? rimNotes.indexOf(rimHold.made) : -1; if (ix >= 0) { rimNotes.splice(ix, 1); }
+    } else {
+      if (el < RIM_HOLD_ALL) { return; }
+      rimNotes = [];
+    }
+    rimHold = null;
+    try { if (navigator.vibrate) { navigator.vibrate(12); } } catch (e) {}
+    renderPanel();
+  }
+  /* the snap mark: where it sits, and whether a touch is on it */
+  var RIM_MARK_AT = 0;          /* three o'clock, clear of both arcs */
+  function rimMarkR() { return geo.R * (LIMB_OUT + (DEMO.room ? 0.135 : 0.115)); }
+  function rimMarkHit(x, y) {
+    if (!DEMO.brass || !rimOn || rimRest) { return false; }
+    var mr = rimMarkR(), dx = x - (geo.cx + mr * Math.cos(RIM_MARK_AT)), dy = y - (geo.cy + mr * Math.sin(RIM_MARK_AT));
+    return Math.sqrt(dx * dx + dy * dy) < 17;
+  }
+  /* the state mark, at nine o'clock: an open ring is free, a red disc is keeping, a slotted brass head is locked */
+  var RIM_MODE_AT = Math.PI;
+  var rimPost = false, rimModePress = null, RIM_MODE_HOLD = 480;      /* just out of keeping, with a pattern held: the next tap fastens it */
+  function rimModeHit(x, y) {
+    if (!DEMO.brass || !rimOn || rimRest) { return false; }
+    var mr = rimMarkR(), dx = x - (geo.cx + mr * Math.cos(RIM_MODE_AT)), dy = y - (geo.cy + mr * Math.sin(RIM_MODE_AT));
+    return Math.sqrt(dx * dx + dy * dy) < 17;
+  }
+  function rimCycleMode() {
+    if (rimLock) { rimLock = false; rimPost = false; }                        /* unlock: back to auditioning */
+    else if (rimKeep) { rimKeep = false; rimPost = rimNotes.length > 0; }     /* leave record, keep playing */
+    else if (rimPost && rimNotes.length) { rimPost = false; rimLock = true; } /* fasten what was kept */
+    else { rimPost = false; rimKeep = true; rimRest = false; }                /* record */
+    renderPanel();
+  }
+  function drawRimMode(cx, cy) {
+    if (!rimOn) { return; }
+    var mr = rimMarkR(), x = cx + mr * Math.cos(RIM_MODE_AT), y = cy + mr * Math.sin(RIM_MODE_AT);
+    var r = Math.max(5, geo.R * 0.036);
+    if (rimModePress) {
+      if (!drag) { rimModePress = null; }
+      else if (!rimModePress.done) {
+        var he = now_() - rimModePress.t;
+        if (he >= RIM_MODE_HOLD) {
+          /* held: straight into record, whatever came before */
+          rimLock = false; rimPost = false; rimKeep = true; rimRest = false; rimModePress.done = true;
+          try { if (navigator.vibrate) { navigator.vibrate(12); } } catch (e) {}
+          renderPanel();
+        } else if (he > 130) {
+          /* a red line closes round the mark while the hold fills */
+          ctx.beginPath(); ctx.arc(x, y, r + 5, -Math.PI / 2, -Math.PI / 2 + (he - 130) / (RIM_MODE_HOLD - 130) * RIM_TAU);
+          ctx.strokeStyle = "#e25438"; ctx.lineWidth = 1.8; ctx.lineCap = "round"; ctx.stroke(); ctx.lineCap = "butt";
+        }
+      }
+    }
+    ctx.globalAlpha = rimRest ? 0.35 : 1;
+    if (rimLock) {
+      /* fastened: a brass screw head, its slot lying along the rim */
+      var sg = ctx.createRadialGradient(x - r * 0.35, y - r * 0.4, 0, x, y, r);
+      sg.addColorStop(0, "#f3dfae"); sg.addColorStop(0.55, "#c9a45c"); sg.addColorStop(1, "#5a4320");
+      ctx.beginPath(); ctx.arc(x, y, r, 0, RIM_TAU); ctx.fillStyle = sg; ctx.fill();
+      ctx.strokeStyle = "rgba(20,12,4,0.9)"; ctx.lineWidth = 1; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x, y - r * 0.72); ctx.lineTo(x, y + r * 0.72);
+      ctx.strokeStyle = "rgba(24,15,5,0.92)"; ctx.lineWidth = Math.max(1.4, r * 0.3); ctx.stroke();
+    } else if (rimKeep) {
+      /* keeping: red. A ring while it waits for play, a breathing disc once the Yantra turns */
+      var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      var kp = (playing && !still) ? 0.6 + 0.4 * Math.sin(now_() / 420) : 1;
+      ctx.beginPath(); ctx.arc(x, y, r * 0.86, 0, RIM_TAU);
+      if (playing) { ctx.fillStyle = "rgba(226,84,56," + kp.toFixed(3) + ")"; ctx.fill(); }
+      ctx.strokeStyle = "#e25438"; ctx.lineWidth = 1.6; ctx.stroke();
+      if (!playing) { ctx.beginPath(); ctx.arc(x, y, r * 0.3, 0, RIM_TAU); ctx.fillStyle = "#e25438"; ctx.fill(); }
+    } else {
+      /* free: an open ring. With a pattern held and not yet fastened, a brass stud sits loose inside it */
+      ctx.beginPath(); ctx.arc(x, y, r * 0.86, 0, RIM_TAU);
+      ctx.strokeStyle = "rgba(214,178,110,0.9)"; ctx.lineWidth = 1.5; ctx.stroke();
+      if (rimPost && rimNotes.length) {
+        var pg = ctx.createRadialGradient(x - r * 0.15, y - r * 0.18, 0, x, y, r * 0.42);
+        pg.addColorStop(0, "#fff6dc"); pg.addColorStop(0.55, "#d6b26e"); pg.addColorStop(1, "#5a4320");
+        ctx.beginPath(); ctx.arc(x, y, r * 0.4, 0, RIM_TAU); ctx.fillStyle = pg; ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+  function drawRimMark(cx, cy) {
+    if (!rimOn) { return; }
+    var mr = rimMarkR(), n = rimSnap === 2 ? 5 : 3, span = 0.085 * (rimSnap === 2 ? 1.15 : 1), i;
+    var dot = Math.max(2, geo.R * (rimSnap === 2 ? 0.011 : 0.014));
+    ctx.globalAlpha = rimRest ? 0.35 : 1;
+    /* a fine brass arc carries the dots, so they read as part of the instrument and not as stars */
+    ctx.beginPath(); ctx.arc(cx, cy, mr, RIM_MARK_AT - span * 1.5, RIM_MARK_AT + span * 1.5);
+    ctx.strokeStyle = "rgba(190,142,68,0.8)"; ctx.lineWidth = 1.2; ctx.stroke();
+    for (i = 0; i < n; i++) {
+      var a = RIM_MARK_AT + (i - (n - 1) / 2) * (span * 2 / (n - 1));
+      ctx.beginPath(); ctx.arc(cx + mr * Math.cos(a), cy + mr * Math.sin(a), dot, 0, RIM_TAU);
+      ctx.fillStyle = rimSnap ? "#e9cb8c" : "#12100d"; ctx.fill();
+      ctx.strokeStyle = rimSnap ? "#e9cb8c" : "rgba(214,178,110,0.85)"; ctx.lineWidth = 1.2; ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+  function rimFieldAt(x, y) {
+    var d = Math.sqrt(Math.pow(x - geo.cx, 2) + Math.pow(y - geo.cy, 2));
+    if (d < geo.R * LIMB_IN || d > geo.R * LIMB_OUT + 4) { return -1; }
+    var a = Math.atan2(y - geo.cy, x - geo.cx) + Math.PI / 2;
+    a = ((a % RIM_TAU) + RIM_TAU) % RIM_TAU;
+    return Math.floor(a / (RIM_TAU / RIM_N)) % RIM_N;
+  }
+  function rimUi() {}
+  function rimUiOld2() {
+    var ids = ["rimLocked", "rimFree", "rimKeep"], i, b = document.getElementById("rimScale"), c = document.getElementById("rimCount");
+    for (i = 0; i < 3; i++) {
+      var sb = document.getElementById(ids[i]);
+      if (sb) { sb.setAttribute("aria-pressed", rimMode === i ? "true" : "false"); }
+    }
+    if (b) { b.textContent = "Scale · " + RIM_SCALES[rimScale].name; }
+    if (!c) { return; }
+    var n = rimNotes.length, kept = n ? " · " + n + (n === 1 ? " strike kept" : " strikes kept") : "";
+    c.className = "rim-status" + (rimMode === 2 && playing ? " keeping" : "");
+    c.textContent = rimMode === 0 ? "Locked: touches on the rim do nothing" + kept
+                  : rimMode === 1 ? "Free: strike the rim, nothing is kept" + kept
+                  : playing ? "Keeping: each strike returns every turn" + kept
+                  : "Keep is ready: press play, then strike" + kept;
+  }
+  function rimUiOld() {
+    var b = document.getElementById("rimScale"), c = document.getElementById("rimCount");
+    if (b) { b.textContent = "Scale · " + RIM_SCALES[rimScale].name; }
+    if (c) { c.textContent = rimNotes.length ? rimNotes.length + (rimNotes.length === 1 ? " strike kept" : " strikes kept") : "No strikes kept yet"; }
+  }
+  function rimCountUi() {
+    var e = document.querySelector("#rimRow .nm");
+    if (e) { e.textContent = "Thālī" + (rimNotes.length ? " · " + rimNotes.length + " kept" : ""); }
+  }
+  /* 2. the plate's reverb used to be built on the first strike; it is built when play starts instead */
+  function rimWarm() {
+    if (!ac || !master || !DEMO.brass || !rimOn) { return; }
+    if (!rimBus || rimAc !== ac) { try { rimVoice(RIM_A, ac.currentTime, 0.0001); } catch (e) {} }
+  }
+  function rimStrike(field) {
+    audio();
+    if (ac.state === "suspended" && ac.resume) { ac.resume(); }
+    var now = ac.currentTime, i;
+    rimVoice(rimFreq(field), now + 0.004, 0.9);
+    rimGlow.push({ f: field, t: now_(), step: -1 });
+    if (playing && rimKeep) {
+      var step = rimPlace((viewClock() - t0) / T);
+      for (i = 0; i < rimNotes.length; i++) { if (rimNotes[i].step === step && rimNotes[i].field === field) { return; } }
+      rimNotes.push({ step: step, field: field, hold: now + (rimGrid() ? T / rimGrid() * 0.6 : 0) + rimPeriod() / RIM_RES * 1.5 });
+      rimLast = rimNotes[rimNotes.length - 1];
+      rimCountUi();
+    }
+  }
+  function scheduleRim(until) {
+    if (!DEMO.brass || !rimNotes.length || !rimAwake()) { return; }
+    var sd = rimPeriod() / RIM_RES, lo = Math.ceil((ac.currentTime - t0) / sd - 1e-6), i;
+    if (rimNext < lo || rimNext > lo + RIM_RES) { rimNext = lo; }
+    while (t0 + rimNext * sd < until) {
+      var at = t0 + rimNext * sd, st = ((rimNext % RIM_RES) + RIM_RES) % RIM_RES;
+      var together = 0;
+      for (i = 0; i < rimNotes.length; i++) { if (rimNotes[i].step === st && !(rimNotes[i].hold > at)) { together++; } }
+      for (i = 0; i < rimNotes.length; i++) {
+        var n = rimNotes[i];
+        if (n.step !== st || n.hold > at) { continue; }
+        rimVoice(rimFreq(n.field), at, 0.8 / Math.sqrt(together));
+        (function (f, stp, when) {
+          setTimeout(function () { if (playing) { rimGlow.push({ f: f, t: now_(), step: stp }); } },
+                     Math.max(0, (when - ac.currentTime + heardLag()) * 1000));
+        })(n.field, n.step, at);
+      }
+      rimNext++;
+    }
+  }
+  /* swaras inlaid pale into the brass, as silver is in Bidri work; a dot above for each higher saptak */
+  function rimLabels(g, m, nr, fs, small, top, rOut) {
+    var i, a, a0, step = RIM_TAU / RIM_N, f2 = fs * (small ? 0.95 : 1.05);
+    for (i = 0; i < RIM_N; i++) {
+      a0 = -Math.PI / 2 + i * step;
+      if (RIM_NAMES[i % 12].length > 1) {            /* a sharp: a darker key */
+        g.beginPath(); g.arc(m, m, rOut - 1.5, a0, a0 + step); g.arc(m, m, top + 1, a0 + step, a0, true); g.closePath();
+        g.fillStyle = "rgba(18,11,4,0.36)"; g.fill();
+      }
+      g.lineWidth = 0.8;
+      g.beginPath(); g.moveTo(m + (top + 1) * Math.cos(a0) + 0.6, m + (top + 1) * Math.sin(a0) + 0.6);
+      g.lineTo(m + (rOut - 1.5) * Math.cos(a0) + 0.6, m + (rOut - 1.5) * Math.sin(a0) + 0.6);
+      g.strokeStyle = "rgba(255,236,190,0.22)"; g.stroke();
+      g.beginPath(); g.moveTo(m + (top + 1) * Math.cos(a0), m + (top + 1) * Math.sin(a0));
+      g.lineTo(m + (rOut - 1.5) * Math.cos(a0), m + (rOut - 1.5) * Math.sin(a0));
+      g.strokeStyle = "rgba(24,15,5,0.7)"; g.stroke();
+    }
+    g.font = (f2 * 1.14).toFixed(1) + "px \"Tiro Devanagari Sanskrit\", \"Eczar\", serif";
+    g.textAlign = "center"; g.textBaseline = "middle";
+    for (i = 0; i < RIM_N; i++) {
+      a = -Math.PI / 2 + (i + 0.5) * step;
+      var nm = RIM_SWARA[i % 12], sharp = RIM_NAMES[i % 12].length > 1, oc = rimOct(i), q;
+      g.save(); g.translate(m + nr * Math.cos(a), m + nr * Math.sin(a)); g.rotate(a + Math.PI / 2);
+      g.fillStyle = "rgba(20,12,4,0.8)"; g.fillText(nm, 0.6, 1);
+      g.fillStyle = sharp ? "rgba(236,228,208,0.72)" : (i % 12 === 0 ? "#fffaea" : "rgba(246,240,224,0.93)");
+      g.fillText(nm, 0, 0.3);
+      for (q = 0; q < oc; q++) {                     /* a dot above for the octave above */
+        g.beginPath(); g.arc((q - (oc - 1) / 2) * f2 * 0.3, -f2 * 0.66, Math.max(0.7, f2 * 0.07), 0, RIM_TAU); g.fill();
+      }
+      g.restore();
+    }
+  }
+  function drawRimPlay(cx, cy, R) {
+    var rIn = R * LIMB_IN, rOut = R * LIMB_OUT, bw = rOut - rIn, tn = now_(), i, a, lit = {};
+    if (rimAwake() && rimKeep) {
+      /* keeping: two cinnabar lines frame the rim and breathe while the Yantra turns */
+      var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      var kp = (playing && !still) ? 0.5 + 0.5 * Math.sin(tn / 420) : 0.6;
+      ctx.strokeStyle = "rgba(226,84,56," + (playing ? 0.4 + 0.5 * kp : 0.38).toFixed(3) + ")"; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.arc(cx, cy, rIn - 3, 0, RIM_TAU); ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx, cy, rOut + 3, 0, RIM_TAU); ctx.stroke();
+    }
+    for (i = rimGlow.length - 1; i >= 0; i--) {
+      var gl = rimGlow[i], age = (tn - gl.t) / 900;
+      if (age > 1) { rimGlow.splice(i, 1); continue; }
+      if (gl.step >= 0 && age < 0.4) { lit[gl.step + "/" + gl.f] = 1 - age / 0.4; }
+      var a0 = -Math.PI / 2 + gl.f * RIM_TAU / RIM_N, a1 = a0 + RIM_TAU / RIM_N;
+      ctx.beginPath(); ctx.arc(cx, cy, rOut, a0, a1); ctx.arc(cx, cy, rIn, a1, a0, true); ctx.closePath();
+      ctx.fillStyle = "rgba(255,238,196," + (0.4 * Math.pow(1 - age, 2)).toFixed(3) + ")"; ctx.fill();
+    }
+    var sr = Math.max(2.2, bw * 0.105), rad = rIn + bw * 0.21;
+    rimHoldTick();
+    drawRimMark(cx, cy);
+    if (rimEnv && !drag) { rimEnv = null; }
+    if (rimEnv && !rimEnv.on && now_() - rimEnv.t >= 480) {
+      /* held still: armed, measured from where the finger rests */
+      rimEnv.on = true; rimEnv.rr0 = distC(rimEnv.px, rimEnv.py); rimEnv.aLock = angleAt(rimEnv.px, rimEnv.py);
+      try { if (navigator.vibrate) { navigator.vibrate(12); } } catch (e) {}
+    }
+    if (rimOn && (rimEnv || !rimEnvDefault())) {
+      var eLive = !!rimEnv;
+      ctx.beginPath(); ctx.arc(cx, cy, rOut + 5 + (rimED - 0.5) * 0.2 * R, 0, RIM_TAU);
+      ghostStroke(DRONE_COL, (eLive ? 0.9 : 0.26) * (rimAwake() ? 1 : 0.5), rimEA);
+      if (eLive) {
+        cText("attack " + fmtSecs(rimAttack()) + "  \u00B7  length \u00D7" + rimLength().toFixed(1), cx, cy - Math.max(44, R * 0.3),
+              "italic 300 13px 'Spectral', serif", "rgba(245,239,228,0.85)", "center");
+      }
+    }
+    drawRimMode(cx, cy);
+    if (rimSnap && rimOwn === RIM_HOME && rimAwake()) {
+      var gN = rimGrid(), gi, gr = rIn + bw * 0.21;
+      ctx.fillStyle = "rgba(255,246,222,0.8)";
+      for (gi = 0; gi < gN; gi++) {
+        var ga = -Math.PI / 2 + gi * RIM_TAU / gN, big = rimSnap === 1 || gi % 2 === 0;
+        ctx.beginPath(); ctx.arc(cx + gr * Math.cos(ga), cy + gr * Math.sin(ga), big ? Math.max(1.3, bw * 0.045) : Math.max(0.9, bw * 0.028), 0, RIM_TAU); ctx.fill();
+      }
+    }
+    if (playing && ac && rimOwn !== RIM_HOME && rimAwake() && rimNotes.length) {
+      var bph = (viewClock() - t0) / rimPeriod(); bph -= Math.floor(bph);
+      var bha = -Math.PI / 2 + bph * RIM_TAU;
+      ctx.beginPath(); ctx.moveTo(cx + (rIn - 3) * Math.cos(bha), cy + (rIn - 3) * Math.sin(bha));
+      ctx.lineTo(cx + (rOut + 3) * Math.cos(bha), cy + (rOut + 3) * Math.sin(bha));
+      ctx.strokeStyle = "rgba(255,246,222,0.92)"; ctx.lineWidth = 1.8; ctx.stroke();
+    }
+    if (rimHold) {
+      var hel = now_() - rimHold.t;
+      ctx.strokeStyle = "rgba(255,246,222,0.92)"; ctx.lineCap = "round";
+      if (rimHold.note) {
+        var ha = -Math.PI / 2 + rimHold.note.step * RIM_TAU / RIM_RES, hp = Math.min(1, hel / RIM_HOLD_ONE);
+        ctx.lineWidth = 1.6;
+        ctx.beginPath(); ctx.arc(cx + rad * Math.cos(ha), cy + rad * Math.sin(ha), sr + 4.5, -Math.PI / 2, -Math.PI / 2 + hp * RIM_TAU); ctx.stroke();
+      } else if (hel > RIM_HOLD_SHOW) {
+        var hq = Math.min(1, (hel - RIM_HOLD_SHOW) / (RIM_HOLD_ALL - RIM_HOLD_SHOW));
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(cx, cy, (rIn + rOut) / 2, -Math.PI / 2, -Math.PI / 2 + hq * RIM_TAU); ctx.stroke();
+      }
+      ctx.lineCap = "butt";
+    }
+    for (i = 0; i < rimNotes.length; i++) {
+      var n = rimNotes[i];
+      a = -Math.PI / 2 + n.step * RIM_TAU / RIM_RES;
+      var x = cx + rad * Math.cos(a), y = cy + rad * Math.sin(a), l = lit[n.step + "/" + n.field] || 0;
+      var sg = ctx.createRadialGradient(x - sr * 0.35, y - sr * 0.4, 0, x, y, sr);
+      sg.addColorStop(0, "#fff6dc"); sg.addColorStop(0.5, l ? "#f3e2b4" : "#d6b26e"); sg.addColorStop(1, "#5a4320");
+      ctx.globalAlpha = rimAwake() ? 1 : 0.4;
+      ctx.beginPath(); ctx.arc(x, y, sr, 0, RIM_TAU); ctx.fillStyle = sg; ctx.fill();
+      ctx.strokeStyle = "rgba(20,12,4,0.9)"; ctx.lineWidth = 0.8; ctx.stroke();
+      ctx.globalAlpha = 1;
+      if (l) {
+        ctx.beginPath(); ctx.arc(x, y, sr + 2 + 5 * (1 - l), 0, RIM_TAU);
+        ctx.strokeStyle = "rgba(255,244,214," + (0.8 * l).toFixed(3) + ")"; ctx.lineWidth = 1; ctx.stroke();
+      }
+    }
+  }
   function draw() {
     var r = cv.getBoundingClientRect();
     var w = r.width, h = r.height;
     ctx.clearRect(0, 0, w, h);
-    geo.cx = w / 2; geo.cy = h / 2; geo.R = Math.min(w, h) * 0.35;
+    geo.cx = w / 2; geo.cy = h / 2; geo.R = Math.min(w, h) * (DEMO.room ? 0.328 : 0.35);
     var cx = geo.cx, cy = geo.cy, R = geo.R, i, k, s, pos;
     for (i = 0; i < shapes.length; i++) {
       s = shapes[i];
@@ -2686,6 +3625,7 @@
       s.pop = (s.pop || 0) + ((lifts ? POP : 0) - (s.pop || 0)) * 0.3;
       s.nodePop = (s.nodePop || 0) + ((held === "vertex" ? POP : 0) - (s.nodePop || 0)) * 0.3;
     }
+    if (DEMO.brass) { drawLimb(cx, cy, R); drawRimPlay(cx, cy, R); }
     /* infinity glow */
     glowAmt += ((drone ? (droneSilent ? 0.3 : 1) : 0) - glowAmt) * 0.04;
     if (glowAmt > 0.01 && pulseOn) { drawPulseRing(cx, cy, R); }
@@ -2714,8 +3654,13 @@
       ctx.closePath();
       ctx.strokeStyle = s.color;
       var lit = (s.pop || 0) / POP;
-      ctx.globalAlpha = s.silent ? 0.22 + 0.5 * lit : 0.85 + 0.15 * lit;
-      ctx.lineWidth = 1.3 + 1.1 * lit; ctx.stroke();
+      /* a quieter shape is laid on thinner */
+      /* only the line fades, never the nodes; it stops well short of invisible, and a shape
+         under the finger comes back to full strength */
+      var vn = Math.min(1, s.vol / DEF_VOL), wv = vn + (1 - vn) * lit;
+      var loud = s.vol > DEF_VOL ? (s.vol - DEF_VOL) / (1 - DEF_VOL) : 0;
+      ctx.globalAlpha = s.silent ? 0.22 + 0.5 * lit : (0.85 + 0.15 * lit) * (0.48 + 0.52 * wv);
+      ctx.lineWidth = (1.3 + 1.1 * lit) * (0.62 + 0.38 * wv + 0.3 * loud); ctx.stroke();
       ctx.globalAlpha = 1;
       for (k = 0; k < s.n; k++) {
         if (s.own && s.skips.indexOf(k) !== -1) { drawSkipMark(vpos(s, k), s.color, s.silent); continue; }
@@ -2774,8 +3719,9 @@
       var a = -Math.PI / 2 + ph * Math.PI * 2;
       ctx.beginPath();
       ctx.moveTo(cx + 34 * Math.cos(a), cy + 34 * Math.sin(a));
-      ctx.lineTo(cx + (R + 10) * Math.cos(a), cy + (R + 10) * Math.sin(a));
-      ctx.strokeStyle = "rgba(245,239,228,0.5)"; ctx.lineWidth = 1; ctx.stroke();
+      var reach = DEMO.brass ? R * LIMB_OUT + 4 : R + 10;
+      ctx.lineTo(cx + reach * Math.cos(a), cy + reach * Math.sin(a));
+      ctx.strokeStyle = DEMO.brass ? "rgba(245,239,228,0.75)" : "rgba(245,239,228,0.5)"; ctx.lineWidth = 1; ctx.stroke();
     }
     requestAnimationFrame(draw);
   }
@@ -2869,23 +3815,55 @@
       drag = { mode: "oct", s: null, k: -1, moved: false, dist: 0, x0: x, y0: y, o0: droneOct };
       return true;
     }
+    if (rimModeHit(x, y)) {
+      rimModePress = { t: now_(), x: x, y: y, done: false };
+      drag = { mode: "ring", s: null, k: -1, moved: false, dist: 0 };
+      return true;
+    }
+    if (rimMarkHit(x, y)) {
+      rimSnap = (rimSnap + 1) % 3; rimSnapAll(); renderPanel();
+      drag = { mode: "ring", s: null, k: -1, moved: false, dist: 0 };
+      return true;
+    }
+    if (DEMO.brass && rimAwake() && rimLock && rimFieldAt(x, y) >= 0 && !nearPitchMarker(x, y) && !nearFreeDot(x, y)) {
+      var lv = nearOuterVertex(x, y), lnear = false;
+      if (lv) { var lp2 = vpos(lv.s, lv.k); lnear = Math.sqrt(Math.pow(x - lp2[0], 2) + Math.pow(y - lp2[1], 2)) < 11; }
+      if (!lnear) {
+        rimEnv = { rr0: distC(x, y), a0: angleAt(x, y), aLock: angleAt(x, y), e0: [rimEA, rimED], on: false, made: null,
+                   t: now_(), px: x, py: y };
+        drag = { mode: "ring", s: null, k: -1, moved: false, dist: 0 };
+        return true;
+      }
+    }
+    if (DEMO.brass && rimAwake() && !rimLock) {
+      var rf = rimFieldAt(x, y), rv = rf >= 0 ? nearOuterVertex(x, y) : null, rnear = false;
+      if (rv) { var rp = vpos(rv.s, rv.k); rnear = Math.sqrt(Math.pow(x - rp[0], 2) + Math.pow(y - rp[1], 2)) < 11; }
+      if (rf >= 0 && !rnear && !nearPitchMarker(x, y) && !nearFreeDot(x, y)) {
+        var heldAt = rimStudAt(x, y), heldNote = heldAt >= 0 ? rimNotes[heldAt] : null;
+        rimLast = null;
+        rimStrike(rf);
+        rimHold = rimNotes.length ? { t: now_(), x: x, y: y, note: heldNote, made: rimLast } : null;
+        drag = { mode: "ring", s: null, k: -1, moved: false, dist: 0 };
+        return true;
+      }
+    }
     /* a finger near a node means the node, unless it is right on the pitch dot or key marker. Between rings
        the reach stays tight (neighbours), but just OUTSIDE a node there is nothing else to touch but the arc,
        so there a finger's width (24 px) still counts */
     var vOut = nearOuterVertex(x, y);
     var nodeFirst = !!vOut && !nearFreeDot(x, y) && !nearPitchMarker(x, y);
-    if (!nodeFirst && onFreeArc(x, y)) {
+    if (!nodeFirst && onFreeArc(x, y) && (!DEMO.bead || nearFreeDot(x, y))) {
       var onDot = nearFreeDot(x, y);
       drag = { mode: "free", s: null, k: -1, moved: false, dist: 0, onDot: onDot,
-               wasOn: freeOn && drone, oct0: freeOct,
+               wasOn: freeOn, oct0: freeOct,
                r0: Math.sqrt(Math.pow(x - geo.cx, 2) + Math.pow(y - geo.cy, 2)) };
       if (!onDot) {
         freeCents = freeCentsAt(x, y); freeOn = true;
-        droneOn(); applyFreePitch(); applyFreeLevel();
+        engineSync(); applyFreePitch(); applyFreeLevel();
       }
       return true;
     }
-    if (!nodeFirst && onPitchArc(x, y)) {
+    if (!nodeFirst && onPitchArc(x, y) && (!DEMO.bead || nearPitchMarker(x, y))) {
       var onMk = nearPitchMarker(x, y);
       drag = { mode: "pitch", s: null, k: -1, moved: false, dist: 0, onMarker: onMk, wasOn: drone };
       if (!onMk) { setDroneKey(pitchKeyAt(x, y)); droneOn(); }
@@ -3005,6 +3983,23 @@
     pulseResume = true; pulseNext = -1;
   }
   function move(x, y) {
+    if (rimEnv) {
+      var edr = distC(x, y) - rimEnv.rr0, etg = Math.abs(wrapA(angleAt(x, y) - rimEnv.a0)) * Math.max(30, rimEnv.rr0);
+      rimEnv.px = x; rimEnv.py = y;
+      if (!rimEnv.on && (Math.abs(edr) >= 8 || etg >= 8)) {
+        rimEnv.on = true; rimEnv.rr0 = distC(x, y); rimEnv.aLock = angleAt(x, y); edr = 0; rimHold = null;
+        var emi = rimEnv.made ? rimNotes.indexOf(rimEnv.made) : -1;
+        if (emi >= 0) { rimNotes.splice(emi, 1); rimCountUi(); }
+        try { if (navigator.vibrate) { navigator.vibrate(8); } } catch (e) {}
+      }
+      if (rimEnv.on) {
+        rimED = clamp01(rimEnv.e0[1] + edr / ENV_SPAN);
+        rimEA = clamp01(rimEnv.e0[0] + wrapA(angleAt(x, y) - rimEnv.aLock) * Math.max(30, rimEnv.rr0) / ENV_SPAN);
+        return;
+      }
+    }
+    if (rimModePress && Math.sqrt(Math.pow(x - rimModePress.x, 2) + Math.pow(y - rimModePress.y, 2)) > 24) { rimModePress = null; }
+    if (rimHold && Math.sqrt(Math.pow(x - rimHold.x, 2) + Math.pow(y - rimHold.y, 2)) > 24) { rimHold = null; }
     if (!drag) { return; }
     if (drag.mode === "oct") { setOct(octFromSwipe(x, y)); return; }
     if (drag.mode === "ring") { return; }
@@ -3038,8 +4033,8 @@
       steps = steps > 0 ? Math.floor(steps) : Math.ceil(steps);
       setFreeOct(drag.oct0 + steps);
       freeCents = freeCentsAt(x, y);
-      droneOn();
-      if (!freeOn) { freeOn = true; applyFreeLevel(); }
+      if (!freeOn) { freeOn = true; }
+      engineSync(); applyFreeLevel();
       applyFreePitch();
       return;
     }
@@ -3096,6 +4091,9 @@
   }
   var LONG_PRESS = 480;
   function up() {
+    rimHold = null;
+    if (rimEnv) { var shaped = rimEnv.on; rimEnv = null; if (shaped) { renderPanel(); } }
+    if (rimModePress) { if (!rimModePress.done) { rimCycleMode(); } rimModePress = null; }
     if (drag && drag.lp) { clearTimeout(drag.lp); }
     if (drag && drag.mode === "pulse" && drag.ready && !drag.moved) {
       togglePulseSkip(drag.start);         /* held and let go without shaping: skip the packet, as before */
@@ -3110,8 +4108,9 @@
     }
     if (drag && drag.mode === "free" && !drag.moved && drag.onDot) {
       freeOn = !drag.wasOn;          /* a tap on the dot turns the voice on or off */
-      if (freeOn) { droneOn(); }
+      if (freeOn) { engineSync(); }
       applyFreeLevel();
+      if (!freeOn) { engineSync(); }
     }
     if (drag && drag.mode === "pitch" && !drag.moved && drag.onMarker) {
       if (drag.wasOn) { droneOff(); } else { droneOn(); }   /* the triangle is the drone's switch */
@@ -3147,7 +4146,10 @@
     }
     drag = null;
   }
+  var lastTouchAt = -1e9;
+  cv.addEventListener("contextmenu", function (e) { e.preventDefault(); }, false);
   cv.addEventListener("mousedown", function (e) {
+    if (now_() - lastTouchAt < 900) { return; }
     var p = local(e.clientX, e.clientY);
     if (down(p[0], p[1])) { e.preventDefault(); }
   }, false);
@@ -3158,6 +4160,7 @@
   }, false);
   window.addEventListener("mouseup", function () { if (drag) { up(); } }, false);
   cv.addEventListener("touchstart", function (e) {
+    lastTouchAt = now_();
     if (e.touches.length !== 1) { drag = null; return; }
     var t = e.touches[0], p = local(t.clientX, t.clientY);
     down(p[0], p[1]);
@@ -3170,6 +4173,7 @@
     move(p[0], p[1]);
   }, { passive: false });
   cv.addEventListener("touchend", function (e) {
+    lastTouchAt = now_();
     if (e.cancelable) { e.preventDefault(); }
     if (drag) { up(); }
   }, { passive: false });
@@ -3221,12 +4225,13 @@
     var idx = SHAPES.indexOf(def), ang = [], i;
     for (i = 0; i < def.n; i++) { ang.push(i / def.n); }
     var s = { n: def.n, name: def.name, inst: inst,
-              color: COLORS[idx % COLORS.length],
+              idx: idx, color: COLORS[idx % COLORS.length],
               ring: 1, ringT: 1, rot: 0, ang: ang, order: [], oi: 0,
-              silent: false, vol: 1, gain: null,
+              silent: false, vol: DEF_VOL, gain: null,
               mutes: mutes ? mutes.slice() : [], nk: 0, nt: 0,
               own: def.n, skips: [], ownN: -1, samAt: 0, ea: 0, ed: 0.5 };
     rebuildOrder(s);
+    s.color = shapeCol(s);
     return s;
   }
   /* phase of a vertex within the bar, 0..1 */
@@ -3283,7 +4288,7 @@
   function toggleShape(def) {
     if (def.n === 0) {
       drone = !drone; droneSilent = false;
-      if (!drone) { stopDrone(); } else if (playing) { audio(); startDrone(); }
+      engineSync();
       renderPanel(); return;
     }
     var found = -1, i;
@@ -3317,6 +4322,7 @@
   var HOLD_MS = 500;
   function shapeOf(n) { for (var i = 0; i < shapes.length; i++) { if (shapes[i].n === n) { return shapes[i]; } } return null; }
   function shapeTap(def) {
+    if (def.rim) { rimTap(); return; }
     if (def.n === 0) {
       if (!drone) { toggleShape(def); return; }
       droneSilent = !droneSilent; applyDroneLevel(); renderPanel(); return;
@@ -3326,6 +4332,7 @@
     s.silent = !s.silent; renderPanel();
   }
   function shapeHold(def) {
+    if (def.rim) { if (rimOn) { rimRemove(); } else { rimTap(); } try { if (navigator.vibrate) { navigator.vibrate(12); } } catch (e0) {} return; }
     toggleShape(def);   /* removes what is there, adds what is not */
     try { if (navigator.vibrate) { navigator.vibrate(12); } } catch (e) {}
   }
@@ -3367,6 +4374,15 @@
         rows[def.g].appendChild(b);
       })(SHAPES[i]);
     }
+    /* the rim: 60 steps to a turn, so it reads like the others */
+    var rb = document.createElement("button"), rsw = document.createElement("span");
+    rsw.className = "sw"; rsw.style.color = DRONE_COL;
+    rsw.innerHTML = "<svg viewBox=\"0 0 16 16\" aria-hidden=\"true\"><circle cx=\"8\" cy=\"8\" r=\"6.8\"/><circle cx=\"8\" cy=\"8\" r=\"4.3\"/></svg>";
+    rb.appendChild(rsw);
+    rb.appendChild(document.createTextNode("Th\u0101l\u012B"));
+    rb.setAttribute("data-n", "-1"); rb.setAttribute("data-col", DRONE_COL); rb.id = "rimBox";
+    bindPress(rb, RIM_DEF);
+    rows.inf.appendChild(rb);
   })();
   /* Volume track: continuous (no snapping), self-painting. Works for a
      shape or the drone identically via the getVol/setVol closures.
@@ -3413,9 +4429,44 @@
     }, { passive: true });
     paint(getVol());   /* initial paint — default volume may not be 0 */
   }
+  function renderLegend() {
+    var blk = document.getElementById("pigBlock"), box = document.getElementById("pigLegend");
+    if (!blk || !box) { return; }
+    blk.hidden = !DEMO.pig;
+    while (box.firstChild) { box.removeChild(box.firstChild); }
+    if (!DEMO.pig) { return; }
+    function chip(col, name, voice, on) {
+      var c = document.createElement("span"); c.className = "pig-chip" + (on ? " on" : "");
+      var d = document.createElement("i"); d.style.background = col;
+      var a = document.createElement("span"); a.className = "pn"; a.appendChild(document.createTextNode(name));
+      var b = document.createElement("span"); b.className = "pv"; b.appendChild(document.createTextNode(voice));
+      c.appendChild(d); c.appendChild(a); c.appendChild(b);
+      return c;
+    }
+    function fam(label, chips) {
+      var r = document.createElement("div"); r.className = "pig-fam";
+      var f = document.createElement("span"); f.className = "fam"; f.appendChild(document.createTextNode(label));
+      var w = document.createElement("span"); w.className = "pig-chips";
+      for (var q = 0; q < chips.length; q++) { w.appendChild(chips[q]); }
+      r.appendChild(f); r.appendChild(w); box.appendChild(r);
+    }
+    for (var i = 0; i < PIG_FAMS.length; i++) {
+      var list = [];
+      for (var j = 0; j < PIG_FAMS[i][1].length; j++) {
+        var k = PIG_FAMS[i][1][j], p = PIGMENTS[k], used = false;
+        for (var m = 0; m < shapes.length; m++) { if (shapes[m].inst === k) { used = true; } }
+        list.push(chip(p.col, p.name + " · " + p.en, k, used));
+      }
+      fam(PIG_FAMS[i][0], list);
+    }
+    fam("brass", [chip(DRONE_COL, "kāṃsa · the metal itself", "drone", drone)]);
+  }
   function renderPanel() {
+    rimUi();
+    for (var ci = 0; ci < shapes.length; ci++) { shapes[ci].color = shapeCol(shapes[ci]); }
+    renderLegend();
     while (layersEl.firstChild) { layersEl.removeChild(layersEl.firstChild); }
-    if (!shapes.length && !drone) {
+    if (!shapes.length && !drone && !(DEMO.brass && rimOn)) {
       var e0 = document.createElement("div");
       e0.className = "hint"; e0.style.padding = "0.3rem 0";
       e0.appendChild(document.createTextNode("Empty \u2014 add a shape above"));
@@ -3433,7 +4484,7 @@
       di.addEventListener("click", function (e) { e.preventDefault(); cycleDroneKey(); }, false);
       var dx = document.createElement("button"); dx.className = "rm rm-corner"; dr.className = "layer layer-drone";
       dx.appendChild(document.createTextNode("\u00D7"));
-      dx.addEventListener("click", function () { drone = false; droneSilent = false; stopDrone(); renderPanel(); }, false);
+      dx.addEventListener("click", function () { drone = false; droneSilent = false; engineSync(); renderPanel(); }, false);
       var dp = document.createElement("button"); dp.className = "inst";
       dp.appendChild(document.createTextNode(pulseOn ? "pulse \u00B7 " + PULSE_N : "hum"));
       dp.title = "Hum, or a pulse of 1 to 32 packets a bar \u2014 tap the dotted ring to switch packets";
@@ -3480,6 +4531,68 @@
       }, false);
       layersEl.appendChild(dr);
     }
+    if (DEMO.brass && rimOn) {
+      var rrow = document.createElement("div"); rrow.className = "layer" + (rimRest ? " off" : ""); rrow.id = "rimRow";
+      rrow.style.setProperty("--pig", DRONE_COL);
+      var rmain = document.createElement("div"); rmain.className = "layer-main";
+      var rdot = document.createElement("span"); rdot.className = "dot"; rdot.style.background = DRONE_COL;
+      var rnm = document.createElement("span"); rnm.className = "nm";
+      rnm.appendChild(document.createTextNode("Th\u0101l\u012B" + (rimNotes.length ? " · " + rimNotes.length + " kept" : "")));
+      var rsc = document.createElement("button"); rsc.className = "inst"; rsc.id = "rimScaleBtn";
+      rsc.appendChild(document.createTextNode(RIM_SCALES[rimScale].name));
+      rsc.title = "The th\u0101l\u012B's scale \u2014 tap to change";
+      rsc.addEventListener("click", function (e) { e.preventDefault(); rimScale = (rimScale + 1) % RIM_SCALES.length; renderPanel(); }, false);
+      var row2 = document.createElement("span"); row2.className = "own-wrap";
+      var rk = document.createElement("button"); rk.className = "inst rim-keep" + (rimKeep ? " on" : rimLock ? " locked" : ""); rk.id = "rimKeepBtn";
+      rk.setAttribute("aria-pressed", rimKeep ? "true" : "false");
+      rk.appendChild(document.createTextNode(rimLock ? "locked" : rimKeep ? (playing ? "keeping" : "keep · press play") : (rimPost && rimNotes.length ? "free · pattern held" : "free")));
+      rk.title = "Free: strikes sound and are not kept. Keeping: each strike is recorded and returns every turn. Locked: the kept melody plays on and touches do nothing.";
+      rk.addEventListener("click", function (e) { e.preventDefault(); rimCycleMode(); }, false);
+      row2.appendChild(rk);
+      var rqw = document.createElement("span"); rqw.className = "own-wrap";
+      var rq = document.createElement("button"); rq.className = "inst"; rq.id = "rimSnapBtn";
+      rq.appendChild(document.createTextNode("snap · " + (rimSnap ? rimGrid() : "off")));
+      rq.title = "Snap: pull each kept note onto the rhythm's grid. The first step is the count the dotted ring shows, the second is twice as fine.";
+      rq.addEventListener("click", function (e) { e.preventDefault(); rimSnap = (rimSnap + 1) % 3; rimSnapAll(); renderPanel(); }, false);
+      rqw.appendChild(rq);
+      var rmw = document.createElement("span"); rmw.className = "own-wrap";
+      var rmb = document.createElement("button"); rmb.className = "inst"; rmb.id = "rimOwnBtn";
+      rmb.appendChild(document.createTextNode("mātrā · " + rimOwn));
+      rmb.title = "mātrā: how many beats fill one turn · each sixteenth of the plate takes one mātrā · ◦ marks its home count";
+      rmb.addEventListener("click", function (e) {
+        e.preventDefault();
+        toggleChooser(rmb, rimOwn, function (v) { return "mātrā · " + v + (v === RIM_HOME ? "  ◦" : ""); },
+          function (v) { rimSetOwn(v); }, COUNT_VALUES);
+      }, false);
+      var rmd = document.createElement("button"); rmd.className = "nudge"; rmd.id = "rimOwnDown";
+      rmd.appendChild(document.createTextNode("▾")); rmd.title = "fewer mātrās to a turn";
+      rmd.addEventListener("click", function (e) { e.preventDefault(); rimSetOwn(rimOwn - 1); }, false);
+      var rmu = document.createElement("button"); rmu.className = "nudge"; rmu.id = "rimOwnUp";
+      rmu.appendChild(document.createTextNode("▴")); rmu.title = "more mātrās to a turn";
+      rmu.addEventListener("click", function (e) { e.preventDefault(); rimSetOwn(rimOwn + 1); }, false);
+      rmw.appendChild(rmu); rmw.appendChild(rmb); rmw.appendChild(rmd);
+      var rgap = document.createElement("span"); rgap.className = "gap";
+      var rvi = document.createElement("span"); rvi.className = "vol-inline";
+      var rvl = document.createElement("span"); rvl.className = "ctrl-label"; rvl.appendChild(document.createTextNode("VOL"));
+      var rvt = document.createElement("span"); rvt.className = "vtrack";
+      var rvk = document.createElement("span"); rvk.className = "vknob"; rvk.style.background = DRONE_COL; rvt.appendChild(rvk);
+      var rvp = document.createElement("span"); rvp.className = "vpct";
+      rvp.appendChild(document.createTextNode(Math.round(rimVol * 100) + "%"));
+      rvi.appendChild(rvl); rvi.appendChild(rvt); rvi.appendChild(rvp);
+      bindVolTrack(rvt, rvk, rvp, function () { return rimVol; }, function (v) { rimSetVol(v); });
+      var rrm = document.createElement("button"); rrm.className = "rm"; rrm.appendChild(document.createTextNode("×"));
+      rrm.addEventListener("click", function (e) { e.preventDefault(); rimRemove(); }, false);
+      rmain.appendChild(rdot); rmain.appendChild(rnm); row2.style.display = "none"; rqw.style.display = "none";
+      rmain.appendChild(row2); rmain.appendChild(rqw); rmain.appendChild(rmw);
+      rmain.appendChild(rgap); rmain.appendChild(rvi); rmain.appendChild(rrm);
+      rrow.appendChild(rmain);
+      rrow.style.cursor = "pointer";
+      rrow.addEventListener("click", function (e) {
+        if (rsc.contains(e.target) || row2.contains(e.target) || rqw.contains(e.target) || rmw.contains(e.target) || rvi.contains(e.target) || rrm.contains(e.target)) { return; }
+        rimRest = !rimRest; renderPanel();
+      }, false);
+      layersEl.appendChild(rrow);
+    }
     for (var i = 0; i < shapes.length; i++) {
       (function (s) {
         var row = document.createElement("div"); row.className = "layer"; row.style.setProperty("--pig", s.color);
@@ -3495,6 +4608,11 @@
         nm.appendChild(document.createTextNode(label));
         var ib = document.createElement("button"); ib.className = "inst";
         ib.appendChild(document.createTextNode(s.inst));
+        if (DEMO.pig && PIGMENTS[s.inst]) {
+          var pn = document.createElement("span"); pn.className = "pig-nm";
+          pn.appendChild(document.createTextNode(PIGMENTS[s.inst].name + WASH_NAMES[washRank(s) % 4]));
+          ib.appendChild(pn);
+        }
         ib.addEventListener("click", function (e) {
           e.preventDefault();
           s.inst = INSTS[(INSTS.indexOf(s.inst) + 1) % INSTS.length];
@@ -3572,13 +4690,19 @@
       if (n === 0) { on = drone; }
       else { for (var q = 0; q < shapes.length; q++) { if (shapes[q].n === n) { on = true; break; } } }
       var sil = n === 0 ? (drone && droneSilent) : !!(shapeOf(n) && shapeOf(n).silent);
+      if (n === -1) { on = DEMO.brass && rimOn; sil = on && rimRest; btns[b].hidden = !DEMO.brass; }
       btns[b].className = on ? ("row-on on" + (sil ? " muted" : "")) : "";
-      btns[b].style.borderColor = on ? btns[b].getAttribute("data-col") : "rgba(110,88,48,0.9)";
-      btns[b].style.color = on ? btns[b].getAttribute("data-col") : "";
+      var bcol = btns[b].getAttribute("data-col");
+      if (DEMO.pig && n !== 0 && shapeOf(n)) { bcol = shapeOf(n).color; }
+      var bsw = btns[b].querySelector(".sw");
+      /* a shape with no voice yet has no pigment: its plaque rests in dark brass */
+      if (bsw) { bsw.style.color = (DEMO.pig && n !== 0 && !on) ? "#8c6638" : bcol; }
+      btns[b].style.borderColor = on ? bcol : "rgba(110,88,48,0.9)";
+      btns[b].style.color = on ? bcol : "";
       btns[b].style.background = on ? "rgba(245,239,228,0.05)" : "#17140f";
     }
     var tip = document.getElementById("shapeTip");
-    if (tip) { tip.hidden = !(shapes.length || drone); }
+    if (tip) { tip.hidden = !(shapes.length || drone || rimOn); }
   }
   /* ---------- transport ---------- */
   function syncBtn() {
@@ -3597,14 +4721,15 @@
       var begin = function () {
         playing = true;
         hushSoundEmbeds();
+        rimWarm();
         /* sam is 25 ms out (was 60) and handed to the audio engine at once, not on the next 16 ms tick; the slow
            one-off work (building the drone, which fades in over 2 s anyway) comes after, so it cannot delay it */
-        if (!shapes.length && !drone) { toggleShape(defByN(0)); }   /* an empty yantra wakes the drone */
+        if (!shapes.length && !drone && !freeOn) { toggleShape(defByN(0)); }   /* an empty yantra wakes the drone */
         t0 = ac.currentTime + 0.025; pulseNext = -1;
         for (var i = 0; i < shapes.length; i++) { align(shapes[i]); }
         schedule();
         timer = setInterval(schedule, 16);
-        if (drone) { startDrone(); pulseNext = -1; schedule(); }   /* the pulse gate needs the drone: queue it now */
+        if (drone || freeOn) { engineSync(); pulseNext = -1; schedule(); }   /* the pulse gate needs the drone: queue it now */
         holdWake();
         syncBtn(); renderPanel();
       };
@@ -4048,6 +5173,7 @@
   /* An empty yantra: no shapes, drone asleep, free voice off, hum.
      Tempo, key and saptak stay as they were. */
   function resetScene() {
+    rimNotes = []; rimGlow = []; rimOn = false; rimRest = false; rimKeep = false; rimLock = false; rimPost = false; rimOwn = RIM_HOME; rimSnap = 0; rimEA = 0; rimED = 0.5;
     for (var i = 0; i < shapes.length; i++) { if (shapes[i].gain) { shapes[i].gain.disconnect(); } }
     shapes = []; drone = false; droneSilent = false; stopDrone(); freeOn = false; freeOct = 1;
     droneEA = 0.5; droneER = 0.5; freePulse = false;
@@ -4077,10 +5203,68 @@
     recomputeRings();
     for (var i = 0; i < shapes.length; i++) { shapes[i].ring = shapes[i].ringT; }
   })();
+  (function demoSwitches() {
+    function wire(id, key, cls) {
+      var b = document.getElementById(id);
+      if (!b) { return; }
+      b.addEventListener("click", function () {
+        DEMO[key] = !DEMO[key];
+        b.setAttribute("aria-pressed", DEMO[key] ? "true" : "false");
+        if (cls) { document.body.classList.toggle(cls, DEMO[key]); }
+        renderPanel();
+      }, false);
+    }
+    document.body.classList.add("demo-brass");
+    wire("demoBrass", "brass", "demo-brass");
+    wire("demoPig", "pig", "");
+    function press(id, fn) { var b = document.getElementById(id); if (b) { b.addEventListener("click", fn, false); } }
+    press("rimScale", function () { rimScale = (rimScale + 1) % RIM_SCALES.length; rimUi(); });
+    press("rimUndo", function () { rimNotes.pop(); rimUi(); });
+    press("rimClear", function () { rimNotes = []; rimUi(); });
+    press("rimLocked", function () { rimMode = 0; rimUi(); });
+    press("rimFree", function () { rimMode = 1; rimUi(); });
+    press("rimKeep", function () { rimMode = 2; rimUi(); });
+    wire("demoBead", "bead", "");
+    wire("demoDrums", "drums", "");
+    document.body.classList.add("demo-room");
+    var roomBtn = document.getElementById("demoRoom");
+    if (roomBtn) {
+      roomBtn.addEventListener("click", function () {
+        DEMO.room = !DEMO.room; applyRoom();
+        roomBtn.setAttribute("aria-pressed", DEMO.room ? "true" : "false");
+        document.body.classList.toggle("demo-room", DEMO.room);
+        fit();
+      }, false);
+    }
+    rimUi();
+  })();
   /* ---------- undo ---------- */
+  /* the rim's scale and strikes ride along with each undo step */
+  function rimEncode() {
+    var o = [], i;
+    for (i = 0; i < rimNotes.length; i++) { o.push(rimNotes[i].step + "." + rimNotes[i].field); }
+    return rimScale + ":" + o.join(",") + ":" + (rimOn ? 1 : 0) + (rimRest ? 1 : 0) + (rimKeep ? 1 : 0) + (rimLock ? 1 : 0) + (rimPost ? 1 : 0) + ":" + rimOwn + ":" + rimSnap + ":" + Math.round(rimEA * 100) + "." + Math.round(rimED * 100);
+  }
+  function rimDecode(str) {
+    var p = String(str || "0:").split(":"), list = p[1] ? p[1].split(",") : [], i;
+    rimScale = Math.max(0, Math.min(RIM_SCALES.length - 1, parseInt(p[0], 10) || 0));
+    rimNotes = [];
+    for (i = 0; i < list.length; i++) {
+      var q = list[i].split("."), st = parseInt(q[0], 10), f = parseInt(q[1], 10);
+      if (st >= 0 && st < RIM_RES && f >= 0 && f < RIM_N) { rimNotes.push({ step: st, field: f, hold: 0 }); }
+    }
+    var fl = p[2] || "000";
+    rimOn = fl.charAt(0) === "1"; rimRest = fl.charAt(1) === "1"; rimKeep = fl.charAt(2) === "1"; rimLock = fl.charAt(3) === "1"; rimPost = fl.charAt(4) === "1";
+    rimOwn = Math.max(1, Math.min(32, parseInt(p[3], 10) || RIM_HOME));
+    rimSnap = Math.max(0, Math.min(2, parseInt(p[4], 10) || 0));
+    var pe5 = String(p[5] || "0.50").split(".");
+    rimEA = Math.max(0, Math.min(1, (parseInt(pe5[0], 10) || 0) / 100));
+    rimED = Math.max(0, Math.min(1, (isNaN(parseInt(pe5[1], 10)) ? 50 : parseInt(pe5[1], 10)) / 100));
+  }
+  function undoCode() { return encodeState(captureState()) + "\u0001" + rimEncode(); }
   function undoNote() {
     if (drag || undoLast === null) { return; }
-    var code = encodeState(captureState());
+    var code = undoCode();
     if (code === undoLast) { return; }
     undoStack.push(undoLast);
     if (undoStack.length > UNDO_MAX) { undoStack.shift(); }
@@ -4095,7 +5279,9 @@
     if (live) { ph = (ac.currentTime - t0) / T; ph -= Math.floor(ph); }
     for (var i = 0; i < shapes.length; i++) { if (shapes[i].gain) { shapes[i].gain.disconnect(); } }
     closeChooser();
-    applyState(decodeState(code));
+    var uparts = code.split("\u0001");
+    rimDecode(uparts[1]);
+    applyState(decodeState(uparts[0]));
     if (live) {
       if (T !== oldT) { t0 = ac.currentTime - ph * T; }
       for (var j = 0; j < shapes.length; j++) { align(shapes[j]); }
@@ -4105,13 +5291,13 @@
       droneNodes.gate.gain.cancelScheduledValues(ac.currentTime);
       droneNodes.gate.gain.setTargetAtTime(pulseOn ? 0 : 1, ac.currentTime, 0.01);
     }
-    if (!drone) { stopDrone(); } else if (playing) { audio(); startDrone(); }
+    engineSync();
     retuneDrone(); applyFreePitch(0.07); applyFreeLevel(); applyFreeReverb(); applyDroneLevel(); applyDroneRoom();
     applyFreeGate();
     renderPanel();
-    undoLast = encodeState(captureState());
+    undoLast = undoCode();
   }
-  undoLast = encodeState(captureState());
+  undoLast = undoCode();
   (function () {
     var ends = ["pointerup", "pointercancel", "touchend", "mouseup", "click", "change", "keyup"];
     function later() { setTimeout(undoNote, 0); }
@@ -4624,7 +5810,7 @@
     }
     if (!best) { return null; }
     var seg = { n: best.n, instIdx: INSTS.indexOf(line.inst), rot: 0, mutes: [], ang: null, silent: 0,
-                vol: Math.round(line.vol * 1000), own: 0, skips: [] }, i;
+                vol: Math.round(line.vol * 0.6 * 1000), own: 0, skips: [] }, i;
     var hitSet = {};
     for (i = 0; i < k; i++) { hitSet[Math.round(line.pos[i] * 1e6)] = 1; }
     if (best.even) {
@@ -4663,7 +5849,7 @@
       var cr = b.cross[i], n = cr.corners.length, hits = 0;
       if (n < 3 || n > 16 || used[n]) { continue; }
       var cseg = { n: n, instIdx: INSTS.indexOf(cr.inst), rot: 0, mutes: [], ang: null, silent: 0,
-                   vol: Math.round(cr.vol * 1000), own: cr.own === n ? 0 : cr.own, skips: [] };
+                   vol: Math.round(cr.vol * 0.6 * 1000), own: cr.own === n ? 0 : cr.own, skips: [] };
       for (j = 0; j < n; j++) { if (cr.corners.charAt(j) === 'x') { hits++; } else { cseg.mutes.push(j); } }
       used[n] = true;
       crossShapes.push(cseg);
@@ -4913,6 +6099,165 @@
   }
 
   try { build(); } catch (e) { if (window.console) console.error('rhythm-drawer:', e); }
+})();
+</script>
+<script>
+/* ===== demo: three alternative grounds =====
+   Star positions and magnitudes: the d3-celestial catalogue (Olaf Frohn, BSD 3-Clause), from Hipparcos data,
+   cut to magnitude 5.2 and packed as [RA*50, (Dec+90)*50, (mag+2)*10, (B-V+0.4)*10]. */
+(function () {
+  "use strict";
+  var S = [5064,3664,6,4,4799,1865,14,6,10696,5459,20,16,10995,1458,20,11,13962,6439,20,4,3959,6800,21,12,3932,4090,22,4,5741,4761,24,8,1221,1638,24,2,4440,4870,24,19,10548,1481,26,2,14885,4943,28,6,9332,1345,28,2,3449,5325,29,19,10065,3942,30,2,12368,3178,31,23,5816,5901,32,14,17221,3019,32,5,9597,1516,32,2,15518,6764,32,5,10995,1458,34,13,7605,5098,34,3,5233,3051,35,2,5682,6094,36,4,9390,1644,36,20,13170,2645,36,2,4064,4817,36,2,4079,5930,36,3,6915,1014,37,5,4203,4440,37,2,16603,2152,37,3,4259,4403,37,2,6119,2133,38,3,9675,7298,38,4,2554,6993,38,9,13802,2781,38,4,8297,7588,38,15,5355,3180,38,11,10344,6966,38,3,6281,1525,39,16,13216,2350,39,8,4494,6747,39,5,12608,1049,39,18,4971,5320,39,4,6559,1765,39,4,15321,1663,39,3,1898,8963,40,10,4784,3602,40,2,7095,4067,40,18,1590,5673,40,16,7750,5492,40,15,545,3601,40,14,14191,3185,40,3,10584,2682,41,14,105,5955,41,4,872,6281,41,20,4347,4017,41,2,11134,8208,41,19,17033,2156,41,20,13187,5128,41,6,2352,6548,41,4,1549,6616,41,18,8863,5229,41,5,709,7536,42,4,9519,2052,42,4,6045,2500,42,1,6964,1536,42,6,11684,5836,42,4,6850,2328,42,21,10049,7246,42,5,15278,6513,42,11,506,7327,42,16,13458,7074,42,19,4150,4485,42,2,115,7457,43,8,10249,1827,43,2,12004,3369,43,3,12627,2785,43,15,11024,2131,43,2,10944,2392,43,2,8273,7319,43,4,11062,5854,44,14,16302,4994,44,19,13281,2548,44,2,329,2385,44,15,8923,7185,44,4,12880,3714,44,5,17297,5904,44,21,5551,3035,44,3,15982,7629,44,7,7026,1749,45,3,15578,6199,45,14,17310,5260,45,4,2278,4704,45,20,12464,3972,45,4,10444,2136,46,2,8426,5526,46,5,12068,3510,46,3,4159,3609,46,6,9104,1964,46,3,9198,3623,46,3,14283,3006,46,5,11463,4031,46,3,11803,4821,46,16,1433,5540,46,6,4246,2796,46,3,4497,6361,46,3,9430,3330,46,13,1073,7512,47,6,10434,5420,47,10,11232,2343,47,2,3712,6158,47,19,8085,2029,47,13,9465,1043,47,2,13135,2635,47,2,5464,2645,47,20,13762,3009,47,18,14828,5031,47,19,12179,4315,47,20,12300,7576,47,13,8037,1280,47,2,9521,4428,47,8,4193,4205,48,2,10007,2664,48,5,11136,3698,48,5,13293,4728,48,16,3848,4246,48,6,12378,5574,48,13,12933,5220,48,16,9189,1563,48,2,13130,7115,48,14,11689,2442,48,2,4103,3462,48,12,12516,6080,48,10,322,637,48,10,12449,3089,48,2,13850,3229,48,14,165,5259,48,2,6094,3285,48,9,11939,1328,48,7,2927,6094,48,7,13066,1724,48,19,13148,2006,48,3,2844,5705,48,3,9777,5048,48,13,16338,3694,48,6,1485,1422,49,7,14812,6757,49,4,4787,5626,49,20,11486,1066,49,4,16731,1487,49,18,2228,2485,49,5,14372,3449,49,8,5589,4914,49,3,9700,6416,49,3,11986,3194,49,2,2973,6501,49,2,12265,3220,49,7,16144,4221,49,12,2310,7175,49,11,7339,1246,49,7,17038,6011,49,13,5124,1969,49,16,9373,3674,49,4,16572,4484,50,14,2975,3825,50,20,4221,5557,50,3,7323,5689,50,12,13573,2979,50,14,9987,3341,50,13,13345,2494,50,9,14318,5193,50,4,1619,6249,50,5,8371,6725,50,15,11509,8092,50,5,12648,2598,50,2,16424,2632,50,3,2787,6889,50,3,4754,2997,50,2,5288,3308,50,3,9127,3369,50,17,3775,6691,50,9,9578,1095,50,2,10901,6415,50,6,14634,5898,50,15,15263,3761,50,12,5049,5757,51,18,7779,6575,51,20,14407,7883,51,14,13720,2662,51,20,6692,4797,51,14,8120,3690,51,16,8697,1349,51,4,15470,2135,51,14,4387,2712,51,15,6740,6902,51,6,12733,1700,51,20,12938,5742,51,5,11240,2395,51,2,7013,6220,51,20,7140,1648,52,19,12938,6340,52,18,4972,2340,52,3,7161,7084,52,9,12860,7786,52,3,14071,3150,52,3,3831,6562,52,3,11031,1251,52,7,3623,4848,52,9,3818,3381,52,19,12721,4969,52,16,13373,2648,52,16,15912,6011,52,14,17742,8382,52,14,11517,2468,52,2,12229,4265,52,14,13766,4355,52,13,16108,8028,52,2,5102,1403,52,6,15141,4459,52,3,5615,2335,52,19,10580,3166,52,15,11301,3236,52,21,14237,6134,52,4,2840,788,53,20,492,6043,53,17,13025,3250,53,2,17183,3709,53,5,3912,3690,53,3,7672,998,53,3,11562,7448,53,16,3425,1748,53,3,7900,1416,53,3,4686,5625,53,20,13067,1681,53,2,826,2164,53,13,2315,6442,53,19,9193,7352,53,5,12902,2338,53,8,13488,4011,53,14,14337,3116,53,16,3180,1376,53,13,8428,5271,53,4,5866,3257,53,16,1430,7684,54,2,4056,4380,54,2,5066,5145,54,8,6378,7536,54,13,14569,4656,54,7,11534,2266,54,2,6585,4821,54,11,10184,4470,54,5,4189,4997,54,2,7714,1433,54,19,9695,4670,54,20,16636,7410,54,20,3358,5294,54,6,1105,2334,54,19,3009,5125,54,3,10369,2416,54,2,11404,1895,54,13,15566,7592,54,13,17018,5042,54,3,1414,5979,54,9,12002,2580,54,2,13331,5886,54,12,15562,1190,54,6,6887,1552,54,2,7709,5671,54,7,14328,4256,54,3,7714,6646,54,4,614,7391,55,10,857,3991,55,16,5960,1851,55,2,11444,6166,55,14,2041,4662,55,5,10370,2376,55,2,7592,5338,55,4,12536,6446,55,13,1301,3703,55,11,5271,3103,55,21,8481,6155,55,18,11274,6520,55,14,13837,2202,55,2,17107,1934,55,5,5123,2875,55,3,5502,5599,55,8,17121,7810,55,15,14984,5475,55,20,17125,5730,55,13,2791,4012,55,13,7264,4995,55,9,7461,1772,55,3,14126,6168,55,4,14222,3445,55,16,16627,4810,55,5,3358,5459,55,14,6206,4959,55,19,8663,2907,55,13,11870,4328,55,4,13220,3730,55,7,3224,2810,56,3,4337,3759,56,5,10743,2197,56,2,13763,8137,56,9,15109,1191,56,12,243,4059,56,16,1706,1924,56,3,8492,3761,56,15,12654,2599,56,2,5806,5720,56,13,6795,6858,56,4,10898,6019,56,17,11523,2687,56,19,5476,5327,56,5,15226,3873,56,13,1225,6931,56,17,3970,4158,56,3,4306,3378,56,9,8884,4588,56,9,9267,1480,56,18,1050,4091,56,15,5160,6198,56,5,6504,1854,56,2,7134,2477,56,8,11713,3093,56,18,13139,1466,56,3,2125,5863,56,3,2560,4951,56,13,7632,3882,56,14,9778,923,56,16,13322,1264,56,16,1144,5267,56,14,2865,5703,56,3,5816,2602,56,21,12682,2382,56,18,17274,6616,56,3,8820,1164,56,6,15469,5230,56,8,3247,5281,56,14,7144,7653,56,8,11827,5271,56,5,13583,1995,56,3,16860,4499,56,8,11598,5955,57,7,11733,3011,57,2,10555,7719,57,4,15685,1577,57,16,3640,4780,57,2,6545,2841,57,2,14842,5427,57,17,17368,3441,57,16,462,7195,57,2,1449,1920,57,12,3781,6554,57,16,7316,1375,57,14,8826,6889,57,16,16251,3667,57,7,2494,3412,57,20,13472,5962,57,13,17465,4664,57,13,3678,4622,57,2,4455,3792,57,7,5903,2471,57,14,11885,4724,57,5,13592,4978,57,6,14941,4820,57,13,2662,4027,57,13,2811,5706,57,3,4494,7214,57,14,15812,6696,57,20,2590,4987,57,3,11078,4595,57,4,13419,7344,57,16,16268,630,57,14,17158,4121,57,20,1393,3983,57,15,12274,5458,57,7,15935,6402,57,8,6802,2145,58,16,13349,4635,58,4,4170,1376,58,10,4392,3456,58,14,4860,4148,58,3,14309,3413,58,14,14621,7086,58,5,16891,7014,58,4,2134,7295,58,21,2815,6629,58,8,3287,5377,58,14,4234,4370,58,2,6322,1193,58,15,6508,2168,58,11,12622,1548,58,20,15495,5296,58,3,16083,3379,58,14,16588,5767,58,8,5359,975,58,14,5572,5890,58,14,7387,7452,58,7,8169,1557,58,13,11014,5186,58,4,15596,4025,58,4,2369,6743,58,14,8166,6211,58,14,8477,6077,58,10,2401,3051,58,9,5735,3160,58,2,11685,5027,58,7,14464,7168,58,14,15170,6837,58,17,3444,2972,58,14,7848,1563,58,7,11784,5815,58,4,17720,6823,58,14,1526,4638,58,4,6986,6340,58,5,8643,7967,58,20,12386,4599,58,4,13243,6800,58,2,7826,3658,58,19,10478,2395,58,2,11098,548,58,18,2802,1260,58,15,2804,6114,58,4,3357,5298,58,14,6688,1468,58,3,7910,4965,58,3,7966,2089,58,7,9406,893,58,2,13594,5938,58,4,13672,3447,58,6,14852,8013,58,13,3175,2385,58,15,4341,1947,58,6,4776,2828,58,13,7684,2394,58,5,9419,7989,58,3,9471,2073,58,4,11956,5283,58,9,13796,5588,58,16,13940,4088,58,17,709,6425,59,5,3477,3785,59,15,4140,2726,59,15,12193,1316,59,15,12418,555,59,13,13453,6363,59,18,16771,4431,59,3,2823,5718,59,3,6575,2198,59,4,10483,2260,59,2,11038,4217,59,8,11961,3039,59,2,14906,4550,59,10,118,2213,59,14,1419,5465,59,4,7410,5800,59,16,11399,2063,59,4,17379,2238,59,14,2205,4055,59,15,5177,3291,59,21,6930,4616,59,3,9249,4467,59,4,14954,6254,59,14,7248,4443,59,17,8513,1775,59,2,10138,2530,59,16,3039,4799,59,4,6321,4305,59,4,9350,1988,59,2,11314,2147,59,3,11694,3761,59,14,12247,6816,59,2,12754,6046,59,4,14521,3608,59,6,15948,4762,59,9,328,2316,59,6,1141,2046,59,14,2178,7138,59,12,3454,4332,59,2,5773,870,59,14,8357,1551,59,16,12085,3467,59,4,13508,4647,59,4,855,1738,59,3,5766,4022,59,14,5798,3052,59,6,6559,5408,59,15,15715,6558,59,4,1543,8121,60,4,4959,3537,60,14,3108,6886,60,4,4489,2359,60,15,6758,6589,60,9,6891,1384,60,2,14533,2277,60,3,14549,2469,60,3,15193,6886,60,19,17537,3495,60,15,3300,2799,60,19,4394,6457,60,15,5460,1102,60,12,6501,2735,60,13,9146,1882,60,2,11887,2819,60,4,15007,854,60,4,16866,2325,60,14,17082,5678,60,15,2987,6290,60,4,16175,6780,60,13,1500,3446,60,20,4686,4186,60,17,7805,798,60,8,10065,7249,60,6,17468,1588,60,8,6781,1180,60,5,8549,5026,60,8,12150,3527,60,5,1296,7034,60,3,3569,4337,60,3,5301,5529,60,13,5435,3161,60,2,11024,2610,60,2,12024,7428,60,9,12248,1992,60,15,14038,929,60,15,15367,6018,60,8,6632,3115,60,17,9105,3264,60,7,14245,5253,60,15,14271,4213,60,15,1716,6192,60,4,3793,7522,60,13,6584,5938,60,14,9682,1641,60,2,13568,4625,60,13,15415,5065,60,3,17991,4843,60,8,3148,4158,60,7,8823,4826,60,19,10815,7093,60,9,16942,4494,60,3,2363,6981,60,10,6232,654,60,8,6555,2368,60,13,8514,4801,60,3,10368,5290,60,19,10757,2606,60,4,10974,2029,60,2,17120,3820,60,20,3705,5176,61,16,5699,5845,61,19,8561,3616,61,6,9220,1102,61,20,9230,1300,61,2,11046,2741,61,18,12745,1842,61,19,10700,4200,61,9,11361,2236,61,2,11469,1560,61,5,16865,7421,61,12,592,5713,61,15,1772,1067,61,4,1994,4516,61,2,2280,3319,61,6,5177,3898,61,18,7181,1539,61,4,8247,3585,61,15,14192,6697,61,18,15824,3638,61,4,16026,5490,61,15,4211,4965,61,14,11859,5407,61,20,1210,6570,61,9,2052,6961,61,9,5865,2181,61,2,13860,2046,61,14,14375,2533,61,16,2008,2507,61,14,5297,3718,61,3,6471,2351,61,5,7393,3758,61,13,7943,570,61,20,8831,1441,61,13,11709,1184,61,16,14368,2605,61,4,17261,1862,61,14,1995,1087,61,3,3186,6920,61,13,4530,4982,61,6,9065,4937,61,14,14941,2407,61,15,15648,3154,61,20,16872,2313,61,20,4049,4110,61,13,4862,5511,61,3,11923,3664,61,14,15576,3236,61,8,17076,431,61,6,17749,4781,61,9,2636,5147,61,15,2829,5697,61,3,6471,4785,61,4,9086,1269,61,8,11662,6068,61,3,11970,5844,61,16,16308,5782,61,8,16700,6387,61,18,5398,4475,62,4,13046,6357,62,4,17755,6717,62,3,4552,5663,62,12,5614,6089,62,7,12055,3931,62,9,13080,3291,62,7,412,7647,62,5,2868,2690,62,13,16710,4111,62,14,10661,3986,62,17,10705,6804,62,5,12455,2737,62,19,16688,7352,62,7,17008,3148,62,3,10368,2777,62,19,14071,5527,62,9,4135,4797,62,3,5961,3356,62,11,7849,6335,62,13,12426,6622,62,4,17084,5109,62,9,17199,2873,62,14,2613,7497,62,8,3317,5615,62,5,12575,8602,62,13,15370,7650,62,6,16081,1232,62,9,2132,6416,62,7,2836,3338,62,8,5916,2095,62,3,12082,2660,62,2,12338,3577,62,6,13759,8067,62,3,14090,4263,62,15,14153,1391,62,2,14181,6345,62,20,15571,6036,62,15,15968,6470,62,5,17429,4198,62,19,251,1256,62,10,5791,5944,62,15,9898,5894,62,10,10321,2848,62,8,10521,4577,62,5,12110,6747,62,4,12538,624,62,15,14330,2647,62,9,16294,7439,62,25,16335,6965,62,3,859,8813,62,16,1837,2115,62,3,2052,3807,62,3,9229,534,62,3,9422,6568,62,10,12392,2765,62,2,13268,3856,62,5,17449,4046,62,15,947,1056,62,9,3082,7018,62,4,3446,5008,62,6,3459,6563,62,16,3864,4062,62,2,6285,6659,62,20,9668,2491,62,6,10844,8285,62,18,16318,7556,62,9,869,6862,63,4,1317,4958,63,13,2499,2347,63,11,2672,3418,63,3,3200,1926,63,7,3676,7817,63,4,6731,5093,63,5,13207,2568,63,15,13519,5580,63,8,16547,7731,63,8,787,4895,63,14,2062,5006,63,7,3194,4945,63,3,3477,5126,63,5,3528,5648,63,3,9836,2005,63,2,11482,2106,63,3,14540,2260,63,8,15583,5306,63,14,17600,4819,63,15,3329,5641,63,7,7214,8566,63,19,7839,2947,63,18,13092,3007,63,8,15167,7328,63,5,16028,3658,63,13,16625,6159,63,9,17336,2324,63,8,2711,4520,63,10,3995,3841,63,2,7991,1720,63,14,8911,2805,63,3,11801,8390,63,4,12389,3669,63,13,16580,3807,63,3,16894,2883,63,4,17727,6663,63,3,733,3032,63,2,1852,4923,63,3,2815,5723,63,3,2857,2619,63,4,3319,5396,63,4,4499,6797,63,21,6540,4670,63,2,8195,5737,63,4,8712,4459,63,14,8871,1311,63,3,9401,3690,63,8,10754,1681,63,5,15221,3875,63,13,6508,1512,63,3,10837,317,63,17,11556,6369,63,7,12093,3457,63,12,15479,4445,63,13,2706,6910,63,3,3506,3516,63,20,4153,5430,63,25,4692,5975,63,14,6580,3823,63,13,7147,5648,63,19,9038,1334,63,7,9875,5376,63,9,10398,2850,63,3,11145,2321,63,2,13010,3858,63,4,5602,4946,63,18,9664,2053,63,17,10827,2231,63,8,12942,3170,63,13,13607,1317,63,6,13748,6303,63,16,461,6186,63,3,482,5966,63,13,889,7257,63,6,4310,1213,63,6,4898,3329,63,2,6258,626,63,16,6953,1623,63,20,7210,2032,63,6,10522,2220,63,10,11726,2372,63,18,13081,4707,63,19,14060,6380,63,6,14088,5409,63,5,16306,5368,63,16,16869,6885,63,21,2395,5486,64,14,3633,4945,64,4,4937,1851,64,4,5216,7421,64,12,6099,1069,64,3,6605,4792,64,4,9337,5913,64,15,11473,2993,64,15,13153,8829,64,4,13790,1425,64,19,14455,6407,64,17,16312,2849,64,3,394,1352,64,3,542,1627,64,4,1662,4942,64,13,2632,6900,64,18,3059,5604,64,15,3661,4227,64,7,3915,3853,64,3,4469,2736,64,2,5202,3647,64,3,6107,4351,64,14,10576,2441,64,2,14709,4436,64,3,25,4199,64,20,4707,2743,64,14,5484,3252,64,3,8252,2389,64,5,13609,5541,64,2,14997,2736,64,2,9874,4223,64,4,15111,8386,64,4,17576,3468,64,19,17662,2609,64,3,1421,2185,64,20,2869,7776,64,23,4185,4974,64,2,4430,5514,64,10,4797,4730,64,6,6028,4617,64,17,7599,5000,64,18,11286,4605,64,14,12675,5008,64,3,13013,3444,64,8,14751,5401,64,12,14763,5374,64,14,15998,1828,64,6,715,5671,64,13,5851,3203,64,3,6113,3538,64,2,14212,1138,64,9,16474,1750,64,7,5123,1819,64,13,5389,6012,64,17,10788,2524,64,2,13134,5806,64,18,13481,6009,64,8,15974,6245,64,3,17349,8269,64,12,17474,4041,64,3,17485,2873,64,15,4595,5238,64,2,4974,3588,64,15,5419,2268,64,17,5428,3182,64,2,6176,2483,64,16,8279,5509,64,5,11129,3102,64,18,11831,4868,64,10,13522,4565,64,4,16795,7111,64,14,17567,5670,64,10,2827,3895,64,20,3191,4117,64,12,3716,7188,64,4,14422,6457,64,2,15033,3115,64,20,15298,6110,64,17,15543,5254,64,7,15597,4249,64,20,183,3553,64,20,609,4879,64,19,3206,1535,64,15,3507,2407,64,7,4745,7451,64,4,5676,3385,64,9,6142,2519,64,20,6232,2667,64,6,10908,1977,64,2,14609,5733,64,19,1268,4774,64,17,2114,2880,64,14,3904,3907,64,3,4649,5210,64,2,6484,4667,64,16,6751,2437,64,10,7945,1622,64,20,8072,473,64,2,8458,4317,64,6,12402,3427,64,5,14444,8168,64,17,14676,4869,64,16,1863,7870,65,6,2929,4352,65,11,3916,4643,65,16,6861,7080,65,7,8396,3359,65,4,9101,1967,65,2,12340,2122,65,3,17157,2856,65,4,2064,3571,65,9,2504,5952,65,20,3732,4586,65,18,4852,2871,65,2,4911,4867,65,4,5978,2038,65,2,6814,870,65,10,7058,5809,65,16,7185,7103,65,4,8889,2241,65,17,10934,5987,65,8,11215,4283,65,7,15931,5000,65,9,16576,2523,65,17,559,6914,65,3,3011,1392,65,19,3329,5281,65,7,5098,4621,65,15,7599,4481,65,4,11542,1534,65,6,12301,3498,65,14,17298,4691,65,3,17334,3313,65,13,1524,8045,65,6,3419,3012,65,14,5050,5161,65,16,5407,2162,65,7,5908,2557,65,2,7593,6262,65,6,11009,5321,65,4,14706,7011,65,8,15839,3250,65,20,16302,5937,65,9,17776,4589,65,6,17784,3773,65,4,17999,1221,65,3,4240,4706,65,3,4373,1692,65,15,6584,1662,65,2,7761,1698,65,3,8850,5511,65,9,10341,5373,65,9,15197,5891,65,17,15870,3931,65,13,16109,3410,65,13,16605,2851,65,5,16673,6486,65,18,17006,6714,65,17,229,6339,65,5,896,6004,65,15,4365,6459,65,13,7116,2702,65,18,7242,1434,65,3,11769,5484,65,5,15035,7894,65,17,15550,1904,65,7,16214,3527,65,2,16842,1252,65,4,17930,7375,65,16,2099,5962,65,15,10033,1451,65,3,10050,1273,65,12,10739,3831,65,5,11306,5847,65,16,13640,2202,65,14,14522,3702,65,5,15567,7379,65,9,16124,5682,65,20,16881,6656,65,3,394,1352,65,5,623,6554,65,3,4501,4346,65,16,5717,2752,65,3,10669,7090,65,6,13083,4246,65,8,13345,3108,65,10,15593,6325,65,3,17407,6970,65,7,3977,6169,65,17,4938,3352,65,4,7150,4441,65,5,7178,6320,65,13,7181,7992,65,12,11142,5455,65,11,11403,3510,65,3,11539,2657,65,2,14962,3142,65,19,17338,4970,65,20,17614,5138,65,13,47,3633,66,4,2624,7444,66,9,3805,2726,66,16,5251,8349,66,18,5622,5100,66,17,7401,7203,66,4,11699,2252,66,2,12258,3292,66,12,13601,3077,66,13,16274,8066,66,15,16763,6827,66,3,16806,6974,66,5,2144,6253,66,20,2984,1430,66,20,4417,5881,66,4,6832,6423,66,14,8440,5655,66,21,10827,2239,66,3,13196,2175,66,4,15652,5855,66,12,15833,6882,66,20,2714,2486,66,14,12318,5202,66,4,12320,3328,66,6,13274,8107,66,8,14184,5632,66,12,14354,2475,66,15,14918,5704,66,4,4192,4258,66,2,7396,2173,66,16,8044,1472,66,21,9904,1504,66,3,10393,7736,66,20,12154,3104,66,2,13223,4094,66,5,17508,5687,66,6,517,2196,66,14,2785,2634,66,16,2879,8067,66,5,4085,4655,66,2,6503,7716,66,16,7114,4362,66,8,7745,1749,66,20,8408,1484,66,9,11870,5803,66,12,11920,3234,66,3,14055,6481,66,6,14709,3256,66,3,17862,3093,66,4,3228,7015,66,4,7564,3847,66,3,8209,2643,66,14,11066,5348,66,14,11567,2563,66,4,11908,6623,66,10,14508,7786,66,4,67,4215,66,14,214,6434,66,5,1419,4659,66,13,2391,6481,66,15,5584,6961,66,4,5998,3580,66,5,11677,3997,66,14,15424,6263,66,20,708,7459,66,14,2999,3299,66,3,3789,5580,66,6,4149,4135,66,1,6851,3207,66,20,8313,4867,66,7,8332,1379,66,14,8685,1787,66,3,9580,1676,66,2,9683,1543,66,2,12348,4081,66,6,13506,4315,66,8,13919,2384,66,14,14203,4710,66,6,2240,5567,66,4,5794,3079,66,20,5913,2019,66,2,6546,4138,66,12,6947,2629,66,9,9498,2501,66,3,10259,7234,66,20,11220,7797,66,20,11887,3212,66,3,12044,1611,66,7,13892,1386,66,3,14140,7469,66,16,17972,5757,66,20,2921,3269,66,3,3686,5008,66,5,4549,5507,66,6,10333,1928,66,14,11742,6332,66,3,11765,2267,66,8,12623,3961,66,9,12971,6365,66,4,13591,4937,66,14,14581,4517,66,10,15441,5234,66,5,16967,7077,66,7,17302,7003,66,15,2043,5885,66,3,3423,5242,66,7,3807,5270,66,3,4426,1346,66,14,5479,2663,66,3,5634,2952,66,13,5692,3082,66,3,7843,1618,66,9,9011,4831,66,5,12040,2039,66,13,893,5552,67,14,1370,3966,67,7,5012,4995,67,2,5195,3493,67,8,5457,3106,67,20,6541,5573,67,4,6820,973,67,3,8175,6660,67,4,9491,4100,67,16,9532,2059,67,15,11747,2779,67,14,13563,3021,67,12,13726,3148,67,20,13796,4053,67,13,15014,5888,67,6,922,5729,67,14,2617,6975,67,3,3186,6524,67,14,3491,5296,67,5,4577,3753,67,4,6153,5382,67,9,6886,7676,67,8,13501,5338,67,17,13865,3772,67,5,14054,6484,67,6,14655,7983,67,12,15766,2887,67,13,1174,7462,67,14,1437,1118,67,13,1556,3035,67,2,2235,6483,67,5,6704,1864,67,3,7231,4732,67,17,7503,4902,67,20,7984,6099,67,12,10150,4187,67,20,10181,6951,67,5,12254,565,67,21,14742,6008,67,14,16222,4107,67,6,17045,3558,67,18,3333,5236,67,14,3989,6505,67,10,5729,3232,67,3,5854,2146,67,14,6015,4430,67,19,7984,1541,67,20,9570,1451,67,14,16276,7059,67,3,16542,1661,67,15,17688,2369,67,5,4006,3438,67,4,8709,4010,67,3,8753,2763,67,3,12675,2382,67,8,14028,4047,67,8,14948,3185,67,11,15879,5007,67,7,17180,8717,67,18,17666,3454,67,4,2246,4945,67,3,2617,1353,67,8,3657,5213,67,22,3819,1626,67,9,4122,4445,67,20,4159,6110,67,7,7019,3202,67,20,7040,3058,67,13,8810,3582,67,14,9828,2077,67,3,10471,1316,67,15,14928,4923,67,14,15974,2891,67,5,17374,3377,67,11,1074,7906,67,14,4022,4481,67,2,4388,6365,67,20,4629,1752,67,2,6141,3854,67,13,7091,3383,67,16,7824,6190,67,7,7879,900,67,4,7915,6521,67,6,9054,1342,67,3,9259,5390,67,14,9969,6529,67,7,12035,6802,67,3,12958,4478,67,15,16283,3557,67,13,1820,7014,67,19,5183,5159,67,7,6143,2351,67,6,8273,4376,67,20,12081,2241,67,6,12112,6325,67,14,15658,4051,67,7,397,7226,67,3,993,5863,67,4,1901,3738,67,9,1998,2355,67,5,2500,7783,67,3,2633,4246,67,3,6113,1435,67,8,6515,2134,67,5,6782,7881,67,19,9980,3584,67,11,10624,1828,67,13,11891,5549,67,19,13497,3309,67,4,14289,2395,67,4,14647,6223,67,2,15748,6876,67,3,16541,4392,67,3,17723,2225,67,5,5433,2086,68,3,8853,1159,68,19,10415,2904,68,3,10702,7068,68,6,11774,3516,68,20,11784,2764,68,2,15445,1471,68,7,17483,7906,68,12,393,2060,68,4,2131,747,68,17,2138,3450,68,13,4406,4593,68,18,4736,7966,68,4,5971,2983,68,6,7266,3320,68,3,8028,1277,68,3,8489,6409,68,5,9300,7078,68,13,9737,5370,68,20,10093,3701,68,15,10397,6222,68,20,10783,1577,68,12,13025,1111,68,16,13255,2029,68,8,14453,5570,68,3,16224,7604,68,6,17339,5773,68,17,552,3970,68,14,2319,7335,68,14,4236,4139,68,5,5092,4902,68,18,6997,3901,68,13,8629,4350,68,19,9679,4023,68,20,13212,7938,68,8,13539,4091,68,8,13907,7352,68,10,15044,2603,68,18,15222,6402,68,8,15258,3862,68,4,15361,3609,68,8,17094,8658,68,17,20,647,68,17,663,4443,68,20,1606,6393,68,5,2825,7667,68,11,3382,5310,68,6,3749,3873,68,7,4188,4200,68,2,6106,7075,68,4,6169,2705,68,3,7303,3112,68,9,7747,5474,68,9,9281,5792,68,9,9970,4773,68,20,10759,2241,68,7,10789,3112,68,17,13143,3302,68,4,13377,2495,68,7,14068,1256,68,6,16767,5917,68,4,16848,4735,68,14,183,5510,68,20,1474,5680,68,7,3658,6335,68,18,6282,2075,68,3,7012,1380,68,13,9941,1105,68,3,11890,6283,68,14,12378,3244,68,3,13365,2915,68,4,13503,4718,68,3,15191,5780,68,2,16623,8117,68,13,16695,2433,68,12,526,7026,68,3,663,7556,68,9,2448,4059,68,6,3269,6825,68,4,3301,5372,68,6,3768,4141,68,2,4992,6624,68,16,6880,7857,68,9,6952,7201,68,6,7006,4022,68,13,8051,1302,68,3,9436,5631,68,4,9840,5881,68,19,10611,8377,68,18,10725,6275,68,15,11043,5826,68,21,11276,5750,68,19,12229,3069,68,4,12967,6155,68,2,15166,6841,68,5,15666,6719,68,3,16010,2460,68,4,16816,4569,68,2,17022,5965,68,4,3871,5280,68,7,3922,1141,68,17,3969,2755,68,14,4475,5798,68,3,6004,1322,68,2,7188,6481,68,14,8558,3957,68,20,10853,4389,68,11,13817,3473,68,17,15482,5560,68,4,15612,6806,68,10,1465,2131,68,13,3918,6424,68,6,4991,3793,68,19,5169,3489,68,2,5672,3774,68,18,7779,2418,68,15,7883,7299,68,9,9332,1927,68,3,10218,6315,68,6,10630,5755,68,9,12029,5640,68,5,12276,4551,68,7,12615,6799,68,5,12763,4289,68,19,13825,7778,68,16,14180,8065,68,16,15805,3507,68,6,16769,5110,68,3,16883,3966,68,3,17472,6951,68,21,17772,3609,68,12,688,7449,68,16,1096,6770,68,8,1995,3906,68,8,2069,1119,68,5,5361,2517,68,2,5458,3334,68,20,6267,2847,68,18,6530,1844,68,2,9794,2024,68,4,11297,6883,68,10,11410,2275,68,2,12358,6594,68,17,12810,2794,68,7,14076,5833,68,16,14213,4208,68,15,14234,2645,68,8,1127,4807,68,18,1665,6712,68,19,1713,6211,68,10,2492,4669,68,11,3174,4963,68,12,4266,5327,68,3,5743,2585,68,2,6442,1600,68,14,8257,4681,68,15,8816,4913,68,6,10747,5315,68,16,12408,5074,68,19,12511,7729,68,16,12566,7339,68,8,14987,3190,68,13,17044,2429,68,14,17070,1825,68,16,17333,7471,68,3,2399,8220,68,4,2484,6211,68,19,5623,3349,68,6,7612,1909,68,3,9901,2610,68,11,11471,1319,68,17,13460,2283,68,16,13761,4669,68,13,14231,1853,68,3,349,2850,69,20,2480,3374,69,13,5078,7472,69,5,6496,3022,69,13,7939,8286,69,14,9965,1161,69,19,10792,4922,69,4,11021,4908,69,14,12276,6045,69,14,12426,2298,69,4,12484,6946,69,20,13153,7259,69,7,13293,3416,69,9,14054,2718,69,2,14177,3363,69,18,14444,3237,69,10,15470,1424,69,8,16571,4753,69,18,1029,6776,69,15,1948,4780,69,13,2436,5552,69,4,3180,3987,69,16,5415,2241,69,4,6522,3703,69,15,6694,3116,69,5,7428,3203,69,16,7965,3129,69,20,8086,1281,69,3,14830,3512,69,15,16185,6427,69,15,1824,3885,69,4,4095,5597,69,3,4363,5728,69,14,4414,2810,69,2,5483,3272,69,2,8995,589,69,3,9524,5012,69,5,9753,6039,69,16,12700,7757,69,9,13472,2414,69,20,14044,4086,69,15,14470,3552,69,14,14690,2095,69,15,17838,7433,69,15,17983,4322,69,13,17988,7288,69,3,141,3727,69,9,3624,6374,69,18,4059,4592,69,2,4369,5133,69,3,5740,6229,69,8,5827,5426,69,18,7892,1814,69,9,7969,3831,69,25,8831,2475,69,11,8898,1240,69,3,9666,5562,69,13,10728,450,69,6,12817,5137,69,5,13152,7259,69,7,14803,6368,69,13,15625,2811,69,14,16991,6453,69,2,17625,7427,69,3,610,7048,69,3,1070,3770,69,16,4281,4574,69,15,5220,6755,69,4,9634,2800,69,4,9928,1545,69,9,12043,2570,69,3,12068,3510,69,4,12356,996,69,10,14888,5630,69,2,15619,2189,69,19,2028,6510,69,10,3398,4498,69,17,3768,3497,69,4,3843,5432,69,11,4750,4353,69,20,5378,4288,69,14,5396,6466,69,19,7982,3656,69,13,9524,1516,69,4,10185,6359,69,8,11262,4074,69,4,11433,2924,69,8,12520,3613,69,15,12817,7224,69,9,14945,7122,69,5,15371,4356,69,16,15459,4372,69,20,16913,1401,69,20,17190,4941,69,4,1458,3374,69,18,4523,3970,69,3,4562,3676,69,6,4811,6964,69,23,5299,2021,69,5,5638,8621,69,20,6945,2572,69,15,8317,3135,69,8,9330,5863,69,7,10177,4683,69,4,10371,5563,69,18,11062,2740,69,4,11552,3984,69,9,13585,2329,69,7,13754,5598,69,20,13897,2204,69,3,14165,7035,69,13,15561,5764,69,16,3136,2400,69,7,3216,5529,69,7,3255,6228,69,14,3741,6395,69,4,5696,1873,69,18,5788,7436,69,5,5997,4316,69,16,6712,1539,69,2,7278,3304,69,9,8653,3037,69,9,8761,1395,69,15,9204,5697,69,14,9646,5877,69,11,9759,7318,69,8,10636,3685,69,21,11138,4385,69,14,11341,5743,69,8,12150,3997,69,5,14711,4149,69,4,15092,1856,69,20,15118,6342,69,3,15182,6340,69,6,15590,6219,69,17,17461,4114,69,20,17800,5968,69,13,1655,6015,69,12,2238,6259,69,16,5203,2064,69,21,5528,3549,69,4,6044,5890,69,15,6622,2235,69,4,7436,3550,69,20,7802,7778,69,3,7888,839,69,21,9863,3344,69,14,9921,6508,69,15,12350,7938,69,3,14250,6107,69,19,15178,5260,69,5,15376,6948,69,3,16627,2873,69,9,543,6851,70,6,1001,7412,70,11,2968,7654,70,3,4261,4444,70,2,4651,5307,70,3,8599,4643,70,14,9434,8001,70,17,11977,3786,70,3,12168,1768,70,14,12219,8288,70,8,14948,6424,70,3,15022,1531,70,18,17150,6666,70,20,17587,4563,70,4,17830,4674,70,25,1257,6529,70,3,1272,6631,70,10,1923,3088,70,4,2518,6666,70,5,3355,5318,70,15,3991,5605,70,13,4436,7285,70,5,10373,3593,70,15,11972,7237,70,7,12042,3207,70,16,13575,5611,70,21,13647,3315,70,15,13649,6070,70,20,17560,7614,70,21,940,2223,70,10,1450,7934,70,3,2780,6198,70,4,3016,1446,70,18,3254,5868,70,15,4444,2644,70,15,5919,5838,70,5,7787,1155,70,3,9254,4666,70,16,10105,5189,70,11,10852,3025,70,3,11754,3309,70,17,12213,1997,70,12,12789,5205,70,20,17674,6066,70,18,17747,3789,70,7,17825,6821,70,15,1284,4315,70,18,1618,5797,70,7,2235,1296,70,5,3833,7080,70,7,4191,4231,70,10,4192,4229,70,3,5755,3737,70,19,6500,3876,70,18,8259,4805,70,6,8874,989,70,18,9337,5841,70,5,11647,6545,70,5,12018,5993,70,4,13799,7440,70,5,14203,4710,70,6,14507,4229,70,13,14949,7442,70,20,56,3975,70,20,1529,7224,70,3,2601,6953,70,3,2778,2903,70,2,2964,7555,70,18,3486,3894,70,5,4035,4677,70,3,5135,6589,70,17,5136,2782,70,18,5286,4288,70,2,5571,4964,70,14,6167,3711,70,15,6825,4755,70,16,6888,2257,70,6,7149,5065,70,14,8535,6674,70,14,9206,6153,70,15,10272,1772,70,3,10653,4620,70,3,11527,2104,70,9,11540,6014,70,10,11994,2413,70,14,13674,7720,70,8,14552,5981,70,3,15054,2897,70,16,16605,2798,70,19,17205,6987,70,22,17487,4019,70,4,3056,7458,70,9,4055,5369,70,9,4594,2637,70,3,4697,3814,70,3,5201,3798,70,16,5482,6973,70,5,7215,4842,70,15,8540,2692,70,19,8794,1376,70,12,11643,8367,70,19,12101,5352,70,13,13489,2987,70,21,13593,6673,70,13,14189,3366,70,17,14268,6847,70,6,14424,7385,70,16,14682,5489,70,3,14830,6186,70,9,17970,1285,70,5,129,6804,70,8,351,5395,70,20,1242,6719,70,13,3777,3186,70,15,3943,6134,70,6,4641,1221,70,20,4724,7576,70,22,5623,5896,70,15,5903,2765,70,9,6434,2003,70,17,7177,1937,70,2,8038,7954,70,18,8744,1230,70,12,9237,1743,70,20,9323,6451,70,14,9376,7960,70,20,13004,5403,70,21,14862,5457,70,5,14974,3725,70,5,3360,5152,70,6,4058,6369,70,18,7165,3444,70,14,7912,2150,70,14,8197,6175,70,15,10457,5875,70,18,11161,2610,70,2,11464,8091,70,18,13363,7039,70,4,13368,8348,70,9,13769,6956,70,20,14060,4603,70,3,14217,3467,70,5,14566,3275,70,6,16347,2955,70,4,1582,5632,70,5,3627,3689,70,14,4541,3186,70,17,5460,2670,70,2,5824,3772,70,7,6368,2264,70,2,8243,6522,70,10,9439,5419,70,16,10270,4065,70,20,10687,1646,70,3,12647,5733,70,16,12773,2893,70,3,12983,5043,70,19,14033,7277,70,3,14536,1779,70,4,14633,4361,70,22,14883,7149,70,17,15682,5903,70,19,29,3014,70,2,850,6697,70,5,1326,1824,70,4,2453,7047,70,15,3526,2643,70,8,4488,4022,70,6,4588,1392,70,17,4706,5114,70,8,5039,6726,70,19,5543,5753,70,13,5743,5384,70,20,5787,2241,70,12,6083,2237,70,19,9060,674,70,19,9901,3690,70,9,10064,756,70,15,10118,1942,70,5,11462,1452,70,3,11491,4588,70,9,11637,6542,70,20,11917,3492,70,4,15981,6697,70,3,16212,6521,70,6,16491,8159,70,8,16972,4289,70,15,2489,7005,70,3,2865,5707,70,3,3812,2021,70,19,4000,6198,70,7,4983,2089,70,14,5756,8851,70,20,6489,3367,70,11,13588,6028,70,9,16644,7471,70,6,17369,4934,70,19,17504,4769,70,16,17849,7890,70,4,2777,7661,71,21,3943,3153,71,3,4022,3261,71,11,4609,1058,71,3,4648,4172,71,2,4849,4262,71,2,5679,3326,71,9,6229,1219,71,15,7577,2132,71,13,8261,6461,71,7,10780,495,71,3,12884,2272,71,13,14760,6776,71,8,14781,3694,71,7,15017,7005,71,15,15482,5706,71,3,15626,6703,71,6,15644,1920,71,15,15917,994,71,20,17906,5456,71,20,409,1348,71,4,612,5347,71,9,2410,4440,71,10,3385,2252,71,2,3499,7154,71,15,4056,4455,71,14,5230,2794,71,2,5417,5308,71,21,5617,5906,71,5,5843,2574,71,3,7149,4986,71,18,7174,453,71,3,7254,3783,71,3,7406,4095,71,4,7935,4848,71,13,8647,1528,71,14,10660,3137,71,15,12453,7146,71,4,12869,6539,71,17,13150,7907,71,15,13900,2212,71,3,14337,5054,71,3,15489,5004,71,11,16373,6009,71,4,16564,7614,71,6,452,7208,71,3,2853,5057,71,3,3489,5290,71,5,3642,5442,71,6,4032,8462,71,9,4096,6224,71,18,4628,762,71,11,5095,4050,71,22,5966,2295,71,2,6345,1846,71,7,7357,6801,71,10,7879,4468,71,3,7925,3313,71,20,7954,1522,71,16,8043,5659,71,4,8542,3561,71,8,9683,1642,71,3,11209,1361,71,4,14184,3720,71,5,15086,5681,71,2,15342,3589,71,4,16416,3822,71,8,16947,8182,71,8,607,754,71,17,1467,5391,71,13,2625,7273,71,4,3754,8560,71,17,4920,4439,71,3,5524,5522,71,19,5580,1949,71,14,5989,3334,71,15,6175,2684,71,2,6632,2174,71,2,7079,1831,71,3,7332,7356,71,20,7374,2213,71,3,8542,1252,71,3,9200,5245,71,5,11891,4345,71,5,12138,3029,71,15,13360,5781,71,15,13779,2567,71,19,15064,5500,71,15,16252,6664,71,20,16413,5796,71,2,16575,6751,71,20,16750,478,71,17,17283,6638,71,5,17538,5116,71,17,17792,5017,71,21,2216,6097,71,4,2534,5537,71,16,3126,8535,71,10,3298,4973,71,5,4374,1155,71,3,8859,3163,71,20,9961,2925,71,14,10802,4791,71,5,12015,5391,71,14,12583,1145,71,3,13053,2292,71,3,13611,5502,71,6,14482,4554,71,15,16244,4612,71,14,16313,4046,71,15,17251,7347,71,14,17901,399,71,13,1120,3419,71,4,2921,2763,71,3,3859,4277,71,9,5171,7944,71,3,5483,2663,71,2,7471,6553,71,9,8357,1403,71,6,10077,2512,71,16,11944,1070,71,15,13803,6475,71,4,14047,2584,71,5,14365,8328,71,7,15501,1473,71,9,15606,2301,71,8,16458,7681,71,19,16706,2419,71,13,16983,7340,71,19,17051,6591,71,14,1430,2375,71,3,2295,1513,71,7,3835,4267,71,3,5385,2053,71,17,5526,6338,71,15,5796,2453,71,15,5896,4588,71,3,6955,2287,71,20,7172,2050,71,3,8024,7786,71,16,8170,7229,71,18,8648,1524,71,8,9447,2449,71,6,9583,5329,71,17,13302,1908,71,11,13763,5944,71,6,13893,3580,71,4,13938,3951,71,13,14634,5898,71,3,14689,3972,71,15,14888,5021,71,10,15424,2274,71,14,16770,3420,71,15,17294,2763,71,7,23,4349,71,3,181,4111,71,20,972,4681,71,5,1850,2809,71,5,2558,7729,71,24,4191,4231,71,4,6251,5861,71,9,6324,4878,71,13,8661,2946,71,20,10599,6693,71,19,11316,2447,71,14,11683,3098,71,17,12191,2131,71,3,13011,5725,71,4,14396,7343,71,14,15809,649,71,9,17987,1863,71,15,460,6724,71,20,930,4104,71,8,2630,5067,71,4,2869,6155,71,5,4079,1554,71,14,4543,5485,71,3,5124,2169,71,9,5137,7879,71,2,5261,1930,71,21,5295,5048,71,18,5304,1663,71,4,5716,4294,71,8,5844,6171,71,20,5973,2221,71,17,6063,5156,71,4,6170,2150,71,3,8087,1662,71,3,8607,2366,71,4,8713,1436,71,15,9152,8381,71,8,9262,3822,71,14,9978,6984,71,4,10744,4387,71,14,11691,6451,71,20,11961,2802,71,5,12975,3286,71,14,14233,1490,71,18,14421,4615,71,3,14568,5490,71,14,14916,7376,71,3,15233,6249,71,11,15524,1162,71,3,889,6071,72,7,1521,2264,72,19,1901,6307,72,19,4721,3659,72,17,5833,6376,72,20,6546,2009,72,2,6649,6686,72,14,6855,7844,72,19,7287,8113,72,14,7669,1181,72,6,8341,2368,72,4,8727,1409,72,4,9046,2378,72,8,9277,1124,72,6,9849,3963,72,15,10337,2687,72,4,11075,3228,72,7,11134,3700,72,8,11433,7867,72,10,11451,2425,72,10,11608,4592,72,6,12573,4929,72,19,14999,6352,72,3,15493,4524,72,15,15501,3593,72,20,15583,5306,72,9,17397,4936,72,5,264,6398,72,8,1779,7292,72,8,2208,4314,72,5,2483,7011,72,3,4386,1895,72,14,4892,3880,72,17,5897,3805,72,10,6191,1354,72,5,6867,5602,72,14,7940,7354,72,7,10434,4425,72,15,11310,1298,72,13,11572,5271,72,20,11681,4041,72,3,13904,2515,72,5,16036,4841,72,5,16269,3798,72,11,17155,4992,72,9,380,3311,72,5,627,3968,72,9,853,7246,72,11,1975,8141,72,13,2062,5122,72,6,3296,4313,72,5,5871,3639,72,17,6736,2138,72,7,6743,1546,72,8,8950,3642,72,4,9098,732,72,17,9304,5805,72,5,9516,3849,72,8,9713,1940,72,3,13416,6500,72,16,14329,1883,72,9,14562,5097,72,12,14577,6316,72,3,14708,6735,72,13,15815,1764,72,16,15945,3467,72,16,17892,3555,72,3,269,3051,72,14,353,6720,72,4,1287,8031,72,4,3083,5880,72,3,3685,5071,72,5,3896,5302,72,19,4149,683,72,15,4247,5795,72,2,4325,2885,72,1,5248,1104,72,18,5558,3690,72,4,6267,2676,72,2,6319,1914,72,2,6500,1847,72,3,6929,7571,72,10,8044,6810,72,7,8466,4601,72,19,8571,1301,72,9,10651,7972,72,20,11195,1494,72,16,14158,1895,72,14,14740,4770,72,4,14882,6436,72,21,15194,5675,72,14,15394,8248,72,5,16288,8116,72,15,17841,1989,72,2,1782,3309,72,10,1805,7000,72,14,3845,1330,72,20,4553,4165,72,3,4840,4515,72,16,5995,1471,72,22,6489,981,72,4,6623,2861,72,13,7868,4363,72,4,8701,7966,72,14,9960,4971,72,10,11333,3687,72,20,11833,7630,72,5,12385,1418,72,16,13075,1968,72,15,15178,5935,72,6,15695,5186,72,15,15992,7744,72,4,16983,7679,72,5,17489,3827,72,13,17533,3748,72,6,377,5988,72,7,441,4320,72,10,3209,7181,72,5,3427,4088,72,21,4437,7494,72,4,4686,5458,72,8,4868,1657,72,15,5030,5382,72,5,5280,5711,72,14,5301,2383,72,6,5449,7482,72,15,5597,5572,72,9,6120,2294,72,2,6504,2487,72,4,6524,2229,72,6,8772,2875,72,19,9257,3389,72,3,9822,6290,72,3,10481,3251,72,3,12279,6190,72,20,13840,4510,72,9,14097,2480,72,12,14213,6145,72,10,14343,6125,72,8,15830,2883,72,15,15836,6437,72,15,17489,3827,72,12];
+  var D2R = Math.PI / 180, LAT = 15.69, LON = 73.70;   /* Arambol */
+  var sky = document.getElementById("skyCv"), scribe = document.getElementById("scribe"), cap = document.getElementById("bgCap");
+  var mode = "bg-sky", raf = 0, capT = 0;
+  function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+
+  /* --- the sky over Arambol, looking east, at this moment --- */
+  function drawSky() {
+    raf = 0;
+    if (mode !== "bg-sky" || !sky.getContext) { return; }
+    var w = window.innerWidth, h = window.innerHeight, dpr = Math.min(window.devicePixelRatio || 1, 2);
+    if (sky.width !== Math.round(w * dpr) || sky.height !== Math.round(h * dpr)) { sky.width = Math.round(w * dpr); sky.height = Math.round(h * dpr); }
+    var g = sky.getContext("2d");
+    g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
+    var doc = document.documentElement, span = Math.max(1, doc.scrollHeight - h);
+    var fr = clamp((window.pageYOffset || doc.scrollTop || 0) / span, 0, 1);
+    var alt0 = (22 + 48 * fr) * D2R;                     /* the page climbs the sky as it scrolls */
+    var d = Date.now() / 86400000 + 2440587.5 - 2451545.0;
+    var lst = (((280.46061837 + 360.98564736629 * d + LON) % 360) + 360) % 360 * D2R;
+    var sp = Math.sin(LAT * D2R), cp = Math.cos(LAT * D2R), ca = Math.cos(alt0), sa = Math.sin(alt0);
+    var f = Math.max(w, h) / 2 / 1.04, cx = w / 2, cy = h / 2, i;
+    function proj(e, n, u) {                             /* east, north, up -> screen, facing east */
+      var Z = ca * e + sa * u;
+      if (Z < -0.35) { return null; }
+      var k = 2 / (1 + Z);
+      return [cx + f * k * -n, cy - f * k * (-sa * e + ca * u)];
+    }
+    /* the horizon, with east marked */
+    g.beginPath();
+    for (i = 0; i <= 180; i += 3) {
+      var hp = proj(Math.sin(i * D2R), Math.cos(i * D2R), 0);
+      if (!hp) { continue; }
+      if (i === 0) { g.moveTo(hp[0], hp[1]); } else { g.lineTo(hp[0], hp[1]); }
+    }
+    g.strokeStyle = "rgba(214,178,110,0.2)"; g.lineWidth = 1; g.stroke();
+    var ep = proj(1, 0, 0);
+    if (ep && ep[1] < h + 20) {
+      g.beginPath(); g.moveTo(ep[0], ep[1] - 5); g.lineTo(ep[0], ep[1] + 5); g.strokeStyle = "rgba(214,178,110,0.5)"; g.stroke();
+      g.font = "10px \"Space Mono\", monospace"; g.textAlign = "center"; g.fillStyle = "rgba(214,178,110,0.6)";
+      g.fillText("E", ep[0], ep[1] + 18);
+    }
+    for (i = 0; i < S.length; i += 4) {
+      var ra = S[i] / 50 * D2R, dec = (S[i + 1] / 50 - 90) * D2R, mag = S[i + 2] / 10 - 2, bv = S[i + 3] / 10 - 0.4;
+      var H = lst - ra, sd = Math.sin(dec), cd = Math.cos(dec), cH = Math.cos(H);
+      var up = sd * sp + cd * cp * cH;
+      if (up <= 0) { continue; }                         /* below the horizon */
+      var p = proj(-cd * Math.sin(H), sd * cp - cd * sp * cH, up);
+      if (!p || p[0] < -8 || p[0] > w + 8 || p[1] < -8 || p[1] > h + 8) { continue; }
+      var ext = clamp(up / 0.2, 0.15, 1);                /* thicker air near the horizon */
+      var r = Math.max(0.6, 2.6 - 0.42 * mag), al = clamp(1.15 - 0.15 * mag, 0.32, 1) * ext;
+      var col = bv < 0.15 ? "223,230,245" : bv < 0.9 ? "245,239,228" : bv < 1.35 ? "236,206,150" : "228,168,118";
+      if (mag < 1.6) {
+        var gg = g.createRadialGradient(p[0], p[1], 0, p[0], p[1], r * 6);
+        gg.addColorStop(0, "rgba(" + col + "," + (0.3 * ext).toFixed(3) + ")"); gg.addColorStop(1, "rgba(" + col + ",0)");
+        g.fillStyle = gg; g.fillRect(p[0] - r * 6, p[1] - r * 6, r * 12, r * 12);
+      }
+      g.beginPath(); g.arc(p[0], p[1], r, 0, Math.PI * 2);
+      g.fillStyle = "rgba(" + col + "," + al.toFixed(3) + ")"; g.fill();
+    }
+    var tm = "";
+    try { tm = new Date().toLocaleTimeString("en-GB", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit" }); } catch (e) { tm = ""; }
+    cap.textContent = "The sky over Arambol right now, looking east" + (tm ? " · " + tm + " IST" : "") + " · scrolling down looks higher";
+  }
+  function askSky() { if (!raf) { raf = window.requestAnimationFrame(drawSky); } }
+
+  /* --- scribed stone: the page's own setting-out lines, as a mason leaves them --- */
+  var NS = "http://www.w3.org/2000/svg";
+  function el(tag, at) {
+    var e = document.createElementNS(NS, tag), k;
+    for (k in at) { if (at.hasOwnProperty(k)) { e.setAttribute(k, at[k]); } }
+    e.setAttribute("fill", "none");
+    scribe.appendChild(e);
+    return e;
+  }
+  function buildScribe() {
+    while (scribe.firstChild) { scribe.removeChild(scribe.firstChild); }
+    if (mode !== "bg-scribed") { return; }
+    scribe.style.height = "0px";
+    var doc = document.documentElement, W = doc.clientWidth, Hh = doc.scrollHeight;
+    scribe.style.height = Hh + "px";
+    scribe.setAttribute("width", W); scribe.setAttribute("height", Hh); scribe.setAttribute("viewBox", "0 0 " + W + " " + Hh);
+    var secs = document.querySelectorAll("header.hero, section.block, .closing"), first = document.querySelector("section.block");
+    var gut = first ? parseFloat(window.getComputedStyle(first).paddingLeft) || 20 : 20;
+    var BR = "rgba(214,178,110,0.32)", CH = "rgba(245,239,228,0.13)", i, y;
+    /* the two margins, and a rule down the left one */
+    el("line", { x1: gut, y1: 0, x2: gut, y2: Hh, stroke: BR, "stroke-width": 0.7 });
+    el("line", { x1: W - gut, y1: 0, x2: W - gut, y2: Hh, stroke: BR, "stroke-width": 0.7 });
+    var ticks = "";
+    for (y = 0, i = 0; y < Hh; y += 48, i++) { ticks += "M" + gut + " " + y + "h" + (i % 5 === 0 ? -12 : -6); }
+    el("path", { d: ticks, stroke: BR, "stroke-width": 0.7 });
+    for (i = 0; i < secs.length; i++) {
+      var r = secs[i].getBoundingClientRect(), top = r.top + (window.pageYOffset || 0);
+      var pt = parseFloat(window.getComputedStyle(secs[i]).paddingTop) || 0, y0 = top + pt;
+      var rad = Math.min(r.height * 0.8, W * 0.56);
+      el("line", { x1: 0, y1: y0, x2: W, y2: y0, stroke: CH, "stroke-width": 0.7 });
+      /* a centre punch on each margin, an arc struck from each, and the centre line they find */
+      var px = [gut, W - gut], j;
+      for (j = 0; j < 2; j++) {
+        el("circle", { cx: px[j], cy: y0, r: 2.4, stroke: BR, "stroke-width": 0.8 });
+        el("path", { d: "M" + (px[j] - 9) + " " + y0 + "h18M" + px[j] + " " + (y0 - 9) + "v18", stroke: BR, "stroke-width": 0.7 });
+      }
+      el("path", { d: "M" + (gut + rad) + " " + y0 + "A" + rad + " " + rad + " 0 0 1 " + gut + " " + (y0 + rad), stroke: BR, "stroke-width": 0.7 });
+      el("path", { d: "M" + (W - gut - rad) + " " + y0 + "A" + rad + " " + rad + " 0 0 0 " + (W - gut) + " " + (y0 + rad), stroke: CH, "stroke-width": 0.7 });
+      var half = (W - 2 * gut) / 2;
+      if (rad > half) {
+        var yi = y0 + Math.sqrt(rad * rad - half * half);
+        el("line", { x1: W / 2, y1: yi - 34, x2: W / 2, y2: yi + 34, stroke: BR, "stroke-width": 0.7 });
+        el("path", { d: "M" + (W / 2 - 7) + " " + yi + "h14", stroke: BR, "stroke-width": 0.7 });
+      }
+    }
+    /* the dial's own construction, carried out past its frame */
+    var st = document.querySelector(".stage");
+    if (st) {
+      var q = st.getBoundingClientRect(), ccx = q.left + q.width / 2, ccy = q.top + (window.pageYOffset || 0) + q.height / 2, R = q.width * 0.35, k;
+      el("circle", { cx: ccx, cy: ccy, r: R * 2.15, stroke: BR, "stroke-width": 0.7 });
+      el("circle", { cx: ccx, cy: ccy, r: R * 2.9, stroke: CH, "stroke-width": 0.7 });
+      for (k = 0; k < 6; k++) {
+        var an = -Math.PI / 2 + k * Math.PI / 3;
+        el("line", { x1: ccx + R * 2.15 * Math.cos(an), y1: ccy + R * 2.15 * Math.sin(an),
+                     x2: ccx + R * 3.3 * Math.cos(an), y2: ccy + R * 3.3 * Math.sin(an), stroke: BR, "stroke-width": 0.7 });
+      }
+    }
+  }
+
+  var CAPS = {
+    "": "The site as it is now: tiled stars over grain",
+    "bg-stone": "Bare stone: the grain alone, so brass and pigment are the only light",
+    "bg-scribed": "Scribed stone: margins, centre punches and compass arcs set out from the page's own layout"
+  };
+  function setMode(m) {
+    var b = document.querySelectorAll(".bg-switch button"), i;
+    document.body.classList.remove("bg-sky", "bg-stone", "bg-scribed");
+    if (m) { document.body.classList.add(m); }
+    mode = m;
+    for (i = 0; i < b.length; i++) { b[i].setAttribute("aria-pressed", b[i].getAttribute("data-bg") === m ? "true" : "false"); }
+    cap.textContent = CAPS[m] || "";
+    cap.classList.remove("gone");
+    window.clearTimeout(capT); capT = window.setTimeout(function () { cap.classList.add("gone"); }, 7000);
+    buildScribe(); askSky();
+  }
+  var btns = document.querySelectorAll(".bg-switch button"), bi;
+  for (bi = 0; bi < btns.length; bi++) {
+    (function (b) { b.addEventListener("click", function () { setMode(b.getAttribute("data-bg")); }, false); })(btns[bi]);
+  }
+  window.addEventListener("scroll", askSky, { passive: true });
+  window.addEventListener("resize", function () { askSky(); buildScribe(); }, false);
+  window.addEventListener("load", function () { buildScribe(); askSky(); }, false);
+  window.setInterval(askSky, 15000);
+  window.setTimeout(buildScribe, 1500);
+
+  setMode("bg-sky");
 })();
 </script>
 </body>
