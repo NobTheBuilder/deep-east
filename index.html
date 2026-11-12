@@ -3515,7 +3515,7 @@
   }
   function rimCountUi() {
     var e = document.querySelector("#rimRow .nm");
-    if (e) { e.textContent = "Thālī" + (rimNotes.length ? " · " + rimNotes.length + " kept" : ""); }
+    if (e) { e.textContent = "Thāl" + (rimNotes.length ? " · " + rimNotes.length + " kept" : ""); }
   }
   /* 2. the plate's reverb used to be built on the first strike; it is built when play starts instead */
   function rimWarm() {
@@ -4439,7 +4439,7 @@
     rsw.className = "sw"; rsw.style.color = DRONE_COL;
     rsw.innerHTML = "<svg viewBox=\"0 0 16 16\" aria-hidden=\"true\"><circle cx=\"8\" cy=\"8\" r=\"6.8\"/><circle cx=\"8\" cy=\"8\" r=\"4.3\"/></svg>";
     rb.appendChild(rsw);
-    rb.appendChild(document.createTextNode("Th\u0101l\u012B"));
+    rb.appendChild(document.createTextNode("Th\u0101l"));
     rb.setAttribute("data-n", "-1"); rb.setAttribute("data-col", DRONE_COL); rb.id = "rimBox";
     bindPress(rb, RIM_DEF);
     rows.inf.appendChild(rb);
@@ -4597,10 +4597,10 @@
       var rmain = document.createElement("div"); rmain.className = "layer-main";
       var rdot = document.createElement("span"); rdot.className = "dot"; rdot.style.background = DRONE_COL;
       var rnm = document.createElement("span"); rnm.className = "nm";
-      rnm.appendChild(document.createTextNode("Th\u0101l\u012B" + (rimNotes.length ? " · " + rimNotes.length + " kept" : "")));
+      rnm.appendChild(document.createTextNode("Th\u0101l" + (rimNotes.length ? " · " + rimNotes.length + " kept" : "")));
       var rsc = document.createElement("button"); rsc.className = "inst"; rsc.id = "rimScaleBtn";
       rsc.appendChild(document.createTextNode(RIM_SCALES[rimScale].name));
-      rsc.title = "The th\u0101l\u012B's scale \u2014 tap to change";
+      rsc.title = "The th\u0101l's scale \u2014 tap to change";
       rsc.addEventListener("click", function (e) { e.preventDefault(); rimScale = (rimScale + 1) % RIM_SCALES.length; renderPanel(); }, false);
       var row2 = document.createElement("span"); row2.className = "own-wrap";
       var rk = document.createElement("button"); rk.className = "inst rim-keep" + (rimKeep ? " on" : rimLock ? " locked" : ""); rk.id = "rimKeepBtn";
