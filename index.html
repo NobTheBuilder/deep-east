@@ -5123,6 +5123,7 @@
     drone = false;            /* start from silence; only turn on if requested */
     if (st.drone) { drone = true; }   /* startDrone() fires when playback begins */
     droneSilent = !!(st.drone && st.dmute);
+    if (typeof st.rimShare === "string") { rimShareApply(st.rimShare); }   /* only a link sets this; undo and Spark leave the Thali alone */
     return true;
   }
   /* read a scene from the page hash, e.g. #y=v1~... */
@@ -5133,7 +5134,9 @@
     var raw = h.substring(m + 2);
     var amp = raw.indexOf("&"); if (amp !== -1) { raw = raw.substring(0, amp); }
     try { raw = decodeURIComponent(raw); } catch (e) {}
-    return decodeState(unpackLink(raw));
+    var code = unpackLink(raw), st = decodeState(code);
+    if (st) { st.rimShare = rimShareFind(code); }
+    return st;
   }
   function packLink(code) {
     /* a dash becomes x in the link: "111x222" is never read as a phone number, as "111-222" was by
@@ -5150,7 +5153,15 @@
     } catch (e) { return raw; }
   }
   function buildShareLink() {
-    var s = encodeState(captureState());
+    var st0 = captureState(), s = encodeState(st0);
+    if (DEMO.brass && rimOn) {
+      /* the two optional parts before it are always written when the Thali is, so it has a fixed place */
+      var sp = s.split("~");
+      if (sp.length === 11) { sp.push(st0.dmute ? "1" : "0"); }
+      if (sp.length === 12) { sp.push(String(typeof st0.foct === "number" ? st0.foct : st0.oct)); }
+      sp.push(rimShareEncode());
+      s = sp.join("~");
+    }
     var base = window.location.origin + window.location.pathname;
     return base + "#y=" + packLink(s);
   }
@@ -5306,6 +5317,39 @@
     var pe5 = String(p[5] || "0.50").split(".");
     rimEA = Math.max(0, Math.min(1, (parseInt(pe5[0], 10) || 0) / 100));
     rimED = Math.max(0, Math.min(1, (isNaN(parseInt(pe5[1], 10)) ? 50 : parseInt(pe5[1], 10)) / 100));
+  }
+  /* the Thali in a link:  T<matra>.<snap>.<attack>.<length>.<volume>.<rest><lock>.<step>-<field>_<step>-<field>...
+     Only digits, dots, dashes and underscores after the T; a dash becomes x in the link, as elsewhere. */
+  function rimShareEncode() {
+    var o = [], i;
+    for (i = 0; i < rimNotes.length; i++) { o.push(rimNotes[i].step + "-" + rimNotes[i].field); }
+    return "T" + [rimOwn, rimSnap, Math.round(rimEA * 100), Math.round(rimED * 100), Math.round(rimVol * 1000),
+                  (rimRest ? "1" : "0") + (rimLock ? "1" : "0"), o.join("_")].join(".");
+  }
+  function rimShareFind(code) {
+    var parts = String(code || "").split("~"), i;
+    for (i = 11; i < parts.length; i++) { if (parts[i].charAt(0) === "T") { return parts[i]; } }
+    return "";
+  }
+  function rimShareApply(str) {
+    rimNotes = []; rimGlow = []; rimKeep = false; rimPost = false; rimLock = false; rimRest = false;
+    rimOwn = RIM_HOME; rimSnap = 0; rimEA = 0; rimED = 0.5; rimVol = 0.6;
+    if (!str || str.charAt(0) !== "T") { rimOn = false; return; }      /* a link from before the Thali: none */
+    var f = str.substring(1).split("."), num = function (v, d) { var n = parseInt(v, 10); return isNaN(n) ? d : n; }, i;
+    rimOn = true;
+    rimOwn = Math.max(1, Math.min(32, num(f[0], RIM_HOME)));
+    rimSnap = Math.max(0, Math.min(2, num(f[1], 0)));
+    rimEA = Math.max(0, Math.min(1, num(f[2], 0) / 100));
+    rimED = Math.max(0, Math.min(1, num(f[3], 50) / 100));
+    rimVol = Math.max(0, Math.min(1, num(f[4], 600) / 1000));
+    rimRest = String(f[5] || "").charAt(0) === "1"; rimLock = String(f[5] || "").charAt(1) === "1";
+    var list = f[6] ? f[6].split("_") : [], seen = {};
+    for (i = 0; i < list.length && rimNotes.length < 400; i++) {
+      var q = list[i].split("-"), st = parseInt(q[0], 10), fd = parseInt(q[1], 10);
+      if (st >= 0 && st < RIM_RES && fd >= 0 && fd < RIM_N && !seen[st + "/" + fd]) { seen[st + "/" + fd] = 1; rimNotes.push({ step: st, field: fd, hold: 0 }); }
+    }
+    rimPost = rimNotes.length > 0 && !rimLock;
+    if (rimBus && ac && rimAc === ac) { rimBus.gain.setTargetAtTime(RT.level * rimVol, ac.currentTime, 0.012); }
   }
   function undoCode() { return encodeState(captureState()) + "\u0001" + rimEncode(); }
   function undoNote() {
