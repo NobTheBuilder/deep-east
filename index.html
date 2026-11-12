@@ -1044,6 +1044,20 @@
     html body .rd-line { font-size: 0.98rem; }
     html body .about-meta .mi .v { font-size: 1rem; }
 
+    /* reading text: the light italic is a thin face, so it needs more size than its pixel count suggests */
+    html body .lore { font-size: 1.24rem; line-height: 1.5; opacity: 0.95; max-width: 30ch; }
+    html body .hero .sub { font-size: 1.16rem; line-height: 1.55; }
+    html body section.block > p:not(.lore):not(.hint) { font-size: 1.1rem; line-height: 1.6; }
+    html body .about-wrap p { font-size: 1.2rem; line-height: 1.6; }
+    html body .reveal-panel .hidden-verse { font-size: 1.3rem; }
+    html body .reveal-panel .hidden-verse.story { font-size: 1.24rem; }
+    html body .epigraph { font-size: 1.3rem; }
+    html body .eyebrow { font-size: 0.82rem; }
+    html body .stage-hint { font-size: 1rem; }
+    html body .rd-line { font-size: 1.04rem; }
+    html body .rd-meta { font-size: 0.96rem; }
+    html body .gear-item { font-size: 0.9rem; }
+
     /* the three dots that open a verse: larger, and easier to land a thumb on */
     html body .reveal-mark { font-size: 1rem; opacity: 0.85; display: inline-block; padding: 0.3em 0.45em; margin: -0.3em 0; }
   }
@@ -6236,7 +6250,6 @@
     if (ep && ep[1] < h + 20) {
       g.beginPath(); g.moveTo(ep[0], ep[1] - 5); g.lineTo(ep[0], ep[1] + 5); g.strokeStyle = "rgba(214,178,110,0.5)"; g.stroke();
       g.font = "10px \"Space Mono\", monospace"; g.textAlign = "center"; g.fillStyle = "rgba(214,178,110,0.6)";
-      g.fillText("E", ep[0], ep[1] + 18);
     }
     for (i = 0; i < S.length; i += 4) {
       var ra = S[i] / 50 * D2R, dec = (S[i + 1] / 50 - 90) * D2R, mag = S[i + 2] / 10 - 2, bv = S[i + 3] / 10 - 0.4;
