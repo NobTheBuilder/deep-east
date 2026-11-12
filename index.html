@@ -1606,7 +1606,7 @@
       limit.attack.value = 0.001;
       limit.release.value = 0.05;
       var outGain = ac.createGain();
-      outGain.gain.value = 1.18;
+      outGain.gain.value = 1.18 * TUNE.out;
       /* makeup gain sits BEFORE the limiter, or the limiter cannot do its job */
       /* final soft clipper: a tanh curve bounds the signal no matter how many
          voices land together, saturating gently instead of crunching */
@@ -1798,7 +1798,7 @@
   /* ===== demo: the four machine voices, rebuilt =====
      Recipes follow the classic analog drum machine; the numbers are the commonly quoted ones and are meant to be
      tuned by ear. Nothing here is a sample. */
-  var KT = { drive: 4, bias: 0.5, lp: 1000, level: 0.38, knock: 0.12, click0: 0.14, keyfix: true, choke: false, tight: false, click: false, mid: 0.7, midLen: 0.22 };
+  var KT = { drive: 4, bias: 0.5, lp: 1000, level: 0.34, knock: 0.12, click0: 0.14, keyfix: true, choke: false, tight: false, click: false, mid: 0.55, midLen: 0.22, midAt: 0, knockAt: 0 };
   var KICK_CURVE = null, KICK_KEY = "", KICK_OWNER = null, KICK_LOOSE = {}, KICK_PULSE = null;
   function kickCurve() {
     if (KICK_KEY !== KT.drive + "/" + KT.bias) { KICK_CURVE = null; KICK_KEY = KT.drive + "/" + KT.bias; }
@@ -1863,8 +1863,8 @@
       o.connect(g); g.connect(ws); ws.connect(lp); lp.connect(out); out.connect(bus);
       o.start(t); o.stop(t + dur + 0.02);
       /* the punch: a second, short sine an octave above the sub, falling with it */
-      body(t, f0 * 4.2, f0 * 2, KT.tight ? 0.03 : 0.045, KT.midLen, KT.mid, "sine", bus);
-      body(t, 260, 130, 0.03, 0.09, KT.knock, "sine", bus);                 /* a round knock a phone can play */
+      body(t + KT.midAt, f0 * 4.2, f0 * 2, KT.tight ? 0.03 : 0.045, KT.midLen, KT.mid, "sine", bus);
+      body(t + KT.knockAt, 260, 130, 0.03, 0.09, KT.knock, "sine", bus);                 /* a round knock a phone can play */
       if (KT.click) {
         /* the single click of the analog machine: one very short pulse, rounded off */
         if (!KICK_PULSE || KICK_PULSE.sampleRate !== ac.sampleRate) {
@@ -2727,6 +2727,12 @@
       if (o.rim) { rimBus = null; rimVoice(220, 0.1, 0.5); }
       if (o.rimNotes) { rimBus = null; for (var rn = 0; rn < o.rimNotes.length; rn++) { var same = 0, rq; for (rq = 0; rq < o.rimNotes.length; rq++) { if (o.rimNotes[rq][0] === o.rimNotes[rn][0]) { same++; } }
         rimVoice(RIM_A * Math.pow(2, o.rimNotes[rn][1] / 12), o.rimNotes[rn][0], o.rimNotes[rn][2] / Math.sqrt(same)); } }
+      if (o.voices) {
+        for (var vi = 0; vi < o.voices.length; vi++) {
+          var vv = o.voices[vi], vb = ac.createGain(); vb.gain.value = vv.vol; vb.connect(master);
+          for (var vt = 0; vt < vv.times.length; vt++) { ((DEMO.drums && SYNTH2[vv.inst]) || SYNTH[vv.inst])(vv.times[vt], vb); }
+        }
+      }
       var beat = 60 / o.bpm, t, n = 0, bus = ac.createGain(); bus.gain.value = typeof o.vol === "number" ? o.vol : 0.6; bus.connect(master);
       for (t = 0.05; t < o.secs - 0.3; t += beat / 2, n++) {
         if (o.kick && n % 2 === 0) { ((DEMO.drums && SYNTH2.kick) || SYNTH.kick)(t, bus); }
@@ -2741,7 +2747,7 @@
     return off.startRendering().then(function (buf) { return Array.prototype.slice.call(buf.getChannelData(0)); });
   };
   window.__yantraSet = function (k, v) { if (k === "drums") { DEMO.drums = !!v; } if (k in TUNE) { TUNE[k] = v; } if (k in KT) { KT[k] = v; } if (k in RT) { RT[k] = v; } if (k === "rimEA") { rimEA = v; } if (k === "rimED") { rimED = v; } return TUNE; };
-  var TUNE = { duck: 1 };
+  var TUNE = { duck: 1, out: 0.8 };
   window.__yantraDemo = function () {
     return { rimEA: rimEA, rimED: rimED, drone: drone, free: freeOn, engine: !!droneNodes,
              hum: droneNodes && droneNodes.hum ? droneNodes.hum.gain.value : null, rim: rimNotes.length };
@@ -3385,7 +3391,11 @@
       var eA = Math.max(0.005, rimAttack()), eL = rimLength(), eV = vel / Math.sqrt(Math.max(1, eL));
       g.gain.linearRampToValueAtTime(parts[i][1] * eV, t + eA);
       g.gain.setTargetAtTime(0, t + eA, parts[i][2] * eL);
-      o.connect(g); g.connect(rimBus); o.start(t); o.stop(t + eA + 4.5 * eL);
+      var eTau = parts[i][2] * eL, eEnd = t + eA + eTau * 6.2, ePk = parts[i][1] * eV;
+      /* at eEnd the tone is about 54 dB down; from there a short straight fade takes it to nothing */
+      g.gain.setValueAtTime(ePk * Math.exp(-6.2), eEnd);
+      g.gain.linearRampToValueAtTime(0, eEnd + 0.06);
+      o.connect(g); g.connect(rimBus); o.start(t); o.stop(eEnd + 0.08);
     }
     if (noiseBuf) {                             /* the finger */
       var n = ac.createBufferSource(), bp = ac.createBiquadFilter(), ng = ac.createGain();
@@ -6253,7 +6263,7 @@
 
   /* --- the sky over Arambol, looking east, at this moment --- */
   function drawSky() {
-    raf = 0;
+    raf = 0; skyLast = Date.now();
     if (mode !== "bg-sky" || !sky.getContext) { return; }
     var w = window.innerWidth, h = window.innerHeight, dpr = Math.min(window.devicePixelRatio || 1, 2);
     if (sky.width !== Math.round(w * dpr) || sky.height !== Math.round(h * dpr)) { sky.width = Math.round(w * dpr); sky.height = Math.round(h * dpr); }
@@ -6307,7 +6317,14 @@
     try { tm = new Date().toLocaleTimeString("en-GB", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit" }); } catch (e) { tm = ""; }
     cap.textContent = "The sky over Arambol right now, looking east" + (tm ? " · " + tm + " IST" : "") + " · scrolling down looks higher";
   }
-  function askSky() { if (!raf) { raf = window.requestAnimationFrame(drawSky); } }
+  var skyLast = 0, skyWait = 0;
+  function askSky() {
+    if (raf) { return; }
+    var pb = document.getElementById("playBtn"), busy = pb && pb.getAttribute("aria-label") === "Pause";
+    var gap = busy ? 260 : 45, since = Date.now() - skyLast;
+    if (since < gap) { window.clearTimeout(skyWait); skyWait = window.setTimeout(askSky, gap - since + 5); return; }
+    raf = window.requestAnimationFrame(drawSky);
+  }
 
   /* --- scribed stone: the page's own setting-out lines, as a mason leaves them --- */
   var NS = "http://www.w3.org/2000/svg";
