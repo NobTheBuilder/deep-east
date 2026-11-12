@@ -2462,7 +2462,7 @@
       if (u > u0 + 1e-9 && u <= u1 && ((u % s.own) + s.own) % s.own === 0) { queueSam(s, t0 + u * step); }
       for (h = 0; h < L; h++) {
         u = m * L + hits[h].pos;
-        if (u > u0 + 1e-9 && u <= u1 && !s.silent && s.mutes.indexOf(hits[h].k) === -1) {
+        if (u > u0 + 1e-9 && u <= u1 && !s.silent && s.mutes.indexOf(hits[h].k) === -1 && t0 + u * step >= now - LATE_OK) {
           playHit(s, t0 + u * step);
           queueFlash(s, hits[h].k, t0 + u * step);
         }
@@ -2486,15 +2486,32 @@
     applyFreeGate();
   }
   function setPulseMode(on) { pulseModeRaw(on); renderPanel(); }
+  /* How far ahead notes are handed to the audio clock. Normally 70 ms, so a change is heard at once. When the
+     scheduler finds it has been kept waiting (a busy page, a slow phone) or the page is being scrolled, it plans
+     much further ahead for a few seconds, so a held-up moment passes without a gap. */
+  var LATE_OK = 0.03, LOOK_BASE = 0.07, lookNow = LOOK_BASE, lookUntil = 0, schedLast = 0;
+  function lookBoost(secs, forMs) {
+    if (secs > lookNow) { lookNow = Math.min(0.6, secs); }
+    lookUntil = Math.max(lookUntil, now_() + forMs);
+  }
+  (function () {
+    var held = function () { if (playing) { lookBoost(0.5, 1800); } };
+    window.addEventListener("scroll", held, { passive: true });
+    document.addEventListener("touchmove", function (e) { if (e.target !== cv) { held(); } }, { passive: true });
+  })();
   function schedule() {
-    var until = ac.currentTime + 0.07;
+    var tick = now_(), waited = schedLast ? tick - schedLast : 0;
+    schedLast = tick;
+    if (waited > 45) { lookBoost(waited / 1000 * 2 + 0.1, 4000); }
+    else if (tick > lookUntil && lookNow > LOOK_BASE) { lookNow = Math.max(LOOK_BASE, lookNow - 0.01); }
+    var until = ac.currentTime + lookNow;
     schedulePulse(until);
     scheduleRim(until);
     for (var i = 0; i < shapes.length; i++) {
       var s = shapes[i], guard = 0;
       if (ownTime(s)) { scheduleOwn(s, until); continue; }
       while (s.nt < until && guard++ < 96) {
-        if (!s.silent && s.mutes.indexOf(s.nk) === -1) {
+        if (!s.silent && s.mutes.indexOf(s.nk) === -1 && s.nt >= ac.currentTime - LATE_OK) {
           playHit(s, s.nt);
           queueFlash(s, s.nk, s.nt);
         }
@@ -2525,7 +2542,7 @@
     return [geo.cx + R * Math.cos(a), geo.cy + R * Math.sin(a)];
   }
   function fit() {
-    var dpr = window.devicePixelRatio || 1;
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);   /* past 2 the eye gains little and the phone pays a lot */
     var r = cv.getBoundingClientRect();
     cv.width = Math.max(1, Math.round(r.width * dpr));
     cv.height = Math.max(1, Math.round(r.height * dpr));
@@ -2665,7 +2682,7 @@
     limbCv = c; limbM = m;
   }
   function drawLimb(cx, cy, R) {
-    var dpr = window.devicePixelRatio || 1, key = R.toFixed(1) + "/" + dpr + "/" + limbFont + "/" + rimScale + "/" + LIMB_OUT;
+    var dpr = Math.min(window.devicePixelRatio || 1, 2), key = R.toFixed(1) + "/" + dpr + "/" + limbFont + "/" + rimScale + "/" + LIMB_OUT;
     if (key !== limbKey) { buildLimb(R, dpr); limbKey = key; }
     ctx.globalAlpha = rimAwake() ? (rimLock ? 0.84 : 1) : 0.55;   /* a resting or absent rim sits back */
     ctx.drawImage(limbCv, cx - limbM, cy - limbM, limbM * 2, limbM * 2);
@@ -2742,14 +2759,22 @@
     } finally {
       ac = keep.ac; master = keep.master; noiseBuf = keep.noise; revBuf = keep.rev; droneNodes = keep.nodes; drone = keep.drone;
       freeOn = keep.free; droneOct = keep.oct; freeOct = keep.foct; freeCents = keep.cents; playing = keep.playing;
-      rimBus = keep.rb; rimAc = keep.ra; droneVol = keep.dv; droneER = keep.er; droneKey = keep.dk; window.__yantraOff = null;
+      rimBus = keep.rb; rimAc = keep.ra; droneVol = keep.dv; droneER = keep.er; droneKey = keep.dk; rimLive = 0; window.__yantraOff = null;
+    }
+    if (o.timing) {
+      var marks = [], lastMark = 0, piece = o.timing;
+      for (var tm = piece; tm < o.secs; tm += piece) {
+        (function (at) { off.suspend(at).then(function () { var n = performance.now(); marks.push(Math.round(n - lastMark)); lastMark = n; off.resume(); }); })(tm);
+      }
+      lastMark = performance.now();
+      return off.startRendering().then(function () { marks.push(Math.round(performance.now() - lastMark)); return marks; });
     }
     return off.startRendering().then(function (buf) { return Array.prototype.slice.call(buf.getChannelData(0)); });
   };
   window.__yantraSet = function (k, v) { if (k === "drums") { DEMO.drums = !!v; } if (k in TUNE) { TUNE[k] = v; } if (k in KT) { KT[k] = v; } if (k in RT) { RT[k] = v; } if (k === "rimEA") { rimEA = v; } if (k === "rimED") { rimED = v; } return TUNE; };
   var TUNE = { duck: 1, out: 0.8 };
   window.__yantraDemo = function () {
-    return { rimEA: rimEA, rimED: rimED, drone: drone, free: freeOn, engine: !!droneNodes,
+    return { look: lookNow, rimLive: rimLive, rimEA: rimEA, rimED: rimED, drone: drone, free: freeOn, engine: !!droneNodes,
              hum: droneNodes && droneNodes.hum ? droneNodes.hum.gain.value : null, rim: rimNotes.length };
   };
   function droneOn() {
@@ -3319,7 +3344,7 @@
                    "प", "ध॒", "ध", "नि॒", "नि"];
   /* fields in rising pitch: lowest at the bottom, then side to side up to the top, as on a handpan */
   var RIM_ORDER = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];   /* Sa at the top, rising clockwise */
-  var rimMode = 0;
+  var rimMode = 0, rimLive = 0;
   var RT = { level: 0.22, thr: 0, ratio: 1, makeup: 1 };
   /* the rim is a voice like the shapes: added or not, resting or not; Keep is its one extra switch */
   var rimOn = true, rimRest = false, rimKeep = false, rimLock = false, rimVol = 0.6;
@@ -3372,7 +3397,7 @@
   /* a struck steel tone field: fundamental, octave and twelfth, tuned true, each dying at its own rate */
   function rimVoice(freq, t, vel) {
     if (!rimBus || rimAc !== ac) {
-      rimAc = ac;
+      rimAc = ac; rimLive = 0;
       rimBus = ac.createGain(); rimBus.gain.value = RT.level * rimVol;
       var rcomp = ac.createDynamicsCompressor(), rout = ac.createGain();
       rcomp.threshold.value = RT.thr; rcomp.knee.value = 10; rcomp.ratio.value = RT.ratio;
@@ -3383,8 +3408,11 @@
       if (rv) { var rs = ac.createGain(); rs.gain.value = 0.32; rimBus.connect(rs); rs.connect(rv); rv.connect(master); }
     }
     var parts = [[1, 1, 0.55], [2, 0.42, 0.36], [3, 0.2, 0.2]], i;
-    for (i = 0; i < parts.length; i++) {
+    /* a busy, fast melody can pile up dozens of ringing tones; past a point each new note brings fewer of them */
+    var nParts = rimLive > 44 ? 1 : (rimLive > 28 ? 2 : 3);
+    for (i = 0; i < nParts; i++) {
       var o = ac.createOscillator(), g = ac.createGain();
+      rimLive++; o.onended = function () { rimLive = Math.max(0, rimLive - 1); };
       o.type = "sine"; o.frequency.value = freq * parts[i][0];
       g.gain.setValueAtTime(0, t);
       /* a longer ring is laid a little quieter, so stretched notes do not pile up into the ceiling */
@@ -3709,7 +3737,12 @@
       }
     }
   }
-  function draw() {
+  /* drawn at most 60 times a second while something moves, and about 20 when the dial is at rest */
+  var drawLast = 0;
+  function draw(ts) {
+    var dnow = typeof ts === "number" ? ts : now_(), busy = playing || !!drag || !!rimHold || !!rimModePress;
+    if (dnow - drawLast < (busy ? 15 : 48)) { requestAnimationFrame(draw); return; }
+    drawLast = dnow;
     var r = cv.getBoundingClientRect();
     var w = r.width, h = r.height;
     ctx.clearRect(0, 0, w, h);
