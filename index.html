@@ -3391,7 +3391,11 @@
       var eA = Math.max(0.005, rimAttack()), eL = rimLength(), eV = vel / Math.sqrt(Math.max(1, eL));
       g.gain.linearRampToValueAtTime(parts[i][1] * eV, t + eA);
       g.gain.setTargetAtTime(0, t + eA, parts[i][2] * eL);
-      o.connect(g); g.connect(rimBus); o.start(t); o.stop(t + eA + Math.min(4.5 * eL, parts[i][2] * eL * 6.2 + 0.05));
+      var eTau = parts[i][2] * eL, eEnd = t + eA + eTau * 6.2, ePk = parts[i][1] * eV;
+      /* at eEnd the tone is about 54 dB down; from there a short straight fade takes it to nothing */
+      g.gain.setValueAtTime(ePk * Math.exp(-6.2), eEnd);
+      g.gain.linearRampToValueAtTime(0, eEnd + 0.06);
+      o.connect(g); g.connect(rimBus); o.start(t); o.stop(eEnd + 0.08);
     }
     if (noiseBuf) {                             /* the finger */
       var n = ac.createBufferSource(), bp = ac.createBiquadFilter(), ng = ac.createGain();
