@@ -1006,6 +1006,52 @@
   .layer .inst.rim-keep.locked { color: var(--kansa); }
   .layer .inst.rim-keep.locked::before { background: var(--kansa); box-shadow: none; border-radius: 0; }
 </style>
+
+<style>
+  /* ================= small text, sized to be read =================
+     Three floors: micro-labels 11 px, things you press 12 to 13 px, quiet advice 15 px.
+     Letter-spacing eases as the size goes up, so the lines stay the same length. */
+
+  /* micro-labels, at every width */
+  html body .hint { font-size: 0.69rem; letter-spacing: 0.11em; }
+  html body .grp { font-size: 0.68rem; letter-spacing: 0.2em; }
+  html body .vol-wrap .ctrl-label, html body .layer .vol-inline .ctrl-label { font-size: 0.66rem; letter-spacing: 0.1em; width: 2.1em; }
+  html body .vpct { font-size: 0.68rem; width: 2.7em; }
+  /* the hints set in the verse italic keep their face and their own size */
+  html body .stage-hint, html body .rd-meta, html body .about-meta .mi .k { letter-spacing: 0.01em; }
+
+  @media (max-width: 760px) {
+    /* signposts: the spaced capitals */
+    html body .eyebrow, html body .mono-label, html body .scroll-cue, html body .rd-tab, html body .mobile-cta,
+    html body .social-row a, html body footer span { font-size: 0.78rem; letter-spacing: 0.14em; }
+    html body .sec-head .mono-label.deva { font-size: 1.35rem; letter-spacing: 0; }
+    html body .rd-toggle, html body .share-btn { font-size: 0.84rem; }
+    html body .pc-label { flex-wrap: wrap; gap: 0.2rem 0.8rem; }
+
+    /* things you press in the Yantra's panel */
+    html body .row button { font-size: 0.82rem; }
+    html body .layer .nm { font-size: 0.72rem; letter-spacing: 0.08em; width: 8em; }
+    html body .layer .inst { font-size: 0.76rem; letter-spacing: 0.06em; min-width: 4.8em; padding: 0.35rem 0; }
+    html body .layer .own-wrap .inst { font-size: 0.86rem; padding: 0.12rem 0; }
+    html body .layer .nudge { font-size: 0.86rem; min-width: 2.6rem; min-height: 1.1rem; line-height: 1; }
+    html body .layer .rm { font-size: 1rem; min-width: 2rem; min-height: 2rem; }
+    html body .bpm { font-size: 0.8rem; }
+    html body .gear-item { font-size: 0.86rem; }
+
+    /* quiet advice: the italic */
+    /* (and on the narrowest phones the matra gives up a little of its right margin, so the row keeps to two lines) */
+    html body .stage-hint, html body .rd-meta, html body .about-meta .mi .k { font-size: 0.94rem; }
+    html body .rd-line { font-size: 0.98rem; }
+    html body .about-meta .mi .v { font-size: 1rem; }
+
+    /* the three dots that open a verse: larger, and easier to land a thumb on */
+    html body .reveal-mark { font-size: 1rem; opacity: 0.85; display: inline-block; padding: 0.3em 0.45em; margin: -0.3em 0; }
+  }
+  @media (max-width: 380px) {
+    html body .layer .own-wrap { margin-right: 1.4rem; }
+    html body .layer .nm { width: 7.6em; }
+  }
+</style>
 </head>
 <body>
 <canvas id="skyCv" aria-hidden="true"></canvas>
@@ -2767,7 +2813,7 @@
     /* guide marks */
     var guides = [[0, "Sa"], [702, "Pa"], [1200, "\u1E60a"]];
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.font = "italic 300 12px 'Spectral', serif";
+    ctx.font = "italic 300 13px 'Spectral', serif";
     for (i = 0; i < guides.length; i++) {
       a = freeAngle(guides[i][0]);
       ctx.beginPath(); ctx.arc(cx + pr * Math.cos(a), cy + pr * Math.sin(a), 2, 0, Math.PI * 2);
@@ -2829,7 +2875,7 @@
       ly = Math.max(ly, (live ? 17 : 15) * 1.15);    /* keep the tivra stroke inside the canvas */
       ctx.font = "italic 300 " + (live ? 17 : 15) + "px \'Spectral\', serif";
       var nw = ctx.measureText(sw.name).width;
-      ctx.font = "italic 300 12px 'Spectral', serif";
+      ctx.font = "italic 300 13px 'Spectral', serif";
       var ow = ctx.measureText(offTxt).width, gap = 4, tw = nw + gap + ow;
       ctx.textAlign = "left";
       ctx.font = "italic 300 " + (live ? 17 : 15) + "px \'Spectral\', serif";
@@ -2844,7 +2890,7 @@
         ctx.beginPath(); ctx.moveTo(lx - tw / 2 + nw * 0.5, ly - fs * 0.95); ctx.lineTo(lx - tw / 2 + nw * 0.5, ly - fs * 0.6);
         ctx.strokeStyle = "#f5efe4"; ctx.lineWidth = 1; ctx.stroke();
       }
-      ctx.font = "italic 300 12px 'Spectral', serif";
+      ctx.font = "italic 300 13px 'Spectral', serif";
       ctx.fillStyle = Math.abs(sw.off) <= 5 ? DRONE_COL : "rgba(245,239,228,0.55)";
       ctx.fillText(offTxt, lx - tw / 2 + nw + gap, ly + 1);
       ctx.textAlign = "center";
@@ -3046,7 +3092,7 @@
     ctx.save();
     ctx.globalAlpha = 0.95;
     ctx.beginPath(); ctx.arc(g.x, g.y, g.rr, 0, Math.PI * 2); ctx.strokeStyle = DRONE_COL; ctx.lineWidth = 2; ctx.stroke();
-    ctx.font = "italic 300 12px 'Spectral', serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.font = "italic 300 13px 'Spectral', serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
     ctx.fillStyle = "#f5efe4"; ctx.fillText("reset", g.x, g.y + g.rr + 10);
     drawUndoIcon();
     ctx.restore();
@@ -3106,10 +3152,10 @@
       ctx.font = font;
       cText(t, Math.max(k.x, 5 + ctx.measureText(t).width / 2), y, font, col, "center");
     }
-    var ly = k.y + k.r + 10 * k.s, cf = "italic 300 " + (12 * k.s).toFixed(1) + "px 'Spectral', serif";
+    var ly = k.y + k.r + 10 * k.s, cf = "italic 300 " + (13 * k.s).toFixed(1) + "px 'Spectral', serif";
     label(saptakName(droneOct), ly, cf, "#f5efe4");
     if (live) {
-      var nf = "italic 300 " + (11 * k.s).toFixed(1) + "px 'Spectral', serif", dim = "rgba(245,239,228,0.45)";
+      var nf = "italic 300 " + (12 * k.s).toFixed(1) + "px 'Spectral', serif", dim = "rgba(245,239,228,0.45)";
       if (droneOct < OCT_HI) { label(saptakName(droneOct + 1), k.y - k.r - 17 * k.s, nf, dim); }
       if (droneOct > OCT_LO) { label(saptakName(droneOct - 1), ly + 13 * k.s, nf, dim); }
     }
@@ -3130,7 +3176,7 @@
         ctx.strokeStyle = FREE_PULSE_COL; ctx.lineWidth = 1.8; ctx.stroke();
       }
     }
-    var cf = "italic 300 " + (12 * g.s).toFixed(1) + "px 'Spectral', serif";
+    var cf = "italic 300 " + (13 * g.s).toFixed(1) + "px 'Spectral', serif";
     cText("hum", g.rxl, g.ry + g.rr + 10 * g.s, cf, pulseOn ? "rgba(245,239,228,0.65)" : "#f5efe4");
     cText("pulse", g.rxr, g.ry + g.rr + 10 * g.s, cf, pulseOn ? "#f5efe4" : "rgba(245,239,228,0.65)");
     ctx.globalAlpha = 1;
