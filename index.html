@@ -2791,7 +2791,7 @@
   window.__yantraSet = function (k, v) { if (k === "drums") { DEMO.drums = !!v; } if (k in TUNE) { TUNE[k] = v; } if (k in KT) { KT[k] = v; } if (k in RT) { RT[k] = v; } if (k === "rimEA") { rimEA = v; } if (k === "rimED") { rimED = v; } return TUNE; };
   var TUNE = { duck: 1, out: 0.8 };
   window.__yantraDemo = function () {
-    return { look: lookNow, rimLive: rimLive, rimLen: rimLen(), rimFull: rimFull(), rimSnap: rimSnap, rimOffs: rimOffs.slice(), rimSteps: rimNotes.map(function (n) { return n.step; }), rimEA: rimEA, rimED: rimED, drone: drone, free: freeOn, engine: !!droneNodes,
+    return { look: lookNow, rimLive: rimLive, picker: picker ? picker.mode : "", shapes: shapes.map(function (q) { return q.n + ":" + q.inst + ":" + q.own + (q.silent ? ":silent" : ""); }), rimLen: rimLen(), rimFull: rimFull(), rimSnap: rimSnap, rimOffs: rimOffs.slice(), rimSteps: rimNotes.map(function (n) { return n.step; }), rimEA: rimEA, rimED: rimED, drone: drone, free: freeOn, engine: !!droneNodes,
              hum: droneNodes && droneNodes.hum ? droneNodes.hum.gain.value : null, rim: rimNotes.length };
   };
   function droneOn() {
@@ -3861,7 +3861,7 @@
   /* drawn at most 60 times a second while something moves, and about 20 when the dial is at rest */
   var drawLast = 0;
   function draw(ts) {
-    var dnow = typeof ts === "number" ? ts : now_(), busy = playing || !!drag || !!rimHold || !!rimModePress;
+    var dnow = typeof ts === "number" ? ts : now_(), busy = playing || !!drag || !!rimHold || !!rimModePress || !!picker;
     if (dnow - drawLast < (busy ? 15 : 48)) { requestAnimationFrame(draw); return; }
     drawLast = dnow;
     var r = cv.getBoundingClientRect();
@@ -3976,6 +3976,7 @@
       ctx.lineTo(cx + reach * Math.cos(a), cy + reach * Math.sin(a));
       ctx.strokeStyle = DEMO.brass ? "rgba(245,239,228,0.75)" : "rgba(245,239,228,0.5)"; ctx.lineWidth = 1; ctx.stroke();
     }
+    drawPicker(cx, cy, R);
     requestAnimationFrame(draw);
   }
   /* ---------- hit testing ---------- */
@@ -4023,8 +4024,8 @@
     return best;
   }
   /* the shape whose side is nearest a tap, sounding or silent alike */
-  function shapeTapped(x, y) {
-    var best = null, bd = 22, i, k;
+  function shapeTapped(x, y, lim) {
+    var best = null, bd = lim || 22, i, k;
     for (i = 0; i < shapes.length; i++) {
       var s = shapes[i];
       for (k = 0; k < s.n; k++) {
@@ -4049,6 +4050,80 @@
     }
     return best;
   }
+  /* ---------- the shape picker ---------- */
+  var picker = null, shapeTap2 = null, emptyTap = null, PICK_LIFE = 7000;
+  function pickDefs() { var o = [], i; for (i = 3; i <= 16; i++) { o.push(defByN(i)); } return o; }
+  function pickGeo() {
+    var pr = geo.R * 0.56, gr = Math.max(11, geo.R * 0.08), defs = pickDefs(), o = [], i, a;
+    for (i = 0; i < defs.length; i++) {
+      a = -Math.PI / 2 + i * Math.PI * 2 / defs.length;
+      o.push({ def: defs[i], a: a, x: geo.cx + pr * Math.cos(a), y: geo.cy + pr * Math.sin(a), r: gr });
+    }
+    return o;
+  }
+  function pickOpen(mode, s) { picker = { mode: mode, s: s || null, t: now_() }; try { if (navigator.vibrate) { navigator.vibrate(10); } } catch (e) {} }
+  /* a shape becomes another: its sound, level, envelope and turn stay; its corners start clean */
+  function morphShape(s, def) {
+    var home = s.own === s.n, i;
+    s.n = def.n; s.name = def.name; s.idx = SHAPES.indexOf(def);
+    s.ang = []; for (i = 0; i < def.n; i++) { s.ang.push(i / def.n); }
+    s.mutes = []; s.skips = []; s.oi = 0; s.nk = 0; s.ownN = -1;
+    if (home) { s.own = def.n; }                 /* on its home count it stays on the new home count */
+    rebuildOrder(s);
+    s.color = shapeCol(s);
+    recomputeRings();
+    if (playing && ac) { align(s); }
+    renderPanel();
+  }
+  function pickAt(x, y) {
+    var g = pickGeo(), best = null, bd = 1e9, i, d;
+    for (i = 0; i < g.length; i++) {
+      d = Math.sqrt(Math.pow(x - g[i].x, 2) + Math.pow(y - g[i].y, 2));
+      if (d < bd) { bd = d; best = g[i]; }
+    }
+    return best && bd < Math.max(20, best.r + 9) ? best.def : null;
+  }
+  /* a touch while the ring is open: on a free shape it is chosen; anywhere else the ring closes */
+  function pickTouch(x, y) {
+    var def = pickAt(x, y), p = picker;
+    picker = null;
+    if (!def || shapeOf(def.n)) { return; }
+    if (p.mode === "morph" && p.s && shapes.indexOf(p.s) !== -1) { morphShape(p.s, def); }
+    else if (p.mode === "add") { toggleShape(def); }
+    try { if (navigator.vibrate) { navigator.vibrate(8); } } catch (e) {}
+  }
+  function drawPicker(cx, cy, R) {
+    if (!picker) { return; }
+    if (now_() - picker.t > PICK_LIFE || (picker.mode === "morph" && shapes.indexOf(picker.s) === -1)) { picker = null; return; }
+    var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var e = still ? 1 : Math.min(1, (now_() - picker.t) / 190); e = 1 - Math.pow(1 - e, 3);
+    var g = pickGeo(), i, k;
+    ctx.save();
+    ctx.beginPath(); ctx.arc(cx, cy, R * LIMB_IN - 2, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(11,9,6," + (0.86 * e).toFixed(3) + ")"; ctx.fill();
+    /* a hairline ring the shapes sit on, as beads on a thread */
+    ctx.beginPath(); ctx.arc(cx, cy, R * 0.56 * (0.7 + 0.3 * e), 0, Math.PI * 2);
+    ctx.strokeStyle = "rgba(214,178,110," + (0.22 * e).toFixed(3) + ")"; ctx.lineWidth = 1; ctx.stroke();
+    for (i = 0; i < g.length; i++) {
+      var d = g[i].def, on = shapeOf(d.n), mine = picker.mode === "morph" && picker.s && picker.s.n === d.n;
+      var col = COLORS[SHAPES.indexOf(d) % COLORS.length];
+      var x = cx + (g[i].x - cx) * (0.7 + 0.3 * e), y = cy + (g[i].y - cy) * (0.7 + 0.3 * e), r = g[i].r;
+      ctx.globalAlpha = e * (mine ? 1 : (on ? 0.22 : 1));
+      ctx.beginPath();
+      for (k = 0; k < d.n; k++) {
+        var va = -Math.PI / 2 + k * Math.PI * 2 / d.n;
+        if (k === 0) { ctx.moveTo(x + r * Math.cos(va), y + r * Math.sin(va)); } else { ctx.lineTo(x + r * Math.cos(va), y + r * Math.sin(va)); }
+      }
+      ctx.closePath();
+      if (mine) { ctx.fillStyle = col; ctx.fill(); }
+      ctx.strokeStyle = col; ctx.lineWidth = mine ? 2 : 1.5; ctx.stroke();
+      cText(String(d.n), x, y + 0.5, "500 " + Math.max(9, r * 0.82).toFixed(1) + "px 'IBM Plex Mono', ui-monospace, monospace", mine ? "#14110d" : "rgba(245,239,228,0.92)", "center");
+    }
+    ctx.globalAlpha = e;
+    cText(picker.mode === "morph" ? picker.s.name + " becomes" : "add a shape", cx, cy - Math.max(40, R * 0.27),
+          "italic 300 " + Math.max(13, R * 0.085).toFixed(1) + "px 'Spectral', serif", "rgba(245,239,228,0.9)", "center");
+    ctx.restore();
+  }
   /* ---------- interaction ---------- */
   var drag = null;
   var OCT_PULL = 30;
@@ -4058,6 +4133,11 @@
   }
   function angleAt(x, y) { return Math.atan2(y - geo.cy, x - geo.cx); }
   function down(x, y) {
+    if (picker) {
+      pickTouch(x, y);
+      drag = { mode: "ring", s: null, k: -1, moved: false, dist: 0 };
+      return true;
+    }
     if (undoIconAt(x, y)) {
       undoStep();
       drag = { mode: "ring", s: null, k: -1, moved: false, dist: 0 };
@@ -4086,7 +4166,7 @@
       return true;
     }
     if (rimMarkHit(x, y)) {
-      rimSnap = (rimSnap + 1) % 3; rimSnapAll(); renderPanel();
+      rimSnap = rimSnap ? 0 : 1; rimSnapAll(); renderPanel();
       drag = { mode: "ring", s: null, k: -1, moved: false, dist: 0 };
       return true;
     }
@@ -4163,7 +4243,18 @@
       return true;
     }
     var s = nearShape(x, y);
-    if (!s) { return false; }
+    if (!s) {
+      if (distC(x, y) < geo.R * LIMB_IN - 8 && distC(x, y) > 40) {
+        var en = Date.now();
+        if (emptyTap && en - emptyTap.t < NODE_DBL + 40 && Math.abs(x - emptyTap.x) < 30 && Math.abs(y - emptyTap.y) < 30) {
+          emptyTap = null; pickOpen("add", null);
+          drag = { mode: "ring", s: null, k: -1, moved: false, dist: 0 };
+          return true;
+        }
+        emptyTap = { t: en, x: x, y: y };
+      }
+      return false;
+    }
     drag = { mode: "shape", s: s, k: -1, a0: angleAt(x, y), r0: s.rot,
              moved: false, dist: 0,
              gr: Math.max(30, Math.sqrt(Math.pow(x - geo.cx, 2) + Math.pow(y - geo.cy, 2))), lockPx: MOVE_LOCK };
@@ -4417,10 +4508,29 @@
       renderPanel();
     }
     if (drag && drag.mode === "shape" && !drag.moved && !drag.longDone && !drag.shaping && !drag.axis) {
-      var ts = shapeTapped(drag.px, drag.py) || drag.s;
-      ts.silent = !ts.silent;
-      try { if (navigator.vibrate) { navigator.vibrate(8); } } catch (e) {}
-      renderPanel();
+      var tsn = Date.now(), tpx = drag.px, tpy = drag.py;
+      if (shapeTap2 && tsn - shapeTap2.t < NODE_DBL && shapes.indexOf(shapeTap2.s) !== -1 &&
+          Math.abs(tpx - shapeTap2.x) < 30 && Math.abs(tpy - shapeTap2.y) < 30) {
+        /* the second tap: the first tap's mute is taken back and the ring opens for that shape */
+        shapeTap2.s.silent = shapeTap2.was;
+        if (undoStack.length === shapeTap2.depth + 1) { undoLast = undoStack.pop(); }
+        var ps = shapeTap2.s; shapeTap2 = null;
+        pickOpen("morph", ps);
+        renderPanel();
+        drag = null; return;
+      }
+      var ts = shapeTapped(tpx, tpy, 14);
+      if (ts) {
+        shapeTap2 = { s: ts, t: tsn, was: ts.silent, depth: undoStack.length, x: tpx, y: tpy };
+        ts.silent = !ts.silent;
+        try { if (navigator.vibrate) { navigator.vibrate(8); } } catch (e) {}
+        renderPanel();
+      } else if (distC(tpx, tpy) < geo.R * LIMB_IN - 8 && distC(tpx, tpy) > 40) {
+        /* near a side but not on it: empty space */
+        if (emptyTap && tsn - emptyTap.t < NODE_DBL + 40 && Math.abs(tpx - emptyTap.x) < 30 && Math.abs(tpy - emptyTap.y) < 30) {
+          emptyTap = null; pickOpen("add", null);
+        } else { emptyTap = { t: tsn, x: tpx, y: tpy }; }
+      }
     }
     drag = null;
   }
@@ -4829,9 +4939,9 @@
       row2.appendChild(rk);
       var rqw = document.createElement("span"); rqw.className = "own-wrap";
       var rq = document.createElement("button"); rq.className = "inst"; rq.id = "rimSnapBtn";
-      rq.appendChild(document.createTextNode(rimSnap === 2 ? "snap · 32 · two turns" : "snap · " + (rimSnap ? rimGrid() : "off")));
-      rq.title = "Snap: pull each kept note onto the steps. First sixteen steps, one turn of the Yantra; then thirty-two steps over two turns, the second half empty until you fill it.";
-      rq.addEventListener("click", function (e) { e.preventDefault(); rimSnap = (rimSnap + 1) % 3; rimSnapAll(); renderPanel(); }, false);
+      rq.appendChild(document.createTextNode("snap · " + (rimSnap ? "on" : "off")));
+      rq.title = "Snap: pull each kept note onto the nearest of the plate's sixteen steps.";
+      rq.addEventListener("click", function (e) { e.preventDefault(); rimSnap = rimSnap ? 0 : 1; rimSnapAll(); renderPanel(); }, false);
       rqw.appendChild(rq);
       var rmw = document.createElement("span"); rmw.className = "own-wrap";
       var rmb = document.createElement("button"); rmb.className = "inst"; rmb.id = "rimOwnBtn";
@@ -5551,7 +5661,7 @@
     }
     var fl = p[2] || "000";
     rimOn = fl.charAt(0) === "1"; rimRest = fl.charAt(1) === "1"; rimKeep = fl.charAt(2) === "1"; rimLock = fl.charAt(3) === "1"; rimPost = fl.charAt(4) === "1";
-    rimSnap = Math.max(0, Math.min(2, parseInt(p[4], 10) || 0));
+    rimSnap = Math.max(0, Math.min(1, parseInt(p[4], 10) || 0));
     rimOffs = []; rimFullWas = 0; rimStash = { notes: [], offs: [] };
     var po = p[3] ? String(p[3]).split("-") : [], pk;
     for (i = 0; i < po.length; i++) { pk = parseInt(po[i], 10); if (pk >= 0) { rimOffs.push(pk); } }
@@ -5604,6 +5714,7 @@
       var q = list[i].split("-"), st = parseInt(q[0], 10), fd = parseInt(q[1], 10);
       if (st >= 0 && st < RIM_RES && fd >= 0 && fd < RIM_N && !seen[st + "/" + fd]) { seen[st + "/" + fd] = 1; rimNotes.push({ step: st, field: fd, hold: 0 }); }
     }
+    if (rimSnap === 2) { rimSnap = 1; rimSync(); rimStash = { notes: [], offs: [] }; }   /* two turns: the first one */
     rimPost = rimNotes.length > 0 && !rimLock;
     if (rimBus && ac && rimAc === ac) { rimBus.gain.setTargetAtTime(RT.level * rimVol, ac.currentTime, 0.012); }
   }
