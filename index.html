@@ -1804,7 +1804,9 @@
       for (var ti = 0; ti < nodes.length; ti++) { try { nodes[ti].disconnect(); } catch (e) {} }
     };
   }
-  var KT = { drive: 4, bias: 0.5, lp: 1000, level: 0.34, knock: 0.12, click0: 0.14, keyfix: true, choke: false, tight: false, click: false, mid: 0.55, midLen: 0.22, midAt: 0, knockAt: 0 };
+  /* less sub tail and more body (100-400 Hz) than before: the output compressor answers to the sub, so a lighter
+     sub lets the body through, and the body is what phone and Bluetooth speakers play */
+  var KT = { drive: 4, bias: 0.5, lp: 1000, level: 0.2, knock: 0.32, click0: 0.14, keyfix: true, choke: false, tight: false, click: false, mid: 0.95, midLen: 0.18, midAt: 0, knockAt: 0 };
   var KICK_CURVE = null, KICK_KEY = "", KICK_OWNER = null, KICK_LOOSE = {}, KICK_PULSE = null;
   function kickCurve() {
     if (KICK_KEY !== KT.drive + "/" + KT.bias) { KICK_CURVE = null; KICK_KEY = KT.drive + "/" + KT.bias; }
@@ -4969,7 +4971,7 @@
       var row2 = document.createElement("span"); row2.className = "own-wrap";
       var rk = document.createElement("button"); rk.className = "inst rim-keep" + (rimKeep ? " on" : rimLock ? " locked" : ""); rk.id = "rimKeepBtn";
       rk.setAttribute("aria-pressed", rimKeep ? "true" : "false");
-      rk.appendChild(document.createTextNode(rimLock ? "locked" : rimKeep ? (playing ? "keeping" : "keep · press play") : "free"));
+      rk.appendChild(document.createTextNode(rimLock ? "locked" : rimKeep ? (playing ? "keeping" : "keep · press play") : (rimPost && rimNotes.length ? "free · pattern held" : "free")));
       rk.title = "Free: strikes sound and are not kept. Keeping: each strike is recorded and returns every turn. Locked: the kept melody plays on and touches do nothing.";
       rk.addEventListener("click", function (e) { e.preventDefault(); rimCycleMode(); }, false);
       row2.appendChild(rk);
