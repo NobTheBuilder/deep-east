@@ -1200,7 +1200,6 @@
         <canvas id="cv"></canvas>
         <button id="playBtn" class="transport" aria-label="Play"><span id="glyph">&#9654;</span></button>
       </div>
-      <p class="hint stage-hint">Tap a node to silence &middot; Drag a node to syncopate</p>
       <p class="hint stage-hint" id="astat" style="margin-top:0.4rem;color:#8c4734;display:none;"></p>
     </div>
     <div class="panel">
@@ -4970,7 +4969,7 @@
       var row2 = document.createElement("span"); row2.className = "own-wrap";
       var rk = document.createElement("button"); rk.className = "inst rim-keep" + (rimKeep ? " on" : rimLock ? " locked" : ""); rk.id = "rimKeepBtn";
       rk.setAttribute("aria-pressed", rimKeep ? "true" : "false");
-      rk.appendChild(document.createTextNode(rimLock ? "locked" : rimKeep ? (playing ? "keeping" : "keep · press play") : (rimPost && rimNotes.length ? "free · pattern held" : "free")));
+      rk.appendChild(document.createTextNode(rimLock ? "locked" : rimKeep ? (playing ? "keeping" : "keep · press play") : "free"));
       rk.title = "Free: strikes sound and are not kept. Keeping: each strike is recorded and returns every turn. Locked: the kept melody plays on and touches do nothing.";
       rk.addEventListener("click", function (e) { e.preventDefault(); rimCycleMode(); }, false);
       row2.appendChild(rk);
