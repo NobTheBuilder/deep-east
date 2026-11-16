@@ -3377,10 +3377,12 @@
   /* 0 off; 1 sixteen steps, one turn; 2 thirty-two steps, two turns. A step is always a sixteenth of a turn,
      whatever the drone's pulse is. */
   var rimSnap = 0;
-  function rimGrid() { return rimSnap ? RIM_HOME * rimSnap : 0; }
+  /* 3 is thirty-two steps, two turns, with snap off. A tap on the beads goes 0, 1, 3, 2 and round again. */
+  function rimSnapNext() { rimSnap = [1, 3, 0, 2][rimSnap] || 0; }
+  function rimGrid() { return rimSnap === 1 || rimSnap === 2 ? RIM_HOME * rimSnap : 0; }
   /* how many steps the whole plate holds: sixteen, or thirty-two with the five beads */
   var rimStash = { notes: [], offs: [] };
-  function rimFull() { return RIM_HOME * (rimSnap === 2 ? 2 : 1); }
+  function rimFull() { return RIM_HOME * (rimSnap >= 2 ? 2 : 1); }
   /* rimOffs lists the steps that are switched off. When the plate grows from 16 steps to 32, everything moves
      into its first half and anything put aside earlier returns to the second; when it shrinks, the second half
      is put aside. */
@@ -3641,8 +3643,8 @@
   }
   function drawRimMark(cx, cy) {
     if (!rimOn) { return; }
-    var mr = rimMarkR(), n = rimSnap === 2 ? 5 : 3, span = 0.085 * (rimSnap === 2 ? 1.15 : 1), i;
-    var dot = Math.max(2, geo.R * (rimSnap === 2 ? 0.011 : 0.014));
+    var mr = rimMarkR(), n = rimSnap >= 2 ? 5 : 3, span = 0.085 * (rimSnap >= 2 ? 1.15 : 1), i, lit = rimGrid() > 0;
+    var dot = Math.max(2, geo.R * (rimSnap >= 2 ? 0.011 : 0.014));
     ctx.globalAlpha = rimRest ? 0.35 : 1;
     /* a fine brass arc carries the dots, so they read as part of the instrument and not as stars */
     ctx.beginPath(); ctx.arc(cx, cy, mr, RIM_MARK_AT - span * 1.5, RIM_MARK_AT + span * 1.5);
@@ -3650,8 +3652,8 @@
     for (i = 0; i < n; i++) {
       var a = RIM_MARK_AT + (i - (n - 1) / 2) * (span * 2 / (n - 1));
       ctx.beginPath(); ctx.arc(cx + mr * Math.cos(a), cy + mr * Math.sin(a), dot, 0, RIM_TAU);
-      ctx.fillStyle = rimSnap ? "#e9cb8c" : "#12100d"; ctx.fill();
-      ctx.strokeStyle = rimSnap ? "#e9cb8c" : "rgba(214,178,110,0.85)"; ctx.lineWidth = 1.2; ctx.stroke();
+      ctx.fillStyle = lit ? "#e9cb8c" : "#12100d"; ctx.fill();
+      ctx.strokeStyle = lit ? "#e9cb8c" : "rgba(214,178,110,0.85)"; ctx.lineWidth = 1.2; ctx.stroke();
     }
     ctx.globalAlpha = 1;
   }
@@ -3813,16 +3815,16 @@
         ctx.beginPath(); ctx.arc(cx, cy, gr, -Math.PI / 2 + (rimOffs[oi] - 0.4) * RIM_TAU / rF, -Math.PI / 2 + (rimOffs[oi] + 0.6) * RIM_TAU / rF + 0.004); ctx.stroke();
       }
     }
-    if ((rimSnap || rShort || rimLock) && rimAwake()) {
+    if ((rimGrid() || rShort || rimLock) && rimAwake()) {
       /* one dot to a step: bright with snap on, fainter without; a locked plate shows them so a step can be tapped */
-      var gN = rimSnap ? rimGrid() : rF, gi;
+      var gN = rimGrid() ? rimGrid() : rF, gi;
       for (gi = 0; gi < gN; gi++) {
         var ga = -Math.PI / 2 + gi * RIM_TAU / gN, big = gN <= 16, gone = rShort && rimIsOff(Math.floor(gi * rF / gN + 0.001));
-        ctx.fillStyle = "rgba(255,246,222," + (gone ? 0.2 : (rimSnap ? 0.8 : 0.45)) + ")";
+        ctx.fillStyle = "rgba(255,246,222," + (gone ? 0.2 : (rimGrid() ? 0.8 : 0.45)) + ")";
         ctx.beginPath(); ctx.arc(cx + gr * Math.cos(ga), cy + gr * Math.sin(ga), big ? Math.max(1.3, bw * 0.045) : Math.max(0.9, bw * 0.028), 0, RIM_TAU); ctx.fill();
       }
     }
-    if (playing && ac && (rShort || rimSnap === 2) && rimAwake() && rimNotes.length) {
+    if (playing && ac && (rShort || rimSnap >= 2) && rimAwake() && rimNotes.length) {
       var bha = -Math.PI / 2 + rimWhere((viewClock() - t0) / T) * RIM_TAU;
       ctx.beginPath(); ctx.moveTo(cx + (rIn - 3) * Math.cos(bha), cy + (rIn - 3) * Math.sin(bha));
       ctx.lineTo(cx + (rOut + 3) * Math.cos(bha), cy + (rOut + 3) * Math.sin(bha));
@@ -4166,7 +4168,7 @@
       return true;
     }
     if (rimMarkHit(x, y)) {
-      rimSnap = rimSnap ? 0 : 1; rimSnapAll(); renderPanel();
+      rimSnapNext(); rimSnapAll(); renderPanel();
       drag = { mode: "ring", s: null, k: -1, moved: false, dist: 0 };
       return true;
     }
@@ -4511,9 +4513,7 @@
       var tsn = Date.now(), tpx = drag.px, tpy = drag.py;
       if (shapeTap2 && tsn - shapeTap2.t < NODE_DBL && shapes.indexOf(shapeTap2.s) !== -1 &&
           Math.abs(tpx - shapeTap2.x) < 30 && Math.abs(tpy - shapeTap2.y) < 30) {
-        /* the second tap: the first tap's mute is taken back and the ring opens for that shape */
-        shapeTap2.s.silent = shapeTap2.was;
-        if (undoStack.length === shapeTap2.depth + 1) { undoLast = undoStack.pop(); }
+        /* the second tap: the ring opens for that shape */
         var ps = shapeTap2.s; shapeTap2 = null;
         pickOpen("morph", ps);
         renderPanel();
@@ -4521,10 +4521,8 @@
       }
       var ts = shapeTapped(tpx, tpy, 14);
       if (ts) {
-        shapeTap2 = { s: ts, t: tsn, was: ts.silent, depth: undoStack.length, x: tpx, y: tpy };
-        ts.silent = !ts.silent;
-        try { if (navigator.vibrate) { navigator.vibrate(8); } } catch (e) {}
-        renderPanel();
+        /* one tap on a side does nothing: on a phone it was too easy to silence a shape by mistake */
+        shapeTap2 = { s: ts, t: tsn, x: tpx, y: tpy };
       } else if (distC(tpx, tpy) < geo.R * LIMB_IN - 8 && distC(tpx, tpy) > 40) {
         /* near a side but not on it: empty space */
         if (emptyTap && tsn - emptyTap.t < NODE_DBL + 40 && Math.abs(tpx - emptyTap.x) < 30 && Math.abs(tpy - emptyTap.y) < 30) {
@@ -4939,9 +4937,9 @@
       row2.appendChild(rk);
       var rqw = document.createElement("span"); rqw.className = "own-wrap";
       var rq = document.createElement("button"); rq.className = "inst"; rq.id = "rimSnapBtn";
-      rq.appendChild(document.createTextNode("snap · " + (rimSnap ? "on" : "off")));
-      rq.title = "Snap: pull each kept note onto the nearest of the plate's sixteen steps.";
-      rq.addEventListener("click", function (e) { e.preventDefault(); rimSnap = rimSnap ? 0 : 1; rimSnapAll(); renderPanel(); }, false);
+      rq.appendChild(document.createTextNode("snap · " + (rimSnap === 3 ? "two turns · off" : rimSnap === 2 ? "two turns" : rimSnap ? "on" : "off")));
+      rq.title = "Snap: pull each kept note onto the nearest of the plate's sixteen steps, or thirty-two over two turns.";
+      rq.addEventListener("click", function (e) { e.preventDefault(); rimSnapNext(); rimSnapAll(); renderPanel(); }, false);
       rqw.appendChild(rq);
       var rmw = document.createElement("span"); rmw.className = "own-wrap";
       var rmb = document.createElement("button"); rmb.className = "inst"; rmb.id = "rimOwnBtn";
@@ -5661,7 +5659,7 @@
     }
     var fl = p[2] || "000";
     rimOn = fl.charAt(0) === "1"; rimRest = fl.charAt(1) === "1"; rimKeep = fl.charAt(2) === "1"; rimLock = fl.charAt(3) === "1"; rimPost = fl.charAt(4) === "1";
-    rimSnap = Math.max(0, Math.min(1, parseInt(p[4], 10) || 0));
+    rimSnap = Math.max(0, Math.min(3, parseInt(p[4], 10) || 0));
     rimOffs = []; rimFullWas = 0; rimStash = { notes: [], offs: [] };
     var po = p[3] ? String(p[3]).split("-") : [], pk;
     for (i = 0; i < po.length; i++) { pk = parseInt(po[i], 10); if (pk >= 0) { rimOffs.push(pk); } }
@@ -5677,7 +5675,7 @@
     for (i = 0; i < rimNotes.length; i++) { o.push(rimNotes[i].step + "-" + rimNotes[i].field); }
     rimSync();
     var act = rimActive(), tail = act[act.length - 1] === act.length - 1;
-    return "T" + [tail ? act.length + "s" : "a" + rimOffs.join("_"), rimSnap === 2 ? 3 : rimSnap, Math.round(rimEA * 100), Math.round(rimED * 100), Math.round(rimVol * 1000),
+    return "T" + [tail ? act.length + "s" : "a" + rimOffs.join("_"), rimSnap === 3 ? 4 : rimSnap === 2 ? 3 : rimSnap, Math.round(rimEA * 100), Math.round(rimED * 100), Math.round(rimVol * 1000),
                   (rimRest ? "1" : "0") + (rimLock ? "1" : "0"), o.join("_")].join(".");
   }
   function rimShareFind(code) {
@@ -5692,7 +5690,7 @@
     var f = str.substring(1).split("."), num = function (v, d) { var n = parseInt(v, 10); return isNaN(n) ? d : n; }, i;
     rimOn = true;
     var sv = num(f[1], 0), fine = sv === 2;
-    rimSnap = sv === 3 ? 2 : (sv === 1 || fine ? 1 : 0);
+    rimSnap = sv === 4 ? 3 : sv === 3 ? 2 : (sv === 1 || fine ? 1 : 0);
     rimFullWas = 0; rimStash = { notes: [], offs: [] };
     var f0 = String(f[0] || ""), full0 = fine ? RIM_HOME * 2 : rimFull(), oi2, ol, raw = [];
     if (f0.charAt(0) === "a") {
@@ -5714,7 +5712,6 @@
       var q = list[i].split("-"), st = parseInt(q[0], 10), fd = parseInt(q[1], 10);
       if (st >= 0 && st < RIM_RES && fd >= 0 && fd < RIM_N && !seen[st + "/" + fd]) { seen[st + "/" + fd] = 1; rimNotes.push({ step: st, field: fd, hold: 0 }); }
     }
-    if (rimSnap === 2) { rimSnap = 1; rimSync(); rimStash = { notes: [], offs: [] }; }   /* two turns: the first one */
     rimPost = rimNotes.length > 0 && !rimLock;
     if (rimBus && ac && rimAc === ac) { rimBus.gain.setTargetAtTime(RT.level * rimVol, ac.currentTime, 0.012); }
   }
