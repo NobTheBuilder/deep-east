@@ -3495,12 +3495,32 @@
     o.sort(function (p, q) { return p - q; });
     rimOffs = o; rimGlow = [];
   }
+  /* with snap off the studs follow the finger freely; the steps that are off still move by whole steps */
+  function rimShiftFree(du, ds) {
+    rimSync();
+    var f = rimFull(), i, o = [];
+    for (i = 0; i < rimNotes.length; i++) { rimNotes[i].step = (((rimNotes[i].step + du) % RIM_RES) + RIM_RES) % RIM_RES; }
+    if (ds) {
+      for (i = 0; i < rimOffs.length; i++) { o.push((((rimOffs[i] + ds) % f) + f) % f); }
+      o.sort(function (p, q) { return p - q; });
+      rimOffs = o;
+    }
+    rimGlow = [];
+  }
   function rimSlideTo(x, y) {
     var sl = rimEnv.slide, a = angleAt(x, y), da = a - sl.ang;
     if (da > Math.PI) { da -= Math.PI * 2; }
     if (da < -Math.PI) { da += Math.PI * 2; }
     sl.ang = a; sl.raw += da;
     var k = Math.round(sl.raw / (RIM_TAU / rimFull()));
+    if (!rimGrid()) {
+      var u = Math.round(sl.raw / RIM_TAU * RIM_RES);
+      if (u !== (sl.fine || 0) || k !== sl.done) {
+        rimShiftFree(u - (sl.fine || 0), k - sl.done); sl.fine = u;
+        if (k !== sl.done) { sl.done = k; try { if (navigator.vibrate) { navigator.vibrate(4); } } catch (e0) {} }
+      }
+      return;
+    }
     if (k !== sl.done) {
       rimShiftTrack(k - sl.done); sl.done = k;
       try { if (navigator.vibrate) { navigator.vibrate(4); } } catch (e) {}
@@ -3820,7 +3840,7 @@
     drawRimMark(cx, cy);
     if (rimEnv && !drag) { rimEnv = null; }
     if (rimEnv && rimEnv.track && !rimEnv.on && !rimEnv.slide && now_() - rimEnv.t >= 480) {
-      /* held still on the note track: it lifts, and the finger slides it round a step at a time */
+      /* held still on the note track: it lifts, and the finger slides it round (freely, or by steps with snap on) */
       rimEnv.slide = { ang: angleAt(rimEnv.px, rimEnv.py), raw: 0, done: 0 };
       try { if (navigator.vibrate) { navigator.vibrate(12); } } catch (e) {}
     }
@@ -4238,7 +4258,8 @@
        so there a finger's width (24 px) still counts */
     var vOut = nearOuterVertex(x, y);
     var nodeFirst = !!vOut && !nearFreeDot(x, y) && !nearPitchMarker(x, y);
-    if (!nodeFirst && onFreeArc(x, y) && (!DEMO.bead || nearFreeDot(x, y))) {
+    /* the pitch harmonic's arc answers anywhere along it: a tap plays that note; the key arc stays bead-only */
+    if (!nodeFirst && onFreeArc(x, y)) {
       var onDot = nearFreeDot(x, y);
       drag = { mode: "free", s: null, k: -1, moved: false, dist: 0, onDot: onDot,
                wasOn: freeOn, oct0: freeOct,
